@@ -2,6 +2,12 @@ import hljs from "highlight.js";
 import 'highlight.js/styles/github-dark-dimmed.css';
 
 
+const scrollToBottom = () => {
+    let messages = document.getElementById("chat")!
+    messages.scrollTo(0, messages.scrollHeight);
+}
+
+
 function renderMessage(message: string, direction: 'me' | 'them', chat: HTMLElement): string {
     const ident = (Math.random() + 1).toString(36).substring(2);
     const m = `
@@ -30,6 +36,7 @@ function run() {
             const inner = elem.querySelector('.inner-message')! as HTMLElement;
 
             inner.innerHTML = "<span class=\"loading\"></span>";
+            scrollToBottom()
 
             fetch(
                 '/',
@@ -50,6 +57,7 @@ function run() {
                     inner.querySelectorAll('pre code').forEach((block) => {
                         hljs.highlightElement(<HTMLElement>block);
                     });
+                    scrollToBottom()
 
                     inner.querySelectorAll('.code-header >.copy').forEach((copyElem) => {
                         copyElem.addEventListener('click', (copyEvent) => {

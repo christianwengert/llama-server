@@ -49077,6 +49077,10 @@
   var es_default = import_lib.default;
 
   // server/static/js/app.ts
+  var scrollToBottom = () => {
+    let messages = document.getElementById("chat");
+    messages.scrollTo(0, messages.scrollHeight);
+  };
   function renderMessage(message, direction, chat) {
     const ident = (Math.random() + 1).toString(36).substring(2);
     const m = `
@@ -49100,6 +49104,7 @@
         const elem = document.getElementById(ident);
         const inner = elem.querySelector(".inner-message");
         inner.innerHTML = '<span class="loading"></span>';
+        scrollToBottom();
         fetch(
           "/",
           {
@@ -49118,6 +49123,7 @@
             inner.querySelectorAll("pre code").forEach((block) => {
               es_default.highlightElement(block);
             });
+            scrollToBottom();
             inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
               copyElem.addEventListener("click", (copyEvent) => {
                 copyEvent.preventDefault();
