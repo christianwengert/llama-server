@@ -49106,40 +49106,37 @@
             method: "POST",
             cache: "no-cache",
             credentials: "same-origin",
-            // include, *same-origin, omit
             headers: {
-              "Content-Type": "application/json"
-              // 'Content-Type': 'application/x-www-form-urlencoded',
+              "Content-Type": "application/text"
             },
             body: m
           }
         ).then((response) => __async(this, null, function* () {
           response.text().then((answer) => {
-            inner.innerText = answer;
+            inner.innerHTML = answer;
             textInput.contentEditable = "true";
+            inner.querySelectorAll("pre code").forEach((block) => {
+              es_default.highlightElement(block);
+            });
+            inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
+              copyElem.addEventListener("click", (copyEvent) => {
+                copyEvent.preventDefault();
+                const target = copyEvent.target;
+                const t = target.parentElement.nextElementSibling.innerText;
+                navigator.clipboard.writeText(t);
+                target.innerText = "Copied";
+                target.style.cursor = "auto";
+                setInterval(() => {
+                  target.innerText = "Copy";
+                  target.style.cursor = "pointer";
+                }, 3e3);
+              });
+            });
           });
         }));
       }
     });
   }
   run();
-  document.querySelectorAll("pre code").forEach((block) => {
-    es_default.highlightElement(block);
-  });
-  document.querySelectorAll(".code-header >.copy").forEach((e) => {
-    e.addEventListener("click", (e2) => {
-      e2.preventDefault();
-      const target = e2.target;
-      const block = target.closest(".code-block");
-      const t = block.querySelector("code").innerText;
-      navigator.clipboard.writeText(t);
-      target.innerText = "Copied";
-      target.style.cursor = "auto";
-      setInterval(() => {
-        target.innerText = "Copy";
-        target.style.cursor = "pointer";
-      }, 3e3);
-    });
-  });
 })();
 //# sourceMappingURL=app.js.map

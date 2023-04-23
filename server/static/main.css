@@ -89,12 +89,25 @@ pre code {
     cursor: pointer;
 }
 
+#chat {
+    max-height: calc(100vh - 120px);
+    overflow: scroll;
+}
+
 .chat-input {
     position: absolute;
     bottom: 0;
     margin-bottom: 48px;
     width: 100%;
+}
 
+.chat-instruction {
+    position: absolute;
+    bottom: 96px;
+    font-size: 0.8rem;
+    color: rgb(52, 53, 65);
+    width: 80%;
+    margin-left: calc(10% - 4px);
 }
 
 .input-box {
