@@ -1,6 +1,6 @@
 import secrets
-from flask import Flask, render_template, request, session
-from flask_session import Session
+from flask import Flask, render_template, request, session, abort
+# from flask_session import Session
 from langchain import LlamaCpp, ConversationChain
 from langchain.memory import ConversationBufferMemory
 from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTemplate, ChatPromptTemplate
@@ -8,16 +8,18 @@ from langchain.prompts import SystemMessagePromptTemplate, HumanMessagePromptTem
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
-app.config["SESSION_PERMANENT"] = True
-app.config["SESSION_COOKIE_SECURE"] = True
-app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 30  # 30'
-app.config["SESSION_TYPE"] = "filesystem"
-Session(app)
+# app.config["SESSION_PERMANENT"] = True
+# app.config["SESSION_COOKIE_SECURE"] = True
+# app.config["PERMANENT_SESSION_LIFETIME"] = 60 * 30  # 30'
+# app.config["SESSION_TYPE"] = "filesystem"
+# Session(app)
+
+ais = {}
 
 
 def create_conversation() -> ConversationChain:
     llm = LlamaCpp(model_path="/Users/christianwengert/src/llama/alpaca.cpp-webui/bin/vicuna.ggml.bin",
-                   temperature=0.8, n_threads=8,
+                   temperature=0.8, n_threads=4,
                    n_ctx=2048,
                    n_batch=512,
                    max_tokens=256,
@@ -40,13 +42,21 @@ def create_conversation() -> ConversationChain:
 
 @app.route("/")
 def hello_world():
-    session['llm'] = create_conversation()  # every session has its own conversation?
+    token = session.get('llm', None)
+    if token is None:
+        token = secrets.token_hex(32)
+        session['llm'] = token
+        ais[token] = create_conversation()
+
     return render_template('index.html')
 
 
 @app.route('/', methods=["POST"])
 def get_input():
-    conversation = session['llm']
+    token = session.get('llm', None)
+    conversation = ais.get(token, None)
+    if not conversation:
+        abort(400)
     binary = request.data
     text = binary.decode('utf8')
     answer = conversation.predict(input=text)
