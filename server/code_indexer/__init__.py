@@ -59,6 +59,7 @@ chat_history = []
 
 for question in questions:
     result = qa({"question": question, "chat_history": chat_history})
+
     chat_history.append((question, result['answer']))
     print(f"-> **Question**: {question} \n")
     print(f"**Answer**: {result['answer']} \n")

@@ -88,9 +88,28 @@ pre code {
     margin-left: auto;
     cursor: pointer;
 }
+#header {
+    height: 48px;
+    padding-top: 16px;
+    padding-bottom: 16px;
+    display: flex;
+    margin: auto;
+    width: 80vw;
+    background-color: white;
+}
+#logo {
+    margin-right: 16px;
+}
+.header-inner {
+    margin-right: 16px;
+}
+.header-inner:last-of-type {
+    margin-left: auto;
+    margin-right: 0;
+}
 
 #chat {
-    max-height: calc(100vh - 120px);
+    max-height: calc(100vh - 120px - 64px);
     overflow: scroll;
 }
 
