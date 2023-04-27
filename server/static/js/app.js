@@ -25,26 +25,6 @@
     isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
     mod
   ));
-  var __async = (__this, __arguments, generator) => {
-    return new Promise((resolve, reject) => {
-      var fulfilled = (value) => {
-        try {
-          step(generator.next(value));
-        } catch (e) {
-          reject(e);
-        }
-      };
-      var rejected = (value) => {
-        try {
-          step(generator.throw(value));
-        } catch (e) {
-          reject(e);
-        }
-      };
-      var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
-      step((generator = generator.apply(__this, __arguments)).next());
-    });
-  };
 
   // node_modules/highlight.js/lib/core.js
   var require_core = __commonJS({
@@ -49103,27 +49083,25 @@
         const ident = renderMessage("", "them", chat);
         const elem = document.getElementById(ident);
         const inner = elem.querySelector(".inner-message");
-        inner.innerHTML = '<span class="loading"></span>';
         scrollToBottom();
-        fetch(
-          "/",
-          {
-            method: "POST",
-            cache: "no-cache",
-            credentials: "same-origin",
-            headers: {
-              "Content-Type": "application/text"
-            },
-            body: m
+        const xhr = new XMLHttpRequest();
+        xhr.open("POST", "/");
+        let seenBytes = 0;
+        xhr.onreadystatechange = function() {
+          if (xhr.readyState == 3) {
+            const newData = xhr.response.substring(seenBytes);
+            inner.innerHTML += newData;
+            seenBytes = xhr.responseText.length;
+            scrollToBottom();
           }
-        ).then((response) => __async(this, null, function* () {
-          response.text().then((answer) => {
-            inner.innerHTML = answer;
+          if (xhr.readyState == 4) {
             textInput.contentEditable = "true";
+            const pattern = /```([a-z]+)? ?([^`]*)```/;
+            const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
+            inner.innerHTML = inner.innerText.replace(pattern, rep);
             inner.querySelectorAll("pre code").forEach((block) => {
               es_default.highlightElement(block);
             });
-            scrollToBottom();
             inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
               copyElem.addEventListener("click", (copyEvent) => {
                 copyEvent.preventDefault();
@@ -49138,10 +49116,18 @@
                 }, 3e3);
               });
             });
-          });
-        }));
+            textInput.focus();
+          }
+        };
+        xhr.addEventListener("error", function(e2) {
+          console.log("error: " + e2);
+        });
+        xhr.send(m);
       }
     });
+    setTimeout(() => {
+      textInput.focus();
+    }, 100);
   }
   run();
 })();

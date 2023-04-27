@@ -4,7 +4,7 @@ from langchain.chains import ConversationalRetrievalChain
 from langchain.document_loaders import TextLoader
 from langchain.embeddings.llamacpp import LlamaCppEmbeddings
 from langchain.memory import ConversationBufferMemory
-from langchain.text_splitter import CharacterTextSplitter
+from langchain.text_splitter import CharacterTextSplitter, PythonCodeTextSplitter
 
 
 MODEL_PATH = "/Users/christianwengert/src/llama/alpaca.cpp-webui/bin/vicuna.ggml.bin"
@@ -24,13 +24,13 @@ for dirpath, dirnames, filenames in os.walk(ROOT_DIR):
                 pass
 print(f'Number of files: {len(docs)}')
 
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+text_splitter = PythonCodeTextSplitter(chunk_size=1000, chunk_overlap=0)
 texts = text_splitter.split_documents(docs)
 print(f"Number of texts: {len(texts)}")
 
 embeddings = LlamaCppEmbeddings(model_path=MODEL_PATH)
 
-db = FAISS.from_documents([texts[0]], embeddings)
+db = FAISS.from_documents(texts, embeddings)
 # db = Chroma.from_documents(texts, embeddings)
 retriever = db.as_retriever()
 # retriever.search_kwargs['distance_metric'] = 'cos'

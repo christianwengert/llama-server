@@ -23,6 +23,7 @@ function run() {
     const chat = document.getElementById('chat')!;
 
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
+
     textInput.addEventListener('keypress', (e) => {
         if (e.key === 'Enter' && e.shiftKey === false) {
             e.preventDefault();
@@ -35,30 +36,32 @@ function run() {
             const elem = document.getElementById(ident)!;
             const inner = elem.querySelector('.inner-message')! as HTMLElement;
 
-            inner.innerHTML = "<span class=\"loading\"></span>";
             scrollToBottom()
 
-            fetch(
-                '/',
-                {
-                    method: "POST",
-                    cache: "no-cache",
-                    credentials: "same-origin",
-                    headers: {
-                        "Content-Type": "application/text",
-                    },
-                    body: m
-                }
-            ).then(async (response) => {
-                response.text().then(answer => {
-                    inner.innerHTML = answer;
-                    textInput.contentEditable = "true";
+            const xhr = new XMLHttpRequest();
+            xhr.open('POST', '/');
 
+            let seenBytes = 0;
+            xhr.onreadystatechange = function () {
+
+                if (xhr.readyState == 3) {  // streaming
+                    const newData = xhr.response.substring(seenBytes);
+                    inner.innerHTML += newData;
+                    seenBytes = xhr.responseText.length;
+                    scrollToBottom()
+                }
+                if (xhr.readyState == 4) {  // done
+                    textInput.contentEditable = "true";
+                    // adapt markdown
+                    const pattern = /```([a-z]+)? ?([^`]*)```/
+                    const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`
+                    inner.innerHTML = inner.innerText.replace(pattern, rep)
+
+                    // highlight code
                     inner.querySelectorAll('pre code').forEach((block) => {
                         hljs.highlightElement(<HTMLElement>block);
                     });
-                    scrollToBottom()
-
+                    // set up copy to clipboard buttons
                     inner.querySelectorAll('.code-header >.copy').forEach((copyElem) => {
                         copyElem.addEventListener('click', (copyEvent) => {
                             copyEvent.preventDefault();
@@ -77,12 +80,27 @@ function run() {
                             }, 3000)
                         })
                     })
-                })
-            })
+
+                    textInput.focus()
+                }
+            };
+
+            xhr.addEventListener("error", function (e) {
+                console.log("error: " + e);
+            });
+            xhr.send(m);
         }
+
     })
+    setTimeout(() => {
+        textInput.focus()
+
+    }, 100)
 }
 
 run()
+
+
+
 
 

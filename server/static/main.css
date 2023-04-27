@@ -16,34 +16,33 @@ body {
 .inner-message {
     margin: auto;
     width: 80vw;
+    white-space: pre-wrap;
+    min-height: 12px;
 }
+
 
 .message:before {
     content: "X";
     position: absolute;
     top: 17px;
     left: calc(10vw - 48px);
-    /*left: 5px;*/
     background-color: rgb(88, 185, 157);
     color: white;
     font-size: 0.8rem;
     font-weight: lighter;
-    padding: 5px;
-    border-radius: 2px;
-    width: 16px;
-    height: 16px;
-    line-height: 18px;
+    border-radius: 4px;
+    width: 22px;
+    height: 22px;
+    line-height: 24px;
     text-align: center;
 }
 
 .from-them {
     background-color: rgb(247, 247, 248);
-
-
 }
 
 .from-them:before {
-    content: "B";
+    content: "AI";
 }
 
 .from-me {
@@ -51,12 +50,14 @@ body {
 }
 
 .from-me:before {
-    content: "U";
+    content: "ME";
 }
 
 pre {
     margin-top: 0;
+    position: relative;
 }
+
 
 pre code {
     padding-top: 0;
@@ -80,9 +81,6 @@ pre code {
     border-top-right-radius: 2px;
 }
 
-.code-header > .language {
-
-}
 
 .code-header > .copy {
     margin-left: auto;
@@ -90,7 +88,8 @@ pre code {
 }
 #header {
     height: 48px;
-    padding-top: 16px;
+    line-height: 48px;
+    /*padding-top: 16px;*/
     padding-bottom: 16px;
     display: flex;
     margin: auto;
@@ -101,11 +100,18 @@ pre code {
     margin-right: 16px;
 }
 .header-inner {
-    margin-right: 16px;
+    /*margin-right: 16px;*/
+    padding-left:16px;
+    padding-right:16px;
+    cursor: pointer;
+}
+.header-inner.selected {
+    background-color: #b4f1b4;
 }
 .header-inner:last-of-type {
     margin-left: auto;
     margin-right: 0;
+    cursor: default;
 }
 
 #chat {
@@ -146,31 +152,4 @@ select:focus,
 textarea:focus,
 button:focus {
     outline: none;
-}
-
-
-.loading {
-    /*font-size: 30px;*/
-}
-
-.loading:after {
-    overflow: hidden;
-    display: inline-block;
-    vertical-align: bottom;
-    -webkit-animation: ellipsis steps(4, end) 900ms infinite;
-    animation: ellipsis steps(4, end) 900ms infinite;
-    content: "\2026"; /* ascii code for the ellipsis character */
-    width: 0;
-}
-
-@keyframes ellipsis {
-    to {
-        width: 1.25em;
-    }
-}
-
-@-webkit-keyframes ellipsis {
-    to {
-        width: 1.25em;
-    }
 }
