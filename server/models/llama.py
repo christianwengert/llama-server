@@ -1,10 +1,9 @@
 import queue
 import threading
+import time
 from typing import Callable
 from langchain import ConversationChain, LlamaCpp, BasePromptTemplate
-from langchain.callbacks import CallbackManager
 from langchain.memory import ConversationBufferMemory
-from streaming import StreamingLlamaHandler
 
 
 def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_input: str):
@@ -17,7 +16,11 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
     compounded_answer = ""
     while True:
         # wait for an item from the queue
-        item = q.get()  # type: str
+        try:
+            item = q.get()  # type: str
+        except IndexError:
+            time.sleep(0.01)
+            continue
         compounded_answer += item
         if compounded_answer.startswith(" "):  # Hack to get rid off the first space
             item = item.lstrip()
@@ -31,14 +34,14 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
 
 
 def create_conversation(q: queue.Queue, model_path: str, prompt: BasePromptTemplate) -> ConversationChain:
-    handler = StreamingLlamaHandler(q)
+    # handler = StreamingLlamaHandler(q)
+
     llm = LlamaCpp(model_path=model_path,
                    temperature=0.8,
                    n_threads=8,
                    n_ctx=2048,
                    n_batch=512,
-                   max_tokens=256,
-                   callback_manager=CallbackManager([handler])
+                   max_tokens=512,
                    )
 
     conversation_chain = ConversationChain(

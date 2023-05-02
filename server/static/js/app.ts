@@ -35,6 +35,7 @@ function run() {
             const ident = renderMessage('', 'them', chat)
             const elem = document.getElementById(ident)!;
             const inner = elem.querySelector('.inner-message')! as HTMLElement;
+            inner.innerHTML = '<div class="loading"></div>'
 
             scrollToBottom()
 
@@ -46,17 +47,20 @@ function run() {
 
                 if (xhr.readyState == 3) {  // streaming
                     const newData = xhr.response.substring(seenBytes);
+                    if (inner.querySelector('.loading')) {
+                        inner.innerHTML = "";
+                    }
                     inner.innerHTML += newData;
                     seenBytes = xhr.responseText.length;
-                    scrollToBottom()
                 }
                 if (xhr.readyState == 4) {  // done
                     textInput.contentEditable = "true";
                     // adapt markdown
-                    const pattern = /```([a-z]+)? ?([^`]*)```/
+                    const pattern = /```([a-z]+)? ?([^`]*)```/g
                     const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`
                     inner.innerHTML = inner.innerText.replace(pattern, rep)
 
+                    scrollToBottom()
                     // highlight code
                     inner.querySelectorAll('pre code').forEach((block) => {
                         hljs.highlightElement(<HTMLElement>block);
@@ -69,7 +73,7 @@ function run() {
 
                             const t = (target.parentElement!.nextElementSibling! as HTMLElement).innerText;
                             // Copy the text inside the text field
-                            navigator.clipboard.writeText(t);
+                            navigator.clipboard.writeText(t).then(() => {});
                             target.innerText = 'Copied'
                             target.style.cursor = 'auto'
 

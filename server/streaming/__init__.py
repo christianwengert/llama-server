@@ -1,13 +1,13 @@
 from typing import Any, Dict, List, Union
-# noinspection PyProtectedMember
-from langchain.callbacks import BaseCallbackHandler
+from langchain.callbacks.base import BaseCallbackHandler
 from langchain.schema import LLMResult, AgentAction, AgentFinish
 
 
 class StreamingLlamaHandler(BaseCallbackHandler):
 
-    def __init__(self, q):
-        self.queue = q
+    def __init__(self, fun):
+        # self.queue = q
+        self.fun = fun
 
     @property
     def always_verbose(self) -> bool:
@@ -16,7 +16,8 @@ class StreamingLlamaHandler(BaseCallbackHandler):
 
     def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
         """Run on new LLM token. Only available when streaming is enabled."""
-        self.queue.put(token)
+        print(token)
+        self.fun(token)
 
     def on_llm_start(
         self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
@@ -26,7 +27,7 @@ class StreamingLlamaHandler(BaseCallbackHandler):
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
         """Run when LLM ends running."""
         print('done')
-        self.queue.put("THIS IS THE END%^&*")
+        self.fun("THIS IS THE END%^&*")
 
     def on_llm_error(
         self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
