@@ -7,8 +7,8 @@ from langchain.memory import ConversationBufferMemory
 from langchain.text_splitter import CharacterTextSplitter, PythonCodeTextSplitter
 
 
-MODEL_PATH = "/Users/christianwengert/src/llama/alpaca.cpp-webui/bin/vicuna.ggml.bin"
-
+# MODEL_PATH = "/Users/christianwengert/src/llama/alpaca.cpp-webui/bin/vicuna.ggml.bin"
+MODEL_PATH = "/Users/christianwengert/Downloads/OpenAssistant-30B-epoch7.ggml.q5_0.bin"
 ROOT_DIR = '/Users/christianwengert/src/filedrop/app/modules/'
 
 
@@ -28,7 +28,7 @@ text_splitter = PythonCodeTextSplitter(chunk_size=1000, chunk_overlap=0)
 texts = text_splitter.split_documents(docs)
 print(f"Number of texts: {len(texts)}")
 
-embeddings = LlamaCppEmbeddings(model_path=MODEL_PATH)
+embeddings = LlamaCppEmbeddings(model_path=MODEL_PATH, n_ctx=2048, n_threads=8)
 
 db = FAISS.from_documents(texts, embeddings)
 # db = Chroma.from_documents(texts, embeddings)

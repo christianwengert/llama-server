@@ -5,7 +5,7 @@ from langchain.embeddings import LlamaCppEmbeddings
 from langchain.memory import ConversationBufferMemory
 from langchain.text_splitter import CharacterTextSplitter, PythonCodeTextSplitter, NLTKTextSplitter
 
-from server import MODEL_PATH
+MODEL_PATH = "/Users/christianwengert/Downloads/OpenAssistant-30B-epoch7.ggml.q5_0.bin"
 
 loader = PyPDFLoader("/Users/christianwengert/Downloads/2012-688.pdf")
 pages = loader.load_and_split()
@@ -17,7 +17,7 @@ print(f"Number of texts: {len(texts)}")
 # Make sure we do not have more than x tokens
 # texts[0].page_content = texts[0].page_content[0:1000]
 
-db = FAISS.from_documents(texts, LlamaCppEmbeddings(model_path=MODEL_PATH))
+db = FAISS.from_documents(texts[0:5], LlamaCppEmbeddings(model_path=MODEL_PATH, n_threads=8, n_ctx=2048))
 
 retriever = db.as_retriever()
 
