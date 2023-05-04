@@ -1,8 +1,8 @@
-from langchain import OpenAI, PromptTemplate, LLMChain, LlamaCpp
+from langchain import LlamaCpp
 from langchain.document_loaders import PyPDFLoader
 from langchain.text_splitter import CharacterTextSplitter
-from langchain.chains.mapreduce import MapReduceChain
-from langchain.prompts import PromptTemplate
+from langchain.chains.summarize import load_summarize_chain
+
 
 MODEL_PATH = "/Users/christianwengert/Downloads/OpenAssistant-30B-epoch7.ggml.q5_0.bin"
 
@@ -20,10 +20,7 @@ text_splitter = CharacterTextSplitter(chunk_size=500, chunk_overlap=0, separator
 texts = text_splitter.split_documents(pages)
 print(f"Number of texts: {len(texts)}")
 
-from langchain.docstore.document import Document
-
-# docs = [Document(page_content=t) for t in texts[0:5]]
-from langchain.chains.summarize import load_summarize_chain
 
 chain = load_summarize_chain(llm, chain_type="map_reduce")
-chain.run(texts[0:5])  # chain.run(texts)
+output = chain.run(texts[0:5])  # chain.run(texts)
+print(output)
