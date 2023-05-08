@@ -120,9 +120,17 @@ pre code {
 .header-inner.selected {
     background-color: #b4f1b4;
 }
+
+.header-inner:first-of-type {
+    margin-left: 0;
+    padding-left: 0;
+    /*margin-right: 0;*/
+    cursor: default;
+}
 .header-inner:last-of-type {
     margin-left: auto;
     margin-right: 0;
+    padding-right: 0;
     cursor: default;
 }
 

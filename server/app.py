@@ -1,11 +1,15 @@
+import os
 import queue
 import secrets
 from flask import Flask, render_template, request, session, abort, Response
-from models import setup_chat_model
+
+from models.vicuna import PROMPT, PROMPT_GPT4ALL
 from streaming import StreamingLlamaHandler
+from models.llama import streaming_answer_generator
+from models.llama import create_conversation
 
 
-streaming_answer_generator, create_conversation = setup_chat_model("oast")
+MODEL_PATH = '/Users/christianwengert/Downloads/'
 
 
 app = Flask(__name__)
@@ -22,12 +26,17 @@ CONVERSATIONS = {}
 @app.route("/")
 def index():
     token = session.get('llm', None)
-    if token is None:
+    set_model = session.get('model', None)
+    # check if model is set
+    model = request.args.get('model', 'vicuna-13b')
+    model_path = os.path.join(MODEL_PATH, f'{model}.bin')
+    if token is None or model != set_model:
         token = secrets.token_hex(32)
         session['llm'] = token
+        session['model'] = model
         q = queue.Queue()  # type: queue.Queue[str]
-        # q = collections.deque()
-        CONVERSATIONS[token] = (create_conversation(q), q)
+
+        CONVERSATIONS[token] = (create_conversation(q, model_path, PROMPT), q)
     if token not in CONVERSATIONS:
         abort(400)
 

@@ -18,6 +18,19 @@ function renderMessage(message: string, direction: 'me' | 'them', chat: HTMLElem
     return ident;
 }
 
+let modelChangeSelect = document.getElementById('model-change')! as HTMLSelectElement;
+modelChangeSelect!.addEventListener('change', ()=> {
+    document.location = '/?' + new URLSearchParams({
+        model: modelChangeSelect.value
+    })
+})
+const p = new URLSearchParams(document.location.search)
+if (p.get('model')) {
+    modelChangeSelect.value = p.get('model') || ""
+}
+
+
+
 function run() {
 
     const chat = document.getElementById('chat')!;

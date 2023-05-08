@@ -49859,6 +49859,16 @@
     chat.insertAdjacentHTML("beforeend", m);
     return ident;
   }
+  var modelChangeSelect = document.getElementById("model-change");
+  modelChangeSelect.addEventListener("change", () => {
+    document.location = "/?" + new URLSearchParams({
+      model: modelChangeSelect.value
+    });
+  });
+  var p = new URLSearchParams(document.location.search);
+  if (p.get("model")) {
+    modelChangeSelect.value = p.get("model") || "";
+  }
   function run() {
     const chat = document.getElementById("chat");
     const textInput = document.getElementById("input-box");
