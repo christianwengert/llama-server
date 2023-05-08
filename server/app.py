@@ -3,7 +3,8 @@ import queue
 import secrets
 from flask import Flask, render_template, request, session, abort, Response
 
-from models.vicuna import PROMPT, PROMPT_GPT4ALL
+# from models.gpt4all import GPT4ALL_PROMPT
+from models.vicuna import PROMPT
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
 from models.llama import create_conversation
@@ -36,7 +37,7 @@ def index():
         session['model'] = model
         q = queue.Queue()  # type: queue.Queue[str]
 
-        CONVERSATIONS[token] = (create_conversation(q, model_path, PROMPT), q)
+        CONVERSATIONS[token] = (create_conversation(model_path, PROMPT), q)
     if token not in CONVERSATIONS:
         abort(400)
 

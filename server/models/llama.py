@@ -33,8 +33,7 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
     thread.join()
 
 
-def create_conversation(q: queue.Queue, model_path: str, prompt: BasePromptTemplate) -> ConversationChain:
-    # handler = StreamingLlamaHandler(q)
+def create_conversation(model_path: str, prompt: BasePromptTemplate) -> ConversationChain:
 
     llm = LlamaCpp(model_path=model_path,
                    temperature=0.8,
