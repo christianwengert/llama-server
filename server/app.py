@@ -2,8 +2,6 @@ import os
 import queue
 import secrets
 from flask import Flask, render_template, request, session, abort, Response
-
-# from models.gpt4all import GPT4ALL_PROMPT
 from models.vicuna import PROMPT
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
@@ -52,12 +50,7 @@ def get_input():
         abort(400)
     binary = request.data
     text = binary.decode('utf8')
-    # q = queue.Queue()
 
-    # def run_as_thread(t, qq):
-    #     """
-    #     We run this as a thread to be able to get token by token so its cooler to wait
-    #     """
     def fun(t):
         q.put(t)
 
