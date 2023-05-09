@@ -28,7 +28,7 @@ print(f"Number of texts: {len(texts)}")
 # Store in vector DB
 embeddings = LlamaCppEmbeddings(model_path=MODEL_PATH, n_threads=8, n_ctx=2048, n_batch=512)
 
-if os.path.exists('~/Downloads/verifpal-manual.faiss'):
+if os.path.exists('~/Downloads/verifpal-manual.faiss'):  # todo: make the name dependeing on model and document
     print('Loading existing index')
     db = FAISS.load_local('~/Downloads/verifpal-manual.faiss', embeddings, 'index')
 else:
