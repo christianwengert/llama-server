@@ -2,8 +2,8 @@ import os
 import queue
 import secrets
 from flask import Flask, render_template, request, session, abort, Response
-from models.vicuna import PROMPT
 from streaming import StreamingLlamaHandler
+from models.vicuna import PROMPT
 from models.llama import streaming_answer_generator
 from models.llama import create_conversation
 
