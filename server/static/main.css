@@ -100,21 +100,17 @@ pre code {
     z-index: 2;
     height: 48px;
     line-height: 48px;
-    /*padding-top: 16px;*/
-    /*padding-bottom: 16px;*/
     display: flex;
     margin: auto;
     width: 80vw;
     background-color: white;
-    /*position: fixed;*/
 }
 #logo {
     margin-right: 16px;
 }
 .header-inner {
-    /*margin-right: 16px;*/
-    padding-left:16px;
-    padding-right:16px;
+    padding-left: 16px;
+    padding-right: 16px;
     cursor: pointer;
 }
 .header-inner.selected {
@@ -124,7 +120,6 @@ pre code {
 .header-inner:first-of-type {
     margin-left: 0;
     padding-left: 0;
-    /*margin-right: 0;*/
     cursor: default;
 }
 .header-inner:last-of-type {
@@ -152,7 +147,7 @@ pre code {
     font-size: 0.8rem;
     color: rgb(52, 53, 65);
     width: 80%;
-    margin-left: calc(10% - 4px);
+    margin-left: 10%;
 }
 
 .input-box {
@@ -164,6 +159,19 @@ pre code {
     border-radius: 4px;
     padding: 4px 8px;
     box-shadow: 5px 5px 15px 5px rgb(247, 247, 248);;
+}
+
+#stop-generating {
+    display: none;
+    right: 10%;
+    background-color: white;
+    border: none;
+    position: absolute;
+    bottom: 12px;
+}
+
+button:disabled {
+    display: none;
 }
 
 .input-box:focus,

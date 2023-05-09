@@ -49859,19 +49859,30 @@
     chat.insertAdjacentHTML("beforeend", m);
     return ident;
   }
-  var modelChangeSelect = document.getElementById("model-change");
-  modelChangeSelect.addEventListener("change", () => {
-    document.location = "/?" + new URLSearchParams({
-      model: modelChangeSelect.value
+  function setupModelChange() {
+    let modelChangeSelect = document.getElementById("model-change");
+    modelChangeSelect.addEventListener("change", () => {
+      document.location = "/?" + new URLSearchParams({
+        model: modelChangeSelect.value
+      });
     });
-  });
-  var p = new URLSearchParams(document.location.search);
-  if (p.get("model")) {
-    modelChangeSelect.value = p.get("model") || "";
+    const p = new URLSearchParams(document.location.search);
+    if (p.get("model")) {
+      modelChangeSelect.value = p.get("model") || "";
+    }
   }
   function run() {
+    setupModelChange();
+    const stopButton = document.getElementById("stop-generating");
+    stopButton.addEventListener("click", (e) => {
+      e.preventDefault();
+      console.log("X");
+    });
     const chat = document.getElementById("chat");
     const textInput = document.getElementById("input-box");
+    setTimeout(() => {
+      textInput.focus();
+    }, 100);
     textInput.addEventListener("keypress", (e) => {
       if (e.key === "Enter" && e.shiftKey === false) {
         e.preventDefault();
@@ -49879,6 +49890,7 @@
         renderMessage(textInput.innerText, "me", chat);
         textInput.innerText = "";
         textInput.contentEditable = "false";
+        stopButton.disabled = false;
         const ident = renderMessage("", "them", chat);
         const elem = document.getElementById(ident);
         const inner = elem.querySelector(".inner-message");
@@ -49898,6 +49910,7 @@
           }
           if (xhr.readyState == 4) {
             textInput.contentEditable = "true";
+            stopButton.disabled = true;
             const pattern = /```([a-z]+)? ?([^`]*)```/g;
             const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
             inner.innerHTML = inner.innerText.replace(pattern, rep);
@@ -49929,9 +49942,6 @@
         xhr.send(m);
       }
     });
-    setTimeout(() => {
-      textInput.focus();
-    }, 100);
   }
   run();
 })();
