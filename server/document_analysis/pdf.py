@@ -1,5 +1,4 @@
 import os.path
-
 from langchain import FAISS, LlamaCpp
 from langchain.chains import ConversationalRetrievalChain
 from langchain.document_loaders import PyPDFLoader
@@ -18,7 +17,6 @@ pages = loader.load_and_split()
 
 #
 text_splitter = RecursiveCharacterTextSplitter(
-    # Set a really small chunk size, just to show.
     chunk_size=2048,
     chunk_overlap=256,
     length_function=len,
@@ -53,7 +51,8 @@ qa = ConversationalRetrievalChain.from_llm(llm, retriever, memory=memory)
 
 questions = [
     "What is this paper about?",
-    "What primitives are supported?"
+    "What primitives are supported?",
+    "who is the evil man fighting verifgal"
 ]
 
 chat_history = list()
