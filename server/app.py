@@ -27,7 +27,7 @@ def index():
     token = session.get('llm', None)
     set_model = session.get('model', None)
     # check if model is set
-    model = request.args.get('model', 'vicuna-13b')
+    model = request.args.get('model', 'wizard-vicuna-13B.ggml.q5_0')
     model_path = os.path.join(MODEL_PATH, f'{model}.bin')
     if token is None or model != set_model:
         token = secrets.token_hex(32)
