@@ -10,7 +10,7 @@ from langchain.text_splitter import CharacterTextSplitter, PythonCodeTextSplitte
 # MODEL_PATH = "/Users/christianwengert/src/llama/alpaca.cpp-webui/bin/vicuna.ggml.bin"
 MODEL_PATH = "/Users/christianwengert/Downloads/OpenAssistant-30B-epoch7.ggml.q5_0.bin"
 ROOT_DIR = '/Users/christianwengert/src/filedrop/app/modules/'
-
+# from langchain.text_splitter import PythonCodeTextSplitter
 
 docs = []
 for dirpath, dirnames, filenames in os.walk(ROOT_DIR):

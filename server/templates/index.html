@@ -9,10 +9,7 @@
 <body>
 
 <div id="header">
-<!--    <div class="header-inner">_chat</div>-->
-<!--    <div class="header-inner">_summarize</div>-->
-<!--    <div class="header-inner">_code</div>-->
-    <div class="header-inner"><strong>chronos</strong>GPT</div>
+    <div class="header-inner"><a href="/" id="logo-link"><strong>chronos</strong>GPT</a></div>
     <div class="header-inner">
 
         <label>
@@ -23,16 +20,19 @@
                 <option value="vicuna-13b">vicuna-13b</option>
                 <option value="gpt4-alpaca-lora-30B.ggml.q5_0">gpt4-alpaca-lora-30B.ggml.q5_0</option>
                 <option value="OpenAssistant-30B-epoch7.ggml.q5_0">OpenAssistant-30B-epoch7.ggml.q5_0</option>
+                <option value="h2ogptq-oasst1-512-30B.ggml.q5_0">h2ogptq-oasst1-512-30B.ggml.q5_0</option>
+                <option value="stable-vicuna-13B.ggml.q5_0">stable-vicuna-13B.ggml.q5_0</option>
             </select>
         </label>
-
-
     </div>
 
 </div>
 <div class="container">
-
+    <div id="extra-content">
+        {{ extra_content|safe }}
+    </div>
     <div id="chat">
+
     </div>
     <div class="chat-instruction">Chat here</div>
     <div class="chat-input">
@@ -40,8 +40,12 @@
         <button id="stop-generating" disabled="disabled">
             Stop generating
         </button>
+        <div class="footer">
+            <a href="/about" id="help-button">about</a>
+        </div>
 
     </div>
+
 </div>
 
 </body>

@@ -141,6 +141,11 @@ pre code {
     width: 100%;
 }
 
+#extra-content {
+    width: 80vw;
+    margin: auto;
+}
+
 .chat-instruction {
     position: absolute;
     bottom: 96px;
@@ -207,4 +212,34 @@ button:focus {
     to {
         width: 1.25em;
     }
+}
+a {
+    text-decoration: none;
+}
+a:visited {
+    color: rgb(93, 65, 178);
+    text-decoration: underline;
+}
+#logo-link {
+    color: black !important;
+}
+
+.footer {
+    position: absolute;
+    margin: auto;
+    display: flex;
+    font-size: 0.8rem;
+    width: 100%;
+    top: 48px;
+    /*border-radius: 20px;*/
+    /*border: 1px solid lightgray;*/
+    /*margin: auto;*/
+    /*width: 16px;*/
+    /*height: 16px;*/
+    /*display: inline-block;*/
+    /*top: 20px;*/
+}
+#help-button {
+    margin: auto;
+
 }

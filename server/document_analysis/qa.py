@@ -1,29 +1,29 @@
-from langchain.document_loaders import TextLoader
-loader = TextLoader("../../state_of_the_union.txt")
-documents = loader.load()
-text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
-texts = text_splitter.split_documents(documents)
-
-embeddings = OpenAIEmbeddings()
-docsearch = Chroma.from_documents(texts, embeddings)
-
-# Running Chroma using direct local API.
-# Using DuckDB in-memory for database. Data will be transient.
-
-qa = RetrievalQA.from_chain_type(llm=OpenAI(), chain_type="stuff", retriever=docsearch.as_retriever())
-
-query = "What did the president say about Ketanji Brown Jackson"
-qa.run(query)
-
-#### combiner
-
-from langchain.chains.question_answering import load_qa_chain
-qa_chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff")
-qa = RetrievalQA(combine_documents_chain=qa_chain, retriever=docsearch.as_retriever())
-
-query = "What did the president say about Ketanji Brown Jackson"
-qa.run(query)
-
+# from langchain.document_loaders import TextLoader
+# loader = TextLoader("../../state_of_the_union.txt")
+# documents = loader.load()
+# text_splitter = CharacterTextSplitter(chunk_size=1000, chunk_overlap=0)
+# texts = text_splitter.split_documents(documents)
+#
+# embeddings = OpenAIEmbeddings()
+# docsearch = Chroma.from_documents(texts, embeddings)
+#
+# # Running Chroma using direct local API.
+# # Using DuckDB in-memory for database. Data will be transient.
+#
+# qa = RetrievalQA.from_chain_type(llm=OpenAI(), chain_type="stuff", retriever=docsearch.as_retriever())
+#
+# query = "What did the president say about Ketanji Brown Jackson"
+# qa.run(query)
+#
+# #### combiner
+#
+# from langchain.chains.question_answering import load_qa_chain
+# qa_chain = load_qa_chain(OpenAI(temperature=0), chain_type="stuff")
+# qa = RetrievalQA(combine_documents_chain=qa_chain, retriever=docsearch.as_retriever())
+#
+# query = "What did the president say about Ketanji Brown Jackson"
+# qa.run(query)
+#
 
 
 ####
