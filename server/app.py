@@ -8,7 +8,7 @@ from models.llama import streaming_answer_generator
 from models.llama import create_conversation
 
 
-MODEL_PATH = '/Users/christianwengert/Downloads/'
+MODEL_PATH = os.environ.get("MODEL_PATH", '/Users/christianwengert/Downloads/')
 
 
 app = Flask(__name__)
