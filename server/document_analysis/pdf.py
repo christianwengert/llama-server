@@ -52,6 +52,15 @@ llm = LlamaCpp(model_path=MODEL_PATH,
                max_tokens=256,
                )
 
+#
+from langchain.chains.summarize import load_summarize_chain
+# summary_chain = load_summarize_chain(llm, chain_type="map_reduce")
+# from langchain.chains import AnalyzeDocumentChain
+# summarize_document_chain = AnalyzeDocumentChain(combine_docs_chain=summary_chain)
+# summarize_document_chain.run()
+chain = load_summarize_chain(llm, chain_type="map_reduce")
+aa = chain.run(texts)
+
 # memory = ConversationBufferMemory(memory_key="chat_history", return_messages=True)
 # qa = ConversationalRetrievalChain.from_llm(llm, retriever, memory=memory, return_source_documents=True)
 qa = ConversationalRetrievalChain.from_llm(llm, retriever, return_source_documents=True)
