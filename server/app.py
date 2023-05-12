@@ -51,19 +51,6 @@ def get_input():
     binary = request.data
     text = binary.decode('utf8')
 
-    # current_ctx = conversation.prompt.template.format(history=conversation.memory.buffer, input=text)
-    # n_tokens = conversation.llm.get_num_tokens(current_ctx)
-    # print(f"Current tokens in use: {n_tokens}")
-    # some hack but faster. If we risk overflowing
-    # if conversation.llm.max_tokens > conversation.llm.n_ctx:
-    #     print("not sure if this is going to work great")
-    # if n_tokens > conversation.llm.n_ctx:  # - conversation.llm.max_tokens - 128:  # just have slight reserve
-    #     remove the first two messages
-        # if len(conversation.memory.chat_memory.messages) > 2:
-        #     m1 = conversation.memory.chat_memory.messages.pop()
-        #     m2 = conversation.memory.chat_memory.messages.pop()
-        #     print(f"Removing part of the conversation: {m1} {m2}")
-
     def fun(t):
         q.put(t)
 
