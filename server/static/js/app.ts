@@ -51,6 +51,7 @@ const run = () => {
 
     const chat = document.getElementById('chat')!;
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
+    const modelChangeSelector = document.getElementById('model-change')! as HTMLSelectElement
 
 
     setFocusToInputField(textInput);
@@ -65,6 +66,7 @@ const run = () => {
             textInput.innerText = '';
             textInput.contentEditable = "false";
             stopButton.disabled = false;
+            modelChangeSelector.disabled = true
 
             const ident = renderMessage('', 'them', chat)
             const elem = document.getElementById(ident)!;
@@ -97,6 +99,7 @@ const run = () => {
                 if (xhr.readyState == 4) {  // done
                     textInput.contentEditable = "true";
                     stopButton.disabled = true;
+                    modelChangeSelector.disabled = false;
                     // adapt markdown
                     const pattern = /```([a-z]+)? ?([^`]*)```/g
                     const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`

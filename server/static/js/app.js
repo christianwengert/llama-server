@@ -49885,6 +49885,7 @@
     });
     const chat = document.getElementById("chat");
     const textInput = document.getElementById("input-box");
+    const modelChangeSelector = document.getElementById("model-change");
     setFocusToInputField(textInput);
     textInput.addEventListener("keypress", handleInput);
     function handleInput(e) {
@@ -49895,6 +49896,7 @@
         textInput.innerText = "";
         textInput.contentEditable = "false";
         stopButton.disabled = false;
+        modelChangeSelector.disabled = true;
         const ident = renderMessage("", "them", chat);
         const elem = document.getElementById(ident);
         const inner = elem.querySelector(".inner-message");
@@ -49915,6 +49917,7 @@
           if (xhr.readyState == 4) {
             textInput.contentEditable = "true";
             stopButton.disabled = true;
+            modelChangeSelector.disabled = false;
             const pattern = /```([a-z]+)? ?([^`]*)```/g;
             const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
             inner.innerHTML = inner.innerText.replace(pattern, rep);

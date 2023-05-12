@@ -139,6 +139,7 @@ pre code {
     bottom: 0;
     margin-bottom: 48px;
     width: 100%;
+    background-color: white;
 }
 
 #extra-content {
@@ -230,7 +231,7 @@ a:visited {
     display: flex;
     font-size: 0.8rem;
     width: 100%;
-    top: 48px;
+    bottom: -20px;
     /*border-radius: 20px;*/
     /*border: 1px solid lightgray;*/
     /*margin: auto;*/
