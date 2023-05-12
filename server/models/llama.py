@@ -3,7 +3,7 @@ import threading
 import time
 from typing import Callable
 from langchain import ConversationChain, LlamaCpp, BasePromptTemplate
-from langchain.memory import ConversationBufferMemory
+from langchain.memory import ConversationTokenBufferMemory
 
 
 def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_input: str):
@@ -46,7 +46,9 @@ def create_conversation(model_path: str, prompt: BasePromptTemplate) -> Conversa
     conversation_chain = ConversationChain(
         llm=llm,
         verbose=True,
-        memory=ConversationBufferMemory()
+        # memory=ConversationBufferMemory()  # this one is stupid and just fills up
+        memory=ConversationTokenBufferMemory(llm=llm, max_token_limit=llm.n_ctx / 2),  # this one is limited
+        # memory=ConversationSummaryBufferMemory(llm=llm, max_token_limit=40),  # this one would be best, but is slow
     )
     conversation_chain.prompt = prompt
     return conversation_chain
