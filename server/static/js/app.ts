@@ -1,5 +1,5 @@
 import hljs from "highlight.js";
-import 'highlight.js/styles/github-dark-dimmed.css';
+import 'highlight.js/styles/github.css';
 
 
 const scrollToBottom = () => {
@@ -86,6 +86,13 @@ const run = () => {
                     }
                     inner.innerHTML += newData;
                     seenBytes = xhr.responseText.length;
+                    // if (newData.indexOf("\n") >= 0) {
+                    //     const pattern = /```([a-z]+)? ?([^`]*)```/g
+                    //     const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`
+                    //     inner.innerHTML = inner.innerText.replace(pattern, rep)
+                    // }
+
+
                 }
                 if (xhr.readyState == 4) {  // done
                     textInput.contentEditable = "true";

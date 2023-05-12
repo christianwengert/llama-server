@@ -22,51 +22,6 @@ app.config.update(
 CONVERSATIONS = {}
 
 
-@app.route("/about")
-def about():
-
-    html = """
-    <br><br>    
-    <div>
-        <strong>Models</strong>
-        In general: More parameters are better, but slower.
-        <ul>
-            <li>vicuna-13b</li>
-            <li>wizard-vicuna-13B.ggml.q5_0: default</li>
-            <li>stable-vicuna-13B.ggml.q5_0</li>
-            <li>WizardML-Unc-13b-Q5_1: Uncensored...no "As an AI model I cannot". Good for building Molotov cockatilas</li>
-            <li>gpt4-alpaca-lora-30B.ggml.q5_0</li>
-            <li>OpenAssistant-30B-epoch7.ggml.q5_0</li>
-            <li>h2ogptq-oasst1-512-30B.ggml.q5_0</li>
-            <li>alpaca-lora-65B.ggml.q5_0</li>
-        </ul>
-    </div>
-    <br><br>
-    <div>
-        <strong>News</strong>
-        <ul>
-            <li>10.5.2023   Simple chronosGPT online</li>
-        </ul>
-    </div>
-    <br><br>
-    <div>
-        <strong>Coming up next</strong>
-        <ul>
-            <li>Make text generation cancellable</li>            
-            <li>Document embedding (i.e. ask your PDF)</li>
-            <li>Source code embedding (i.e. ask your code)</li>
-            <li>More models</li>
-        </ul>
-    </div>
-    <br><br>
-    <div>
-        <strong>Questions?</strong><br>
-        Ask <a href="mailto:wengert@yoda.cry">wengert@yoda.cry</a>
-    </div>
-    """
-    return render_template('index.html', extra_content=html)
-
-
 @app.route("/")
 def index():
     token = session.get('llm', None)
