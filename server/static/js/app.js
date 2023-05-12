@@ -49850,7 +49850,7 @@
     let messages = document.getElementById("chat");
     messages.scrollTo(0, messages.scrollHeight);
   };
-  function renderMessage(message, direction, chat) {
+  var renderMessage = (message, direction, chat) => {
     const ident = (Math.random() + 1).toString(36).substring(2);
     const m = `
     <div class="message from-${direction}" id="${ident}">
@@ -49858,8 +49858,8 @@
     </div>`;
     chat.insertAdjacentHTML("beforeend", m);
     return ident;
-  }
-  function setupModelChange() {
+  };
+  var setupModelChange = () => {
     let modelChangeSelect = document.getElementById("model-change");
     modelChangeSelect.addEventListener("change", () => {
       document.location = "/?" + new URLSearchParams({
@@ -49870,8 +49870,13 @@
     if (p.get("model")) {
       modelChangeSelect.value = p.get("model") || "";
     }
-  }
-  function run() {
+  };
+  var setFocusToInputField = (textInput) => {
+    setTimeout(() => {
+      textInput.focus();
+    }, 100);
+  };
+  var run = () => {
     setupModelChange();
     const stopButton = document.getElementById("stop-generating");
     stopButton.addEventListener("click", (e) => {
@@ -49880,10 +49885,9 @@
     });
     const chat = document.getElementById("chat");
     const textInput = document.getElementById("input-box");
-    setTimeout(() => {
-      textInput.focus();
-    }, 100);
-    textInput.addEventListener("keypress", (e) => {
+    setFocusToInputField(textInput);
+    textInput.addEventListener("keypress", handleInput);
+    function handleInput(e) {
       if (e.key === "Enter" && e.shiftKey === false) {
         e.preventDefault();
         const m = textInput.innerText;
@@ -49941,8 +49945,8 @@
         });
         xhr.send(m);
       }
-    });
-  }
+    }
+  };
   run();
 })();
 //# sourceMappingURL=app.js.map

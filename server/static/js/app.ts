@@ -8,7 +8,7 @@ const scrollToBottom = () => {
 }
 
 
-function renderMessage(message: string, direction: 'me' | 'them', chat: HTMLElement): string {
+const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
     const m = `
     <div class="message from-${direction}" id="${ident}">
@@ -16,9 +16,9 @@ function renderMessage(message: string, direction: 'me' | 'them', chat: HTMLElem
     </div>`
     chat.insertAdjacentHTML('beforeend', m);
     return ident;
-}
+};
 
-function setupModelChange() {
+const setupModelChange = () => {
     let modelChangeSelect = document.getElementById('model-change')! as HTMLSelectElement;
     modelChangeSelect!.addEventListener('change', ()=> {
         document.location = '/?' + new URLSearchParams({
@@ -29,11 +29,19 @@ function setupModelChange() {
     if (p.get('model')) {
         modelChangeSelect.value = p.get('model') || ""
     }
-}
+};
 
 
-function run() {
+const setFocusToInputField = (textInput: HTMLDivElement) => {
+    setTimeout(() => {
+        textInput.focus()
+    }, 100)
+};
+
+const run = () => {
     setupModelChange();
+
+    // todo: We cannot stop generation yet
     const stopButton = document.getElementById('stop-generating')! as HTMLButtonElement;
     stopButton.addEventListener('click', (e) => {
         e.preventDefault();
@@ -42,14 +50,14 @@ function run() {
 
 
     const chat = document.getElementById('chat')!;
-
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
 
-    setTimeout(() => {
-        textInput.focus()
-    }, 100)
 
-    textInput.addEventListener('keypress', (e) => {
+    setFocusToInputField(textInput);
+
+    textInput.addEventListener('keypress', handleInput)
+
+    function handleInput(e: KeyboardEvent) {
         if (e.key === 'Enter' && e.shiftKey === false) {
             e.preventDefault();
             const m = textInput.innerText;
@@ -100,7 +108,8 @@ function run() {
 
                             const t = (target.parentElement!.nextElementSibling! as HTMLElement).innerText;
                             // Copy the text inside the text field
-                            navigator.clipboard.writeText(t).then(() => {});
+                            navigator.clipboard.writeText(t).then(() => {
+                            });
                             target.innerText = 'Copied'
                             target.style.cursor = 'auto'
 
@@ -121,15 +130,7 @@ function run() {
             });
             xhr.send(m);
         }
-
-    })
-
-
-}
+    }
+};
 
 run()
-
-
-
-
-
