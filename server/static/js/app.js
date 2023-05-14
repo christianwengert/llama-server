@@ -49882,6 +49882,8 @@
     stopButton.addEventListener("click", (e) => {
       e.preventDefault();
       console.log("X");
+      fetch("/cancel").then(() => {
+      });
     });
     const chat = document.getElementById("chat");
     const textInput = document.getElementById("input-box");

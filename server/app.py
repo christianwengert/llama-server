@@ -42,6 +42,16 @@ def index():
     return render_template('index.html')
 
 
+@app.route('/cancel')
+def cancel():
+    token = session.get('llm', None)
+    if token:
+        session['cancel'] = True
+    else:
+        abort(400)
+    return ""
+
+
 @app.route('/', methods=["POST"])
 def get_input():
     token = session.get('llm', None)

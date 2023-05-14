@@ -46,6 +46,7 @@ const run = () => {
     stopButton.addEventListener('click', (e) => {
         e.preventDefault();
         console.log('X')
+        fetch('/cancel').then(()=>{})
     })
 
 

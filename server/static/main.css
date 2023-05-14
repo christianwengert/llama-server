@@ -168,7 +168,7 @@ pre code {
 }
 
 #stop-generating {
-    display: none;
+    /*display: none;*/
     right: 10%;
     background-color: white;
     border: none;
