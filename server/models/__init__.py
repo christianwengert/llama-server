@@ -47,7 +47,7 @@ ALPACA_PROMPT = PromptTemplate(
 )
 
 MODELS = {
-    'vicuna-13b': [VICUNA_PROMPT, None],
+    # 'vicuna-13b': [VICUNA_PROMPT, None],
     'wizard-vicuna-13B.ggml.q5_0': [VICUNA_PROMPT, None],
     'Wizard-Vicuna-13B-Uncensored.ggml.q5_0': [VICUNA_PROMPT, None],
     'stable-vicuna-13B.ggml.q5_0': [STABLE_VICUNA_PROMPT, ["### Human:"]],
