@@ -11,19 +11,16 @@
 <div id="header">
     <div class="header-inner"><a href="/" id="logo-link"><strong>chronos</strong>GPT</a></div>
     <div class="header-inner">
-
         <label>
             <strong>model</strong>:
             <select id="model-change">
-                <option value="vicuna-13b">vicuna-13b</option>
-                <option selected value="wizard-vicuna-13B.ggml.q5_0">wizard-vicuna-13B.ggml.q5_0</option>
-                <option value="Wizard-Vicuna-13B-Uncensored.ggml.q5_0">Wizard-Vicuna-13B-Uncensored.ggml.q5_0</option>
-                <option value="stable-vicuna-13B.ggml.q5_0">stable-vicuna-13B.ggml.q5_0</option>
-                <option value="h2ogptq-oasst1-512-30B.ggml.q5_0">h2ogptq-oasst1-512-30B.ggml.q5_0</option>
-                <option value="OpenAssistant-SFT-7-Llama-30B.ggml.q5_0">OpenAssistant-SFT-7-Llama-30B.ggml.q5_0</option>
-                <option value="gpt4-alpaca-lora_mlp-65B.ggml.q5_0">gpt4-alpaca-lora_mlp-65B.ggml.q5_0</option>
-                <option value="dromedary-lora-65B.ggml.q5_0">dromedary-lora-65B.ggml.q5_0</option>
-                <option value="alpaca-lora-65B.ggml.q5_0">alpaca-lora-65B.ggml.q5_0</option>
+                {% for name in models %}
+                    {% if name == selected_model %}
+                        <option selected="selected" value="{{ name }}">{{ name }}</option>
+                    {% else %}
+                        <option value="{{ name }}">{{ name }}</option>
+                    {% endif %}
+                {% endfor %}
             </select>
         </label>
     </div>

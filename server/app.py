@@ -2,8 +2,8 @@ import os
 import queue
 import secrets
 from flask import Flask, render_template, request, session, abort, Response
+from models import MODELS, SELECTED_MODEL
 from streaming import StreamingLlamaHandler
-from models.vicuna import PROMPT
 from models.llama import streaming_answer_generator
 from models.llama import create_conversation
 
@@ -27,7 +27,7 @@ def index():
     token = session.get('llm', None)
     set_model = session.get('model', None)
     # check if model is set
-    model = request.args.get('model', 'wizard-vicuna-13B.ggml.q5_0')
+    model = request.args.get('model', SELECTED_MODEL)
     model_path = os.path.join(MODEL_PATH, f'{model}.bin')
     if token is None or model != set_model:
         token = secrets.token_hex(32)
@@ -35,11 +35,12 @@ def index():
         session['model'] = model
         q = queue.Queue()  # type: queue.Queue[str]
 
-        CONVERSATIONS[token] = (create_conversation(model_path, PROMPT), q)
+        prompt, stop = MODELS[model]
+        CONVERSATIONS[token] = (create_conversation(model_path, prompt, stop), q)
     if token not in CONVERSATIONS:
         abort(400)
 
-    return render_template('index.html')
+    return render_template('index.html', models=MODELS, selected_model=SELECTED_MODEL)
 
 
 @app.route('/cancel')

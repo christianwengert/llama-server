@@ -33,7 +33,7 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
     thread.join()
 
 
-def create_conversation(model_path: str, prompt: BasePromptTemplate) -> ConversationChain:
+def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None) -> ConversationChain:
 
     llm = LlamaCpp(model_path=model_path,
                    temperature=0.8,
@@ -43,12 +43,13 @@ def create_conversation(model_path: str, prompt: BasePromptTemplate) -> Conversa
                    max_tokens=512,
                    )
 
+    if stop is not None:
+        llm.stop = stop
+
     conversation_chain = ConversationChain(
         llm=llm,
         verbose=True,
-        # memory=ConversationBufferMemory()  # this one is stupid and just fills up
         memory=ConversationTokenBufferMemory(llm=llm, max_token_limit=llm.n_ctx / 2),  # this one is limited
-        # memory=ConversationSummaryBufferMemory(llm=llm, max_token_limit=40),  # this one would be best, but is slow
     )
     conversation_chain.prompt = prompt
     return conversation_chain
