@@ -44,6 +44,12 @@ def index():
     return render_template('index.html', models=MODELS, selected_model=SELECTED_MODEL)
 
 
+@app.route('/reset')
+def reset():
+    if session.get('llm', None) is not None:
+        session['llm'] = None
+
+
 @app.route('/cancel')
 def cancel():
     token = session.get('llm', None)

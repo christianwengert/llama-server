@@ -40,18 +40,27 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
 
 const run = () => {
     setupModelChange();
+    const chat = document.getElementById('chat')!;
 
     // todo: We cannot stop generation yet
     const stopButton = document.getElementById('stop-generating')! as HTMLButtonElement;
     stopButton.addEventListener('click', (e) => {
         e.preventDefault();
-        console.log('X')
         fetch('/cancel').then(()=>{})
         stopButton.disabled = true;
     })
 
 
-    const chat = document.getElementById('chat')!;
+    const resetButton = document.getElementById('reset-button')! as HTMLElement;
+    resetButton.addEventListener('click', (e) => {
+        e.preventDefault();
+        fetch('/reset').then(()=>{
+            document.location.reload()
+        })
+    })
+
+
+
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
     const modelChangeSelector = document.getElementById('model-change')! as HTMLSelectElement
 

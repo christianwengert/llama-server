@@ -49878,15 +49878,21 @@
   };
   var run = () => {
     setupModelChange();
+    const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
     stopButton.addEventListener("click", (e) => {
       e.preventDefault();
-      console.log("X");
       fetch("/cancel").then(() => {
       });
       stopButton.disabled = true;
     });
-    const chat = document.getElementById("chat");
+    const resetButton = document.getElementById("reset-button");
+    resetButton.addEventListener("click", (e) => {
+      e.preventDefault();
+      fetch("/reset").then(() => {
+        document.location.reload();
+      });
+    });
     const textInput = document.getElementById("input-box");
     const modelChangeSelector = document.getElementById("model-change");
     setFocusToInputField(textInput);
