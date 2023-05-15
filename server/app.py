@@ -48,6 +48,7 @@ def index():
 def reset():
     if session.get('llm', None) is not None:
         session['llm'] = None
+    return ""
 
 
 @app.route('/cancel')
