@@ -240,9 +240,8 @@ a:visited {
     /*display: inline-block;*/
     /*top: 20px;*/
 }
-#help-button {
+.footer-buttons {
     margin: auto;
-
 }
 
 
