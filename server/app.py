@@ -20,7 +20,7 @@ app.config.update(
 )
 
 CONVERSATIONS = {}
-
+ABORT = {}
 
 @app.route("/")
 def index():
@@ -47,7 +47,7 @@ def index():
 def cancel():
     token = session.get('llm', None)
     if token:
-        session['cancel'] = True
+        ABORT[token] = True
     else:
         abort(400)
     return ""
@@ -65,11 +65,16 @@ def get_input():
     def fun(t):
         q.put(t)
 
+    def abortfn():
+        result = ABORT.get(token, False)
+        ABORT[token] = False
+        return result
+
     def run_as_thread(t):
         """
         We run this as a thread to be able to get token by token so its cooler to wait
         """
-        handler = StreamingLlamaHandler(fun)
+        handler = StreamingLlamaHandler(fun, abortfn)
         _answer = conversation.predict(input=t, callbacks=[handler])
 
     return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')

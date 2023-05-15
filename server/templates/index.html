@@ -68,24 +68,24 @@
                 </div>
                 <div>
                     <h1>Models</h1>
-                    In general: More parameters are better, but slower.
+                    In general: More parameters are better, but slower. Uncensored models have (almost) no ethical or moral barriers. Use at your own risk.
                     <ul>
-                        <li>vicuna-13b</li>
-                        <li>wizard-vicuna-13B.ggml.q5_0: default</li>
-                        <li>stable-vicuna-13B.ggml.q5_0</li>
-                        <li>WizardML-Unc-13b-Q5_1: Uncensored...no "As an AI model I cannot". Good for building Molotov
-                            cockatilas
-                        </li>
-                        <li>gpt4-alpaca-lora-30B.ggml.q5_0</li>
-                        <li>OpenAssistant-30B-epoch7.ggml.q5_0</li>
-                        <li>h2ogptq-oasst1-512-30B.ggml.q5_0</li>
-                        <li>alpaca-lora-65B.ggml.q5_0</li>
+                        {% for name in models %}
+                            <li> {{ name }}
+                                {% if name == selected_model %}
+                                    (<strong>default</strong>)
+                                {% endif %}
+                            </li>
+                        {% endfor %}
                     </ul>
+                    <strong>A note about quantization:</strong> The q5_0 is a method to quantize the model weights (16bits floating point) to
+                    for example 5 bit. The quality will be slightly less but speed and memory consumption are far better.
                 </div>
 
                 <div>
                     <h1>News</h1>
                     <ul>
+                        <li>15.5.2023 Changed all models because of breaking change in the library</li>
                         <li>10.5.2023 Simple chronosGPT online</li>
                     </ul>
                 </div>

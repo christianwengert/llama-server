@@ -47,6 +47,7 @@ const run = () => {
         e.preventDefault();
         console.log('X')
         fetch('/cancel').then(()=>{})
+        stopButton.disabled = true;
     })
 
 

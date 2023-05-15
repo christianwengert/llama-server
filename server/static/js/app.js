@@ -49884,6 +49884,7 @@
       console.log("X");
       fetch("/cancel").then(() => {
       });
+      stopButton.disabled = true;
     });
     const chat = document.getElementById("chat");
     const textInput = document.getElementById("input-box");

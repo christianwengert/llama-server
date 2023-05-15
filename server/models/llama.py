@@ -2,8 +2,10 @@ import queue
 import threading
 import time
 from typing import Callable
-from langchain import ConversationChain, LlamaCpp, BasePromptTemplate
+from langchain import ConversationChain, BasePromptTemplate
 from langchain.memory import ConversationTokenBufferMemory
+
+from models.interruptable_llama import InterruptableLlamaCpp
 
 
 def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_input: str):
@@ -35,13 +37,13 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
 
 def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None) -> ConversationChain:
 
-    llm = LlamaCpp(model_path=model_path,
-                   temperature=0.8,
-                   n_threads=8,
-                   n_ctx=2048,
-                   n_batch=512,
-                   max_tokens=512,
-                   )
+    llm = InterruptableLlamaCpp(model_path=model_path,
+                                temperature=0.8,
+                                n_threads=8,
+                                n_ctx=2048,
+                                n_batch=512,
+                                max_tokens=512,
+                                )
 
     if stop is not None:
         llm.stop = stop

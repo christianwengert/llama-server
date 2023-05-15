@@ -5,9 +5,14 @@ from langchain.schema import LLMResult, AgentAction, AgentFinish
 
 class StreamingLlamaHandler(BaseCallbackHandler):
 
-    def __init__(self, fun):
+    def __init__(self, fun, abortfn):
         # self.queue = q
         self.fun = fun
+        self.abortfn = abortfn
+
+    @property
+    def abort(self):
+        return self.abortfn()
 
     @property
     def always_verbose(self) -> bool:
@@ -16,15 +21,12 @@ class StreamingLlamaHandler(BaseCallbackHandler):
 
     def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
         """Run on new LLM token. Only available when streaming is enabled."""
-        print(token)
         self.fun(token)
 
     def on_llm_start(
         self, serialized: Dict[str, Any], prompts: List[str], **kwargs: Any
     ) -> None:
         """Run when LLM starts running."""
-        print("Setting up a thing")
-
 
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
         """Run when LLM ends running."""
@@ -40,6 +42,7 @@ class StreamingLlamaHandler(BaseCallbackHandler):
         self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs: Any
     ) -> None:
         """Run when chain starts running."""
+        pass
 
     def on_chain_end(self, outputs: Dict[str, Any], **kwargs: Any) -> None:
         """Run when chain ends running."""
