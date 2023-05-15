@@ -19,8 +19,9 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Strict',
 )
 
-CONVERSATIONS = {}
-ABORT = {}
+CONVERSATIONS = {}  # per user conversation
+ABORT = {}  # per user abort flag, not very nice, but works
+
 
 @app.route("/")
 def index():
