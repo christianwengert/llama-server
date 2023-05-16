@@ -2,13 +2,10 @@ import os
 import queue
 import secrets
 from flask import Flask, render_template, request, session, abort, Response
-from models import MODELS, SELECTED_MODEL
+from models import MODELS, SELECTED_MODEL, MODEL_PATH
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
 from models.llama import create_conversation
-
-
-MODEL_PATH = os.environ.get("MODEL_PATH", '/Users/christianwengert/Downloads/')
 
 
 app = Flask(__name__)

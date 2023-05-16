@@ -8,7 +8,8 @@ from langchain.text_splitter import CharacterTextSplitter, PythonCodeTextSplitte
 
 
 # MODEL_PATH = "/Users/christianwengert/src/llama/alpaca.cpp-webui/bin/vicuna.ggml.bin"
-MODEL_PATH = "/Users/christianwengert/Downloads/Wizard-Vicuna-13B-Uncensored.ggml.q5_0.bin"
+model = 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0.bin'
+MODEL_PATH = f"/Users/christianwengert/Downloads/{model}"
 ROOT_DIR = '/Users/christianwengert/src/filedrop/app/modules/'
 # from langchain.text_splitter import PythonCodeTextSplitter
 
@@ -30,8 +31,24 @@ print(f"Number of texts: {len(texts)}")
 
 embeddings = LlamaCppEmbeddings(model_path=MODEL_PATH, n_ctx=2048, n_threads=8)
 
-db = FAISS.from_documents(texts, embeddings)
+
 # db = Chroma.from_documents(texts, embeddings)
+
+project_name = "verifpal"
+file_or_folder_name = ROOT_DIR
+
+INDEX_NAME = "index"
+index_file = os.path.join("/Users/christianwengert/Downloads/", f"{project_name}---{file_or_folder_name}---{model}.faiss")
+
+if os.path.exists(index_file):  # todo: make the name dependeing on model and document
+    print('Loading existing index')
+    db = FAISS.load_local(index_file, embeddings, index_name=INDEX_NAME)
+else:
+    print('Creating index')
+    db = FAISS.from_documents(texts, embeddings)
+    db.save_local(index_file, index_name=INDEX_NAME)
+
+
 retriever = db.as_retriever()
 # retriever.search_kwargs['distance_metric'] = 'cos'
 # retriever.search_kwargs['fetch_k'] = 20

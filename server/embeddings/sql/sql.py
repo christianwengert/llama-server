@@ -1,22 +1,20 @@
+import os
 from langchain import SQLDatabase, LlamaCpp, SQLDatabaseChain
-from langchain.agents.agent_toolkits import SQLDatabaseToolkit
+from models import MODEL_PATH
 
-model = "wizard-vicuna-13B.ggml.q5_0.bin"
-MODEL_PATH = f"/Users/christianwengert/Downloads/{model}"
+
+MODEL = 'stable-vicuna-13B.ggml.q5_0.bin'  # stable vicuna has 4K context
 
 
 db = SQLDatabase.from_uri("sqlite:////Users/christianwengert/src/llama-server/chinook.db",
                           engine_args=dict(connect_args={"check_same_thread": False}, echo=True),
-                          include_tables=['employees']
+                          # include_tables=['employees']
                           )
-# toolkit = SQLDatabaseToolkit(db=db)
 
-
-# db._engine.connect()
-llm = LlamaCpp(model_path=MODEL_PATH,
+llm = LlamaCpp(model_path=os.path.join(MODEL_PATH, MODEL),
                temperature=0.8,
                n_threads=8,
-               n_ctx=2048,
+               n_ctx=4096,
                n_batch=512,
                max_tokens=256,
                )

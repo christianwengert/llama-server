@@ -1,3 +1,5 @@
+import os
+
 from langchain import PromptTemplate
 
 
@@ -57,3 +59,4 @@ MODELS = {
 }
 
 SELECTED_MODEL = 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0'
+MODEL_PATH = os.environ.get("MODEL_PATH", '/Users/christianwengert/Downloads/')

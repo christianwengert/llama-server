@@ -1,13 +1,14 @@
 from langchain.llms import OpenAI
 from langchain.docstore.document import Document
-import requests
 from langchain.embeddings.openai import OpenAIEmbeddings
 from langchain.vectorstores import Chroma
 from langchain.text_splitter import CharacterTextSplitter
 from langchain.prompts import PromptTemplate
+from langchain.chains import LLMChain
 import pathlib
 import subprocess
 import tempfile
+
 
 def get_github_docs(repo_owner, repo_name):
     with tempfile.TemporaryDirectory() as d:
@@ -31,7 +32,9 @@ def get_github_docs(repo_owner, repo_name):
                 github_url = f"https://github.com/{repo_owner}/{repo_name}/blob/{git_sha}/{relative_path}"
                 yield Document(page_content=f.read(), metadata={"source": github_url})
 
+
 sources = get_github_docs("yirenlu92", "deno-manual-forked")
+
 
 source_chunks = []
 splitter = CharacterTextSplitter(separator=" ", chunk_size=1024, chunk_overlap=0)
@@ -41,7 +44,7 @@ for source in sources:
 
 
 search_index = Chroma.from_documents(source_chunks, OpenAIEmbeddings())  # todo use FAISS
-from langchain.chains import LLMChain
+
 prompt_template = """Use the context below to write a 400 word blog post about the topic below:
     Context: {context}
     Topic: {topic}
