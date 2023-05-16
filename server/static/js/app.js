@@ -49929,7 +49929,10 @@
             modelChangeSelector.disabled = false;
             const pattern = /```([a-z]+)? ?([^`]*)```/g;
             const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
-            inner.innerHTML = inner.innerText.replace(pattern, rep);
+            const intermediate = inner.innerText.replace(pattern, rep);
+            const pattern2 = /`([^`]*)`/g;
+            const rep2 = `<code class="inline">$2</code>`;
+            inner.innerHTML = intermediate.replace(pattern2, rep2);
             scrollToBottom();
             inner.querySelectorAll("pre code").forEach((block) => {
               es_default.highlightElement(block);

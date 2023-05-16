@@ -42,7 +42,7 @@ def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None) 
                                 n_threads=8,
                                 n_ctx=2048,
                                 n_batch=512,
-                                max_tokens=512,
+                                max_tokens=1024,
                                 )
 
     if stop is not None:

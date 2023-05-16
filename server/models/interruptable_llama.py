@@ -20,13 +20,12 @@ class InterruptableLlamaCpp(LlamaCpp):
                 run_manager.on_llm_new_token(
                     token=token, verbose=self.verbose, log_probs=log_probs
                 )
-                try:
+                try:  # this is the extra code so we can abort
                     handler = run_manager.handlers[0]
                     abort = handler.abort
                 except (NameError, IndexError, AttributeError):
                     abort = False
-
                 if abort:
                     print('Aborting...')
-                    break
+                    break  # the rest of this method is equivalent to LlamaCpp
             yield chunk

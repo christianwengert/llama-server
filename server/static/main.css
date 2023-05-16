@@ -296,3 +296,15 @@ a:visited {
   max-height: 30%;
   overflow: auto;
 }
+
+
+pre code.hljs {
+  display: block;
+}
+
+
+code.inline {
+    display: inline;
+    font-family: monospace, "Courier New";
+    font-weight: bold;
+}
