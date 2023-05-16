@@ -127,6 +127,7 @@ pre code {
     margin-right: 0;
     padding-right: 0;
     cursor: default;
+    display: flex;
 }
 
 #chat {
@@ -226,6 +227,7 @@ a:visited {
 }
 
 .footer {
+
     position: absolute;
     margin: auto;
     display: flex;
@@ -240,10 +242,31 @@ a:visited {
     /*display: inline-block;*/
     /*top: 20px;*/
 }
+.footer a {
+    color: rgb(128, 128, 128);
+}
+.footer a:hover {
+    color: black;
+}
 .footer-buttons {
     margin: auto;
+    width: 80vw;
+    display: flex;
+    /*justify-content: space-between;*/
+    align-items: flex-start;
 }
 
+#help-button {
+    margin-left: auto;
+}
+#reset-button {
+    font-weight: bold;
+    padding: 3px;
+    opacity: 0.5;
+}
+#reset-button:hover {
+    opacity: 1.0;
+}
 
 .overlay {
   position: fixed;

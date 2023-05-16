@@ -16,8 +16,29 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Strict',
 )
 
+app.config["SESSION_PERMANENT"] = False
+app.config["PERMANENT_SESSION_LIFETIME"] = 3 * 30 * 24 * 60 * 60  # 90 days
+app.config["SESSION_TYPE"] = "filesystem"
+
 CONVERSATIONS = {}  # per user conversation
 ABORT = {}  # per user abort flag, not very nice, but works
+
+
+@app.route('/upload', methods=['POST'])
+def upload():
+    if not request.files:
+        abort(400)
+    if len(request.files) != 1:
+        abort(400)
+    file = request.files.get('file', None)
+    if not file:
+        abort(400)
+
+    uuid = request.form.get('uuid')
+    if not uuid:
+        abort(400)
+
+    return ""
 
 
 @app.route("/")
@@ -33,8 +54,8 @@ def index():
         session['model'] = model
         q = queue.Queue()  # type: queue.Queue[str]
 
-        prompt, stop = MODELS[model]
-        CONVERSATIONS[token] = (create_conversation(model_path, prompt, stop), q)
+        prompt, stop, n_ctx = MODELS[model]
+        CONVERSATIONS[token] = (create_conversation(model_path, prompt, stop, n_ctx), q)
     if token not in CONVERSATIONS:
         abort(400)
 

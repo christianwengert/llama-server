@@ -12,7 +12,7 @@
     <div class="header-inner"><a href="/" id="logo-link"><strong>chronos</strong>GPT</a></div>
     <div class="header-inner">
         <label>
-            <strong>model</strong>:
+            <strong>Model</strong>:
             <select id="model-change">
                 {% for name in models %}
                     {% if name == selected_model %}
@@ -23,6 +23,7 @@
                 {% endfor %}
             </select>
         </label>
+        <a href="#" id="reset-button"><img src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjwhRE9DVFlQRSBzdmcgIFBVQkxJQyAnLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4nICAnaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkJz48c3ZnIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDQxIDM0IiBoZWlnaHQ9IjM0cHgiIGlkPSJMYXllcl8xIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA0MSAzNCIgd2lkdGg9IjQxcHgiIHhtbDpzcGFjZT0icHJlc2VydmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPjxwYXRoIGQ9Ik0zMy45NDksMTZDMzMuNDI5LDcuMDgsMjYuMDUxLDAsMTcsMEM3LjYxMSwwLDAsNy42MTEsMCwxN3M3LjYxMSwxNywxNywxN3YtNmMtNi4wNzUsMC0xMS00LjkyNS0xMS0xMSAgUzEwLjkyNSw2LDE3LDZjNS43MzcsMCwxMC40NDMsNC4zOTQsMTAuOTQ5LDEwaC02Ljg0OUwzMSwyNS44OTlMNDAuODk5LDE2SDMzLjk0OXoiIGZpbGw9IiMyMzFGMjAiLz48L3N2Zz4=" alt="refresh" width="16" height="16"></a>
     </div>
 
 </div>
@@ -41,16 +42,20 @@
         </button>
         <div class="footer">
             <div class="footer-buttons">
+                <strong>Embeddings</strong>:
+
+                &nbsp;
+                <a href="#popup2" id="document-qa-button">PDF</a>
+                &nbsp;|&nbsp;
+                <a href="#popup2" id="source-qa-button">Source code</a>
+                &nbsp;|&nbsp;
+                <a href="#popup2" id="sql-qa-button">SQL</a>
+
+
                 <a href="#popup1" id="help-button">Help</a>
-                |
-                <a href="#" id="reset-button">Reset</a>
-<!--                |-->
-<!--                <a href="#popup2" id="settings-button">Settings</a>-->
             </div>
         </div>
-
     </div>
-
 </div>
 
 
@@ -106,21 +111,29 @@
     </div>
 </div>
 
-<!--<div id="popup2" class="overlay">-->
-<!--    <div class="popup">-->
-<!--        <h2>Settings</h2>-->
-<!--        <a class="close" href="#">&times;</a>-->
-<!--        <div class="content">-->
-<!--            <div>-->
-<!--                <h1>Temperature</h1>-->
-<!--                <div>-->
-<!--                    <label>-->
-<!--                        <input id="temperature-setting" type="number" min="0" max="2" step="0.1" value="0.8">-->
-<!--                    </label>-->
-<!--                </div>-->
-<!--            </div>-->
-<!--        </div>-->
-<!--    </div>-->
-<!--</div>-->
+<div id="popup2" class="overlay">
+    <div class="popup">
+        <h2>Upload</h2>
+        <a class="close" href="#">&times;</a>
+        <div class="content">
+            <div>
+                <form method="post" enctype="multipart/form-data" id="upload-pdf">
+                <div>
+
+                    <label>
+                        Upload here
+                        <input id="pdf-file" type="file" accept="application/pdf">
+                    </label>
+                    <input type="hidden" value="" id="pdf-job-id">
+
+                </div>
+                <div>
+                    <button>Submit</button>
+                  </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
 </body>
 </html>

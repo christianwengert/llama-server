@@ -35,12 +35,12 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
     thread.join()
 
 
-def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None) -> ConversationChain:
+def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None, n_ctx=2048) -> ConversationChain:
 
     llm = InterruptableLlamaCpp(model_path=model_path,
                                 temperature=0.8,
                                 n_threads=8,
-                                n_ctx=2048,
+                                n_ctx=n_ctx,
                                 n_batch=512,
                                 max_tokens=1024,
                                 )

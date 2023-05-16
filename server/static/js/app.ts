@@ -40,6 +40,7 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
 
 const run = () => {
     setupModelChange();
+    setupPdfUpload();
     const chat = document.getElementById('chat')!;
 
     // todo: We cannot stop generation yet
@@ -157,5 +158,36 @@ const run = () => {
         }
     }
 };
+function create_UUID(){
+    let dt = new Date().getTime();
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) {
+        var r = (dt + Math.random() * 16) % 16 | 0;
+        dt = Math.floor(dt / 16);
+        return (c == 'x' ? r : (r & 0x3 | 0x8)).toString(16);
+    });
+}
+
+
+const setupPdfUpload = () => {
+    const form = document.getElementById('upload-pdf')! as HTMLFormElement;
+    form.addEventListener('submit', (e) => {
+        e.preventDefault()
+        const file = document.getElementById('pdf-file')! as HTMLInputElement;
+        let formData = new FormData();
+        formData.append('uuid', create_UUID());
+        formData.append('file', file.files![0]);
+
+        fetch("/upload",
+            {
+                body: formData,
+                method: "post"
+            }).then(()=> {
+
+        });
+    })
+}
 
 run()
+
+
+
