@@ -8,7 +8,7 @@ from langchain.text_splitter import CharacterTextSplitter, PythonCodeTextSplitte
 
 
 # MODEL_PATH = "/Users/christianwengert/src/llama/alpaca.cpp-webui/bin/vicuna.ggml.bin"
-MODEL_PATH = "/Users/christianwengert/Downloads/OpenAssistant-30B-epoch7.ggml.q5_0.bin"
+MODEL_PATH = "/Users/christianwengert/Downloads/Wizard-Vicuna-13B-Uncensored.ggml.q5_0.bin"
 ROOT_DIR = '/Users/christianwengert/src/filedrop/app/modules/'
 # from langchain.text_splitter import PythonCodeTextSplitter
 

@@ -117,7 +117,7 @@ const run = () => {
                     const intermediate = inner.innerText.replace(pattern, rep)
                     // adapt markdown for `
                     const pattern2 = /`([^`]*)`/g
-                    const rep2 = `<code class="inline">$2</code>`
+                    const rep2 = `<code class="inline">$1</code>`
                     inner.innerHTML = intermediate.replace(pattern2, rep2)
 
                     scrollToBottom()

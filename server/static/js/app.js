@@ -49931,7 +49931,7 @@
             const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
             const intermediate = inner.innerText.replace(pattern, rep);
             const pattern2 = /`([^`]*)`/g;
-            const rep2 = `<code class="inline">$2</code>`;
+            const rep2 = `<code class="inline">$1</code>`;
             inner.innerHTML = intermediate.replace(pattern2, rep2);
             scrollToBottom();
             inner.querySelectorAll("pre code").forEach((block) => {
