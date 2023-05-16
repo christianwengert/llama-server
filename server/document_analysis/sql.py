@@ -5,7 +5,10 @@ model = "wizard-vicuna-13B.ggml.q5_0.bin"
 MODEL_PATH = f"/Users/christianwengert/Downloads/{model}"
 
 
-db = SQLDatabase.from_uri("sqlite:////Users/christianwengert/src/llama-server/chinook.db", engine_args=dict(connect_args={"check_same_thread": False}, echo=True))
+db = SQLDatabase.from_uri("sqlite:////Users/christianwengert/src/llama-server/chinook.db",
+                          engine_args=dict(connect_args={"check_same_thread": False}, echo=True),
+                          include_tables=['employees']
+                          )
 # toolkit = SQLDatabaseToolkit(db=db)
 
 
