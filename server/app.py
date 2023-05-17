@@ -1,7 +1,10 @@
+import hashlib
 import os
 import queue
 import secrets
+import time
 from flask import Flask, render_template, request, session, abort, Response
+from flask_executor import Executor
 from models import MODELS, SELECTED_MODEL, MODEL_PATH
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
@@ -16,12 +19,30 @@ app.config.update(
     SESSION_COOKIE_SAMESITE='Strict',
 )
 
-app.config["SESSION_PERMANENT"] = False
-app.config["PERMANENT_SESSION_LIFETIME"] = 3 * 30 * 24 * 60 * 60  # 90 days
-app.config["SESSION_TYPE"] = "filesystem"
+executor = Executor(app)
+executor.init_app(app)
+app.config['EXECUTOR_MAX_WORKERS'] = 8
+app.config['UPLOAD_FOLDER'] = '/tmp'
 
 CONVERSATIONS = {}  # per user conversation
 ABORT = {}  # per user abort flag, not very nice, but works
+
+
+def long_running(file_or_path: str, model: str) -> str:
+    if os.path.splitext(file_or_path)[1] == '.pdf':
+        embed_pdf(file_or_path)
+    time.sleep(90)
+    return "Done"
+
+
+@app.route('/check/<string:name>')
+def check(name: str):
+    h = hashlib.sha3_512(name.encode('utf8')).hexdigest()
+    if not executor.futures.done(h):
+        # noinspection PyProtectedMember
+        return str(executor.futures._state(h))
+    future = executor.futures.pop(h)
+    return str(future.result())
 
 
 @app.route('/upload', methods=['POST'])
@@ -34,11 +55,22 @@ def upload():
     if not file:
         abort(400)
 
-    uuid = request.form.get('uuid')
-    if not uuid:
+    name = request.form.get('name')
+    if not name:
         abort(400)
 
-    return ""
+    dest = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
+    file.save(dest)
+
+    h = hashlib.sha3_512(name.encode('utf8')).hexdigest()
+
+    model = session.get('model')
+    if not model:
+        abort(400)
+
+    executor.submit_stored(h, long_running, dest, model)
+
+    return "OK"
 
 
 @app.route("/")
