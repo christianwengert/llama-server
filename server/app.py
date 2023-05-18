@@ -2,9 +2,12 @@ import hashlib
 import os
 import queue
 import secrets
-import time
+import tempfile
+
 from flask import Flask, render_template, request, session, abort, Response
 from flask_executor import Executor
+
+from embeddings.documents.pdf import embed_pdf
 from models import MODELS, SELECTED_MODEL, MODEL_PATH
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
@@ -22,17 +25,17 @@ app.config.update(
 executor = Executor(app)
 executor.init_app(app)
 app.config['EXECUTOR_MAX_WORKERS'] = 8
-app.config['UPLOAD_FOLDER'] = '/tmp'
+app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 
 CONVERSATIONS = {}  # per user conversation
 ABORT = {}  # per user abort flag, not very nice, but works
 
 
-def long_running(file_or_path: str, model: str) -> str:
-    if os.path.splitext(file_or_path)[1] == '.pdf':
-        embed_pdf(file_or_path)
-    time.sleep(90)
-    return "Done"
+def long_running_pdf_indexer(name: str, file_or_path: str, model: str) -> str:
+
+    embed_pdf(name, file_or_path, model)
+    # time.sleep(90)
+    return "OK"
 
 
 @app.route('/check/<string:name>')
@@ -68,7 +71,10 @@ def upload():
     if not model:
         abort(400)
 
-    executor.submit_stored(h, long_running, dest, model)
+    if os.path.splitext(dest)[1] != '.pdf':
+        abort(400)
+
+    executor.submit_stored(h, long_running_pdf_indexer, name, dest, model)
 
     return "OK"
 
