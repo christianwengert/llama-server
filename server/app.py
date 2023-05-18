@@ -24,6 +24,9 @@ app.config.update(
 
 executor = Executor(app)
 executor.init_app(app)
+app.config["SESSION_PERMANENT"] = True
+app.config["PERMANENT_SESSION_LIFETIME"] = 3 * 30 * 24 * 60 * 60  # 90 days
+app.config["SESSION_TYPE"] = "filesystem"
 app.config['EXECUTOR_MAX_WORKERS'] = 8
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 
