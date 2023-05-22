@@ -1,13 +1,16 @@
 import os.path
 from langchain import LlamaCpp
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain, LLMSummarizationCheckerChain
 # from langchain.chains.summarize import load_summarize_chain
 from langchain.document_loaders import PyPDFLoader
-from langchain.embeddings import LlamaCppEmbeddings
+from langchain.embeddings import LlamaCppEmbeddings, HuggingFaceEmbeddings
 from langchain.memory import ConversationTokenBufferMemory
 from langchain.text_splitter import TokenTextSplitter
 from embeddings import get_index
 from models import MODEL_PATH, MODELS
+from langchain.cache import InMemoryCache
+import langchain
+langchain.llm_cache = InMemoryCache()
 
 
 def embed_pdf(project_name: str, filepath: str, model: str):
@@ -25,19 +28,22 @@ def embed_pdf(project_name: str, filepath: str, model: str):
     # Split into pages
     pages = loader.load_and_split()
     text_splitter = TokenTextSplitter(
-        chunk_size=int(n_ctx / 4),
-        chunk_overlap=256,
-        length_function=len,
+        chunk_size=256,  # int(n_ctx / 4),  # todo this is related to the k top hits from vector store
+        chunk_overlap=32,
+        # length_function=len,
     )
     texts = text_splitter.split_documents(pages)
     print(f"Number of texts: {len(texts)}")
 
     # Create embeddings and store in vector DB
 
-    embeddings = LlamaCppEmbeddings(model_path=model_path,
+    embeddings = LlamaCppEmbeddings(model_path=os.path.join(MODEL_PATH, 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0.bin'),
                                     n_threads=8,
                                     n_ctx=n_ctx,
                                     n_batch=512)
+    # llama = LlamaCppEmbeddings(model_path="/path/to/model/ggml-model-q4_0.bin")
+    # embeddings = HuggingFaceEmbeddings()
+    # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
     db = get_index(embeddings, filename, model, project_name, texts)
 
@@ -46,7 +52,7 @@ def embed_pdf(project_name: str, filepath: str, model: str):
     llm = LlamaCpp(model_path=model_path,
                    temperature=0.8,
                    n_threads=8,
-                   n_ctx=2048,
+                   n_ctx=n_ctx,
                    n_batch=512,
                    max_tokens=512,
                    )
@@ -62,8 +68,11 @@ def embed_pdf(project_name: str, filepath: str, model: str):
                                                chain_type="map_reduce",
                                                memory=ConversationTokenBufferMemory(llm=llm, max_token_limit=llm.n_ctx / 2),
                                                return_source_documents=True)
+    # print(qa.llm_chain.template)  also chain.combine_chain.prompt
+
     questions = [
         "What is this paper about?",
+        "Who are the authors?",
         "What primitives are supported?",
         "has TLS1.3 been formally verified?"
     ]
@@ -76,6 +85,10 @@ def embed_pdf(project_name: str, filepath: str, model: str):
         chat_history.append((question, result['answer']))
         print(f"**Answer**: {result['answer']} \n")
         # print(result['source_documents'])
+
+    # summarization
+    # cc = LLMSummarizationCheckerChain(llm=llm, verbose=True, max_checks=2)
+    # cc.run(arricel)
 
 
 if __name__ == '__main__':
