@@ -1,17 +1,17 @@
 import os.path
-from langchain import LlamaCpp, LLMChain
-from langchain.chains import ConversationalRetrievalChain  # , LLMSummarizationCheckerChain
+from langchain import LlamaCpp, FAISS
+from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
-# from langchain.chains.summarize import load_summarize_chain
 from langchain.document_loaders import PyPDFLoader
-from langchain.embeddings import LlamaCppEmbeddings  # , HuggingFaceEmbeddings
-from langchain.memory import ConversationTokenBufferMemory, ConversationBufferMemory
+from langchain.embeddings import LlamaCppEmbeddings, HuggingFaceEmbeddings
+from langchain.memory import ConversationTokenBufferMemory
 from langchain.text_splitter import TokenTextSplitter
 from embeddings import get_index
 from models import MODEL_PATH, MODELS
-# from langchain.cache import InMemoryCache
-# import langchain
-# langchain.llm_cache = InMemoryCache()
+
+
+EMBEDDINGS_MODEL = 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0.bin'
+USE_HUGGING = True
 
 
 def embed_pdf(project_name: str, filepath: str, model: str):
@@ -29,31 +29,28 @@ def embed_pdf(project_name: str, filepath: str, model: str):
     # Split into pages
     pages = loader.load_and_split()
     text_splitter = TokenTextSplitter(
-        chunk_size=256,  # int(n_ctx / 4),  # todo this is related to the k top hits from vector store
-        chunk_overlap=32,
+        chunk_size=200,  # int(n_ctx / 4),  # todo this is related to the k top hits from vector store
+        chunk_overlap=20,
         # length_function=len,
     )
     texts = text_splitter.split_documents(pages)
     print(f"Number of texts: {len(texts)}")
 
-    # Create embeddings and store in vector DB
-
-    EMBEDDINGS_MODEL = 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0.bin'
-
-    embeddings = LlamaCppEmbeddings(model_path=os.path.join(MODEL_PATH, EMBEDDINGS_MODEL),
-                                    n_threads=8,
-                                    n_ctx=n_ctx,
-                                    n_batch=512)
-    # llama = LlamaCppEmbeddings(model_path="/path/to/model/ggml-model-q4_0.bin")
-    # embeddings = HuggingFaceEmbeddings()
-    # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-
-    db = get_index(embeddings, filename, EMBEDDINGS_MODEL, project_name, texts)
+    if USE_HUGGING:
+        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        db = FAISS.from_documents(texts, embeddings)
+    else:
+        # Create embeddings and store in vector DB
+        embeddings = LlamaCppEmbeddings(model_path=os.path.join(MODEL_PATH, EMBEDDINGS_MODEL),
+                                        n_threads=8,
+                                        n_ctx=n_ctx,
+                                        n_batch=512)
+        db = get_index(embeddings, filename, EMBEDDINGS_MODEL, project_name, texts)
     print('index loaded')
     retriever = db.as_retriever()
 
     llm = LlamaCpp(model_path=model_path,
-                   temperature=0.8,
+                   temperature=0.0,
                    n_threads=8,
                    n_ctx=n_ctx,
                    n_batch=512,
@@ -69,12 +66,14 @@ def embed_pdf(project_name: str, filepath: str, model: str):
     # summary = chain.run(input_documents=search, question="Write a summary within 150 words.")
     # print(summary)
 
+    chain_type = "stuff"
+    return_source_documents = chain_type != 'stuff'
     qa = ConversationalRetrievalChain.from_llm(llm,
                                                retriever,
                                                condense_question_prompt=CONDENSE_QUESTION_PROMPT,
-                                               chain_type="stuff",
+                                               chain_type=chain_type,
                                                memory=ConversationTokenBufferMemory(llm=llm, memory_key="chat_history", return_messages=True),
-                                               return_source_documents=False)
+                                               return_source_documents=return_source_documents)
     # print(qa.llm_chain.template)  also chain.combine_chain.prompt
 
     questions = [
@@ -93,26 +92,7 @@ def embed_pdf(project_name: str, filepath: str, model: str):
         print(f"**Answer**: {result['answer']} \n")
         # print(result['source_documents'])
 
-    # from langchain.chains.qa_with_sources import load_qa_with_sources_chain
-    #
-    # question_generator = LLMChain(llm=llm, prompt=CONDENSE_QUESTION_PROMPT)
-    # doc_chain = load_qa_with_sources_chain(llm, chain_type="map_reduce")
-    #
-    # chain = ConversationalRetrievalChain(
-    #     retriever=retriever,
-    #     question_generator=question_generator,
-    #     combine_docs_chain=doc_chain,
-    # )
-    #
-    # query = "What is the biggest change in TLS 1.3"
-    # result = chain({"question": query, "chat_history": chat_history})
-    # print(result['answer'])
-
-    # summarization
-    # cc = LLMSummarizationCheckerChain(llm=llm, verbose=True, max_checks=2)
-    # cc.run(arricel)
-
 
 if __name__ == '__main__':
-    model = "Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0"
+    model = "wizard-mega-13B.ggml.q5_0"  # "Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0"
     embed_pdf('testproject', '/Users/christianwengert/Downloads/234.pdf', model)
