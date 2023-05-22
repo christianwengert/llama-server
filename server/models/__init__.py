@@ -49,10 +49,11 @@ ALPACA_PROMPT = PromptTemplate(
 )
 
 MODELS = {  # Prompt, Stop, Context
+    'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [VICUNA_PROMPT, None, 2048],
     'wizard-vicuna-13B.ggml.q5_0': [VICUNA_PROMPT, None, 2048],
     'wizard-mega-13B.ggml.q5_0': [VICUNA_PROMPT, None, 2048],
     'Wizard-Vicuna-13B-Uncensored.ggml.q5_0': [VICUNA_PROMPT, None, 2048],
-    'stable-vicuna-13B.ggml.q5_0': [STABLE_VICUNA_PROMPT, ["### Human:"], 4096],
+    'stable-vicuna-13B.ggml.q5_0': [STABLE_VICUNA_PROMPT, ["### Human:"], 2048],
     'VicUnlocked-30B-LoRA.ggml.q5_0': [VICUNA_PROMPT, None, 2048],
     'OpenAssistant-SFT-7-Llama-30B.ggml.q5_0': [OPEN_ASSISTANT_PROMPT, None, 2048],
     'gpt4-alpaca-lora_mlp-65B.ggml.q5_0': [ALPACA_PROMPT, None, 2048],

@@ -1,16 +1,17 @@
 import os.path
-from langchain import LlamaCpp
-from langchain.chains import ConversationalRetrievalChain, LLMSummarizationCheckerChain
+from langchain import LlamaCpp, LLMChain
+from langchain.chains import ConversationalRetrievalChain  # , LLMSummarizationCheckerChain
+from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
 # from langchain.chains.summarize import load_summarize_chain
 from langchain.document_loaders import PyPDFLoader
-from langchain.embeddings import LlamaCppEmbeddings, HuggingFaceEmbeddings
-from langchain.memory import ConversationTokenBufferMemory
+from langchain.embeddings import LlamaCppEmbeddings  # , HuggingFaceEmbeddings
+from langchain.memory import ConversationTokenBufferMemory, ConversationBufferMemory
 from langchain.text_splitter import TokenTextSplitter
 from embeddings import get_index
 from models import MODEL_PATH, MODELS
-from langchain.cache import InMemoryCache
-import langchain
-langchain.llm_cache = InMemoryCache()
+# from langchain.cache import InMemoryCache
+# import langchain
+# langchain.llm_cache = InMemoryCache()
 
 
 def embed_pdf(project_name: str, filepath: str, model: str):
@@ -37,7 +38,9 @@ def embed_pdf(project_name: str, filepath: str, model: str):
 
     # Create embeddings and store in vector DB
 
-    embeddings = LlamaCppEmbeddings(model_path=os.path.join(MODEL_PATH, 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0.bin'),
+    EMBEDDINGS_MODEL = 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0.bin'
+
+    embeddings = LlamaCppEmbeddings(model_path=os.path.join(MODEL_PATH, EMBEDDINGS_MODEL),
                                     n_threads=8,
                                     n_ctx=n_ctx,
                                     n_batch=512)
@@ -45,8 +48,8 @@ def embed_pdf(project_name: str, filepath: str, model: str):
     # embeddings = HuggingFaceEmbeddings()
     # embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
-    db = get_index(embeddings, filename, model, project_name, texts)
-
+    db = get_index(embeddings, filename, EMBEDDINGS_MODEL, project_name, texts)
+    print('index loaded')
     retriever = db.as_retriever()
 
     llm = LlamaCpp(model_path=model_path,
@@ -54,20 +57,24 @@ def embed_pdf(project_name: str, filepath: str, model: str):
                    n_threads=8,
                    n_ctx=n_ctx,
                    n_batch=512,
-                   max_tokens=512,
+                   max_tokens=1024,
                    )
     # 'refine' chain returns empty string?
     # chain = load_summarize_chain(llm, chain_type="map_reduce")
     # search = db.similarity_search(" ", k=4)
+
+    # from langchain.chains.question_answering import load_qa_chain
+    # chain = load_qa_chain(llm, chain_type="map_reduce")
 
     # summary = chain.run(input_documents=search, question="Write a summary within 150 words.")
     # print(summary)
 
     qa = ConversationalRetrievalChain.from_llm(llm,
                                                retriever,
-                                               chain_type="map_reduce",
-                                               memory=ConversationTokenBufferMemory(llm=llm, max_token_limit=llm.n_ctx / 2),
-                                               return_source_documents=True)
+                                               condense_question_prompt=CONDENSE_QUESTION_PROMPT,
+                                               chain_type="stuff",
+                                               memory=ConversationTokenBufferMemory(llm=llm, memory_key="chat_history", return_messages=True),
+                                               return_source_documents=False)
     # print(qa.llm_chain.template)  also chain.combine_chain.prompt
 
     questions = [
@@ -86,11 +93,26 @@ def embed_pdf(project_name: str, filepath: str, model: str):
         print(f"**Answer**: {result['answer']} \n")
         # print(result['source_documents'])
 
+    # from langchain.chains.qa_with_sources import load_qa_with_sources_chain
+    #
+    # question_generator = LLMChain(llm=llm, prompt=CONDENSE_QUESTION_PROMPT)
+    # doc_chain = load_qa_with_sources_chain(llm, chain_type="map_reduce")
+    #
+    # chain = ConversationalRetrievalChain(
+    #     retriever=retriever,
+    #     question_generator=question_generator,
+    #     combine_docs_chain=doc_chain,
+    # )
+    #
+    # query = "What is the biggest change in TLS 1.3"
+    # result = chain({"question": query, "chat_history": chat_history})
+    # print(result['answer'])
+
     # summarization
     # cc = LLMSummarizationCheckerChain(llm=llm, verbose=True, max_checks=2)
     # cc.run(arricel)
 
 
 if __name__ == '__main__':
-    model = "stable-vicuna-13B.ggml.q5_0"
+    model = "Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0"
     embed_pdf('testproject', '/Users/christianwengert/Downloads/234.pdf', model)
