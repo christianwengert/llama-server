@@ -15,10 +15,7 @@ USE_HUGGING = True
 
 def embed_pdf(project_name: str, filepath: str, model: str):
 
-    try:
-        prompt, stop, n_ctx = MODELS[model]
-    except KeyError:
-        raise KeyError
+    prompt, stop, n_ctx = MODELS[model]
 
     model_path = os.path.join(MODEL_PATH, f'{model}.bin')
 
