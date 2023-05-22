@@ -100,7 +100,7 @@ def index():
     if token not in CONVERSATIONS:
         abort(400)
 
-    return render_template('index.html', models=MODELS, selected_model=SELECTED_MODEL)
+    return render_template('index.html', models=MODELS, selected_model=SELECTED_MODEL, name=os.environ.get("CHAT_NAME", "local"))
 
 
 @app.route('/reset')
