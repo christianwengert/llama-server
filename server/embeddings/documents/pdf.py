@@ -2,11 +2,10 @@ import os.path
 from langchain import LlamaCpp, FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
-from langchain.document_loaders import PyPDFLoader
 from langchain.embeddings import LlamaCppEmbeddings, HuggingFaceEmbeddings
 from langchain.memory import ConversationTokenBufferMemory
-from langchain.text_splitter import TokenTextSplitter
 from embeddings import get_index
+from embeddings.documents import split_pdf
 from models import MODEL_PATH, MODELS
 
 
@@ -23,17 +22,8 @@ def embed_pdf(project_name: str, filepath: str, model: str):
 
     model_path = os.path.join(MODEL_PATH, f'{model}.bin')
 
-    # Load a PDF
     filename = os.path.basename(filepath)
-    loader = PyPDFLoader(filepath)
-    # Split into pages
-    pages = loader.load_and_split()
-    text_splitter = TokenTextSplitter(
-        chunk_size=200,  # int(n_ctx / 4),  # todo this is related to the k top hits from vector store
-        chunk_overlap=20,
-        # length_function=len,
-    )
-    texts = text_splitter.split_documents(pages)
+    texts = split_pdf(filepath)
     print(f"Number of texts: {len(texts)}")
 
     if USE_HUGGING:

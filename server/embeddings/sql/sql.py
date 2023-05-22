@@ -3,7 +3,7 @@ from langchain import SQLDatabase, LlamaCpp, SQLDatabaseChain
 from models import MODEL_PATH
 
 
-MODEL = 'stable-vicuna-13B.ggml.q5_0.bin'  # stable vicuna has 4K context
+MODEL = 'stable-vicuna-13B.ggml.q5_0.bin'  # stable vicuna has 4K context, todo: actually no!
 
 
 db = SQLDatabase.from_uri("sqlite:////Users/christianwengert/src/llama-server/chinook.db",
