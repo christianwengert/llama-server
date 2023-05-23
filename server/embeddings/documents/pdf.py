@@ -20,7 +20,7 @@ def embed_pdf(project_name: str, filepath: str, model: str):
     model_path = os.path.join(MODEL_PATH, f'{model}.bin')
 
     filename = os.path.basename(filepath)
-    texts = split_pdf(filepath)
+    texts = split_pdf(filepath, chunk_size=1024, chunk_overlap=16)
     print(f"Number of texts: {len(texts)}")
 
     if USE_HUGGING:
@@ -41,17 +41,8 @@ def embed_pdf(project_name: str, filepath: str, model: str):
                    n_threads=8,
                    n_ctx=n_ctx,
                    n_batch=512,
-                   max_tokens=1024,
+                   max_tokens=256,
                    )
-    # 'refine' chain returns empty string?
-    # chain = load_summarize_chain(llm, chain_type="map_reduce")
-    # search = db.similarity_search(" ", k=4)
-
-    # from langchain.chains.question_answering import load_qa_chain
-    # chain = load_qa_chain(llm, chain_type="map_reduce")
-
-    # summary = chain.run(input_documents=search, question="Write a summary within 150 words.")
-    # print(summary)
 
     chain_type = "stuff"
     return_source_documents = chain_type != 'stuff'
@@ -59,7 +50,7 @@ def embed_pdf(project_name: str, filepath: str, model: str):
                                                retriever,
                                                condense_question_prompt=CONDENSE_QUESTION_PROMPT,
                                                chain_type=chain_type,
-                                               memory=ConversationTokenBufferMemory(llm=llm, memory_key="chat_history", return_messages=True),
+                                               memory=ConversationTokenBufferMemory(llm=llm, memory_key="chat_history", return_messages=True, max_token_limit=1024),
                                                return_source_documents=return_source_documents)
     # print(qa.llm_chain.template)  also chain.combine_chain.prompt
 
@@ -82,4 +73,5 @@ def embed_pdf(project_name: str, filepath: str, model: str):
 
 if __name__ == '__main__':
     model = "wizard-mega-13B.ggml.q5_0"  # "Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0"
-    embed_pdf('testproject', '/Users/christianwengert/Downloads/234.pdf', model)
+    # embed_pdf('testproject', '/Users/christianwengert/Downloads/234.pdf', model)
+    embed_pdf('testproject', '/Users/christianwengert/Downloads/2014-070.pdf', model)

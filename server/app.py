@@ -79,7 +79,7 @@ def upload():
 
     executor.submit_stored(h, long_running_pdf_indexer, name, dest, model)
 
-    return "OK"
+    return "OK"  # todo: redirect to wait page.....
 
 
 @app.route("/")
