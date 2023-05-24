@@ -2,10 +2,7 @@ import os
 from langchain import SQLDatabase, LlamaCpp, SQLDatabaseChain
 from sqlalchemy.exc import OperationalError
 
-from models import MODEL_PATH, MODELS
-
-# MODEL = 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0'
-MODEL = 'VicUnlocked-30B-LoRA.ggml.q5_0'
+from models import MODEL_PATH, MODELS, SELECTED_MODEL
 
 
 def qa_on_sql(connect_string: str, model: str):
@@ -39,6 +36,12 @@ def qa_on_sql(connect_string: str, model: str):
         "how many people work in IT?",
         "how many people work in Sales?",
         "who is the youngest employee?",
+        "what is the average age of all employees?",
+        "how many people report to michael?",
+        "who does michael report to?",
+        "who does Margaret report to?",
+        "when has steve been hired?",
+
         # "which band has the most albums?",
     ]
     answers = []
@@ -51,10 +54,10 @@ def qa_on_sql(connect_string: str, model: str):
             raise _e
         except OperationalError as _e:
             # noinspection PyUnresolvedReferences
-            answer = f"Could not answer this question with this query {print(_e.intermediate_steps[-2])}"
+            answer = f"Could not answer this question with this query {_e.intermediate_steps[-2]}"
         except Exception as _e:
             print(_e)
-            answer = "GARGL"
+            answer = f"Something went wrong: {str(_e)}"
 
         answers.append(answer)
 
@@ -66,4 +69,4 @@ def qa_on_sql(connect_string: str, model: str):
 
 
 if __name__ == '__main__':
-    qa_on_sql("sqlite:////Users/christianwengert/src/llama-server/chinook.db", MODEL)
+    qa_on_sql("sqlite:////Users/christianwengert/src/llama-server/chinook.db", SELECTED_MODEL)

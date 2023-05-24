@@ -36,6 +36,13 @@ def embed_pdf(project_name: str, filepath: str, model: str):
     print('index loaded')
     retriever = db.as_retriever()
 
+    retriever.search_kwargs['distance_metric'] = 'cos'
+    retriever.search_kwargs['fetch_k'] = 100
+    retriever.search_kwargs['maximal_marginal_relevance'] = True
+    retriever.search_kwargs['k'] = 3
+    retriever.search_kwargs['reduce_k_below_max_tokens'] = True
+    retriever.search_kwargs['max_tokens_limit'] = 1024
+
     llm = LlamaCpp(model_path=model_path,
                    temperature=0.0,
                    n_threads=8,
@@ -51,7 +58,8 @@ def embed_pdf(project_name: str, filepath: str, model: str):
                                                condense_question_prompt=CONDENSE_QUESTION_PROMPT,
                                                chain_type=chain_type,
                                                memory=ConversationTokenBufferMemory(llm=llm, memory_key="chat_history", return_messages=True, max_token_limit=1024),
-                                               return_source_documents=return_source_documents)
+                                               return_source_documents=return_source_documents,
+                                               max_tokens_limit=1500)
     # print(qa.llm_chain.template)  also chain.combine_chain.prompt
 
     questions = [
