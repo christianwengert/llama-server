@@ -44,11 +44,6 @@ class StreamingLlamaHandler(BaseCallbackHandler):
         self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs: Any
     ) -> None:
         """Run when chain starts running."""
-        print(serialized)
-        # if serialized['name'] != 'LLMChain':
-        #     self.is_preprocess = True
-        # else:
-        #     self.is_preprocess = False
 
     def on_chain_end(self, outputs: Dict[str, Any], **kwargs: Any) -> None:
         """Run when chain ends running."""
