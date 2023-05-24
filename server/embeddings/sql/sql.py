@@ -30,18 +30,20 @@ def embed_sql(dbname: str, file_path: str, model: str, run_test: bool = False) -
                                          # use_query_checker=True,
                                          )
 
-    class MyChain:
+    class MyChain:  # todo make a function instead of class?
         def __call__(self, question, callbacks):
             try:
                 answer = db_chain.run(question, callbacks=callbacks)
-            except ValueError as _e:
-                raise _e
             except OperationalError as _e:
                 # noinspection PyUnresolvedReferences
                 answer = f"Could not answer this question with this query {_e.intermediate_steps[-2]}"
+                for callback in callbacks:
+                    callback.on_llm_new_token(answer)
             except Exception as _e:
-                print(_e)
                 answer = f"Something went wrong: {str(_e)}"
+                for callback in callbacks:
+                    callback.on_llm_new_token(answer)
+
             return answer
 
     mychain = MyChain()
