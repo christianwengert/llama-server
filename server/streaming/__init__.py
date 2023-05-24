@@ -9,7 +9,6 @@ class StreamingLlamaHandler(BaseCallbackHandler):
         # self.queue = q
         self.fun = fun
         self.abortfn = abortfn
-        self.is_preprocess = False
 
     @property
     def abort(self):
@@ -22,8 +21,6 @@ class StreamingLlamaHandler(BaseCallbackHandler):
 
     def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
         """Run on new LLM token. Only available when streaming is enabled."""
-        if self.is_preprocess:
-            return
         self.fun(token)
 
     def on_llm_start(

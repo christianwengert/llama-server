@@ -3,7 +3,7 @@ from langchain.document_loaders import TextLoader
 from langchain.text_splitter import PythonCodeTextSplitter
 
 
-def split_codebase(filepath):
+def split_codebase(filepath: str, chunk_size: int, chunk_overlap: int):
     docs = []
     for dirpath, dirnames, filenames in os.walk(filepath):
         for file in filenames:
@@ -15,6 +15,6 @@ def split_codebase(filepath):
                 except Exception:
                     pass
     print(f'Number of files: {len(docs)}')
-    text_splitter = PythonCodeTextSplitter(chunk_size=256, chunk_overlap=0)
+    text_splitter = PythonCodeTextSplitter(chunk_size=chunk_size, chunk_overlap=chunk_overlap)
     texts = text_splitter.split_documents(docs)
     return texts

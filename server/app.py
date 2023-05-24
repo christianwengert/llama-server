@@ -3,12 +3,16 @@ import os
 import queue
 import secrets
 import tempfile
+import time
 
 from flask import Flask, render_template, request, session, abort, Response, redirect
 from flask_executor import Executor
-from langchain.chains.conversational_retrieval.base import BaseConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain
+from langchain.chains.base import Chain
 
+from embeddings.code.codebase import embed_code
 from embeddings.documents.pdf import embed_pdf
+from embeddings.sql.sql import embed_sql
 from models import MODELS, SELECTED_MODEL, MODEL_PATH
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
@@ -36,8 +40,16 @@ ABORT = {}  # per user abort flag, not very nice, but works
 EMBEDDINGS = {}
 
 
-def long_running_pdf_indexer(name: str, file_or_path: str, model: str) -> BaseConversationalRetrievalChain:
+def long_running_pdf_indexer(name: str, file_or_path: str, model: str) -> Chain:
     return embed_pdf(name, file_or_path, model)
+
+
+def long_running_sql_indexer(name: str, file_or_path: str, model: str) -> Chain:
+    return embed_sql(name, file_or_path, model)
+
+
+def long_running_code_indexer(name: str, file_or_path: str, model: str) -> Chain:
+    return embed_code(name, file_or_path, model)
 
 
 @app.route('/check/<string:name>')
@@ -52,9 +64,10 @@ def check(name: str):
     return "OK"
 
 
+@app.route('/embeddings/')
 @app.route('/embeddings/<string:name>')
-def embeddings(name: str):
-    if not EMBEDDINGS:
+def embeddings(name: str = None):
+    if name is not None and name not in EMBEDDINGS:
         return redirect('/')
     return render_template('index.html', selected_embedding=name, embeddings=EMBEDDINGS, models=MODELS, selected_model=SELECTED_MODEL, name=os.environ.get("CHAT_NAME", "local"))
 
@@ -63,18 +76,23 @@ def embeddings(name: str):
 def upload():
     if not request.files:
         abort(400)
-    if len(request.files) != 1:
-        abort(400)
-    file = request.files.get('file', None)
-    if not file:
-        abort(400)
+
+    files = request.files.getlist('file')
 
     name = request.form.get('name')
     if not name:
         abort(400)
 
-    dest = os.path.join(app.config['UPLOAD_FOLDER'], file.filename)
-    file.save(dest)
+    embedding_type = request.form.get('embedding')
+    if not embedding_type:
+        abort(400)
+
+    dest = None
+    base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8), name)
+    for file in files:
+        dest = os.path.join(base_folder, file.filename)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        file.save(dest)
 
     h = hashlib.sha3_512(name.encode('utf8')).hexdigest()
 
@@ -82,15 +100,14 @@ def upload():
     if not model:
         abort(400)
 
-    if os.path.splitext(dest)[1] != '.pdf':
-        abort(400)
+    if embedding_type == 'code':
+        executor.submit_stored(h, long_running_code_indexer, name, base_folder, model)
 
-    # if not EMBEDDINGS:
-    #     session['embeddings'] = {}
+    if embedding_type == 'pdf':
+        executor.submit_stored(h, long_running_pdf_indexer, name, dest, model)
 
-    executor.submit_stored(h, long_running_pdf_indexer, name, dest, model)
-
-    # embeddings = session.get('embeddings', [])
+    if embedding_type == 'sql':
+        executor.submit_stored(h, long_running_sql_indexer, name, dest, model)
 
     EMBEDDINGS[name] = None
 
@@ -145,9 +162,14 @@ def get_input():
     text = data.get('input')
     input_dict = {"input": text}
     chat_history = None
-    if data['model'] in EMBEDDINGS:
+    if data['model'] in EMBEDDINGS:  # special case for embeddings
+
         conversation, chat_history = EMBEDDINGS[data['model']]
-        input_dict = {"question": text, "chat_history": chat_history}  # if we put in the chat history
+        if isinstance(conversation, ConversationalRetrievalChain):  # PDF + Code
+            input_dict = {"question": text, "chat_history": chat_history}  # if we put in the chat history
+        if conversation.__class__.__name__ == 'MyChain':  # SQL
+            input_dict = {"query": text}
+            chat_history = None
 
     def fun(t):
         q.put(t)
@@ -157,15 +179,15 @@ def get_input():
         ABORT[token] = False
         return result
 
-    def run_as_thread(t):
+    def run_as_thread(_t):
         """
         We run this as a thread to be able to get token by token so its cooler to wait
         """
         handler = StreamingLlamaHandler(fun, abortfn)
-        # _answer = conversation.predict(input=t, callbacks=[handler])
         _answer = conversation(input_dict, callbacks=[handler])
         if chat_history is not None:
             chat_history.append((text, _answer['answer']))
+        time.sleep(1.0)  # ugly hack
         fun("THIS IS THE END%^&*")
 
     return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')

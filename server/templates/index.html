@@ -59,17 +59,24 @@
         <div id="input-box" class="input-box" contenteditable="true" data-text="Type here..."></div>
         <button id="stop-generating" disabled="disabled">
             Stop generating
+            <span class="loading"></span>
         </button>
         <div class="footer">
             <div class="footer-buttons">
-                <strong>Embeddings</strong>:
+                <strong>
+                    Embeddings
+                    {% if embeddings is defined and embeddings|length > 0 %}
+                        <a href="/embeddings">({{ embeddings|length }} open)</a>
+                    {% endif %}
+                </strong>:
 
                 &nbsp;
                 <a href="#popup2" id="document-qa-button">PDF</a>
                 &nbsp;|&nbsp;
-                <a href="#popup2" id="source-qa-button">Source code</a>
+                <a href="#popup3" id="source-qa-button">Source code</a>
                 &nbsp;|&nbsp;
-                <a href="#popup2" id="sql-qa-button">SQL</a>
+                <a href="#popup4" id="sql-qa-button">SQL</a>
+
 
 
                 <a href="#popup1" id="help-button">Help</a>
@@ -145,6 +152,57 @@
                         <label>
                             Choose files<br>
                             <input id="pdf-file" type="file" accept="application/pdf" required>
+                        </label>
+                    </div>
+                    <div>
+                        <button>Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="popup3" class="overlay">
+    <div class="popup">
+        <h2>Upload</h2>
+        <a class="close" href="#">&times;</a>
+        <div class="content">
+            <div>
+                <form method="post" enctype="multipart/form-data" id="upload-code">
+                    <div>
+                        <label>
+                            Give a name to this job
+                            <input type="text" value="" placeholder="Give me a name" id="code-jobname" required>
+                        </label>
+                    </div>
+                    <div>
+                        <label>
+                            Choose files<br>
+                            <input id="code-folder" type="file" webkitdirectory required>
+                        </label>
+                    </div>
+                    <div>
+                        <button>Submit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<div id="popup4" class="overlay">
+    <div class="popup">
+        <h2>Upload</h2>
+        <a class="close" href="#">&times;</a>
+        <div class="content">
+            <div>
+                <form method="post" enctype="multipart/form-data" id="upload-sql">
+                    <div>
+                        <label>
+                            Choose files (please provide a sqlite file)<br>
+                            <input id="sql-file" type="file" required>
                         </label>
                     </div>
                     <div>

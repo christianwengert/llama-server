@@ -1,5 +1,5 @@
 import os.path
-from langchain import LlamaCpp, FAISS
+from langchain import FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
 from langchain.chains.conversational_retrieval.base import BaseConversationalRetrievalChain
@@ -8,7 +8,7 @@ from langchain.memory import ConversationTokenBufferMemory
 from embeddings import get_index
 from embeddings.documents import split_pdf
 from models import MODEL_PATH, MODELS
-
+from models.interruptable_llama import InterruptableLlamaCpp
 
 EMBEDDINGS_MODEL = 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0.bin'
 USE_HUGGING = True
@@ -45,13 +45,13 @@ def embed_pdf(project_name: str, filepath: str, model: str, run_test=False) -> B
     retriever.search_kwargs['reduce_k_below_max_tokens'] = True
     retriever.search_kwargs['max_tokens_limit'] = 1024
 
-    llm = LlamaCpp(model_path=model_path,
-                   temperature=0.0,
-                   n_threads=8,
-                   n_ctx=n_ctx,
-                   n_batch=512,
-                   max_tokens=256,
-                   )
+    llm = InterruptableLlamaCpp(model_path=model_path,
+                                temperature=0.0,
+                                n_threads=8,
+                                n_ctx=n_ctx,
+                                n_batch=512,
+                                max_tokens=256,
+                                )
 
     chain_type = "stuff"
     return_source_documents = chain_type != 'stuff'

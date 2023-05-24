@@ -49882,6 +49882,8 @@
   var run = () => {
     setupModelChange();
     setupPdfUpload();
+    setupCodeUpload();
+    setupSQLUpload();
     checkEmbeddings();
     const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
@@ -49990,7 +49992,6 @@
     const [_empty, path1, path2] = new URL(document.location.href).pathname.split("/");
     const fn = () => {
       fetch("/check/" + path2).then((response) => response.text()).then((data) => {
-        console.log(data);
         if (data === "RUNNING") {
           openDialog();
           dialog.innerText = "Please wait";
@@ -50018,6 +50019,7 @@
       formData.append("file", file.files[0]);
       const name = file.files[0].name;
       formData.append("name", name);
+      formData.append("embedding", "pdf");
       fetch(
         "/upload",
         {
@@ -50029,6 +50031,60 @@
       });
     });
   };
+  var setupSQLUpload = () => {
+    const form = document.getElementById("upload-sql");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const file = document.getElementById("sql-file");
+      let formData = new FormData();
+      formData.append("file", file.files[0]);
+      const name = file.files[0].name;
+      formData.append("name", name);
+      formData.append("embedding", "sql");
+      fetch(
+        "/upload",
+        {
+          body: formData,
+          method: "post"
+        }
+      ).then(() => {
+        window.location.href = "/embeddings/" + name;
+      });
+    });
+  };
+  var setupCodeUpload = () => {
+    const form = document.getElementById("upload-code");
+    form.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const file = document.getElementById("code-folder");
+      const name = document.getElementById("code-jobname");
+      let formData = new FormData();
+      for (const f of file.files) {
+        formData.append("file", f);
+      }
+      formData.append("name", name.value);
+      formData.append("embedding", "code");
+      fetch(
+        "/upload",
+        {
+          body: formData,
+          method: "post"
+        }
+      ).then(() => {
+        window.location.href = "/embeddings/" + name.value;
+      });
+    });
+  };
+  var setupSwitchEmbedding = () => {
+    const embeddingsChanger = document.getElementById("embeddings-change");
+    if (!embeddingsChanger) {
+      return;
+    }
+    embeddingsChanger.addEventListener("change", (e) => {
+      document.location.href = "/embeddings/" + embeddingsChanger.value;
+    });
+  };
+  setupSwitchEmbedding();
   run();
 })();
 //# sourceMappingURL=app.js.map
