@@ -19,7 +19,10 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
 };
 
 const setupModelChange = () => {
-    let modelChangeSelect = document.getElementById('model-change')! as HTMLSelectElement;
+    let modelChangeSelect = document.getElementById('model-change') as HTMLSelectElement;
+    if(!modelChangeSelect) {
+        return;
+    }
     modelChangeSelect!.addEventListener('change', ()=> {
         document.location = '/?' + new URLSearchParams({
             model: modelChangeSelect.value
@@ -41,6 +44,7 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
 const run = () => {
     setupModelChange();
     setupPdfUpload();
+    checkEmbeddings();
     const chat = document.getElementById('chat')!;
 
     // todo: We cannot stop generation yet
@@ -52,19 +56,23 @@ const run = () => {
     })
 
 
-    const resetButton = document.getElementById('reset-button')! as HTMLElement;
-    resetButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        fetch('/reset').then(()=>{
-            document.location.reload()
+    const resetButton = document.getElementById('reset-button') as HTMLElement;
+    if(resetButton) {
+        resetButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            fetch('/reset').then(() => {
+                document.location.reload()
+            })
         })
-    })
+    }
 
 
 
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
-    const modelChangeSelector = document.getElementById('model-change')! as HTMLSelectElement
-
+    let modelChangeSelector = document.getElementById('model-change')! as HTMLSelectElement
+    if (!modelChangeSelector) {
+        modelChangeSelector = document.getElementById('embeddings-change')! as HTMLSelectElement
+    }
 
     setFocusToInputField(textInput);
 
@@ -154,27 +162,70 @@ const run = () => {
             xhr.addEventListener("error", function (e) {
                 console.log("error: " + e);
             });
-            xhr.send(m);
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+            xhr.send(JSON.stringify({'input': m, 'model': modelChangeSelector.value}));
         }
     }
 };
 
+const checkEmbeddings = () => {
 
+    const dialog = document.querySelector('#wait')! as HTMLDialogElement;
+
+    function openDialog() {
+        if(dialog.attributes.hasOwnProperty('open')) {
+            return
+        }
+        dialog.showModal();
+    }
+    function closeDialog() {
+        if(dialog.attributes.hasOwnProperty('open')) {
+            dialog.close();
+        }
+    }
+
+    let clearFun: number;
+
+    const [_empty, path1, path2] = new URL(document.location.href).pathname.split('/')
+    const fn = () => {
+        fetch('/check/' + path2).then(response => response.text()).then((data) => {
+            console.log(data)
+            if(data === 'RUNNING') {
+                openDialog()
+                dialog.innerText = "Please wait"
+            } else if(data === 'OK') {
+                closeDialog();
+                clearInterval(clearFun);
+            } else {
+                closeDialog();
+                console.warn('Got nothing')
+                clearInterval(clearFun);
+            }
+        })
+
+    }
+    if(path1 === 'embeddings' && path2) {
+        fn();
+        clearFun = setInterval(fn, 1000)
+    }
+}
 const setupPdfUpload = () => {
     const form = document.getElementById('upload-pdf')! as HTMLFormElement;
     form.addEventListener('submit', (e) => {
         e.preventDefault()
         const file = document.getElementById('pdf-file')! as HTMLInputElement;
-        const name = document.getElementById('pdf-jobname')! as HTMLInputElement;
+
         let formData = new FormData();
         formData.append('file', file.files![0]);
-        formData.append('name', name.value);
+        const name = file.files![0].name;
+        formData.append('name', name);
 
         fetch("/upload",
             {
                 body: formData,
                 method: "post"
             }).then(()=> {
+                window.location.href = '/embeddings/' + name;
 
         });
     })

@@ -174,7 +174,7 @@ pre code {
     background-color: white;
     border: none;
     position: absolute;
-    bottom: 12px;
+    bottom: 10px;
 }
 
 button:disabled {
@@ -352,4 +352,16 @@ input[type=text] {
 
 button {
     padding: 4px;
+}
+
+
+#wait {
+    border: none;
+    background-color: unset;
+    color: white;
+    font-weight: bold;
+}
+#wait::backdrop {
+    background-color: rgba(19, 19, 19, 0.5);
+
 }

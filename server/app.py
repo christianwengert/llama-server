@@ -4,8 +4,9 @@ import queue
 import secrets
 import tempfile
 
-from flask import Flask, render_template, request, session, abort, Response
+from flask import Flask, render_template, request, session, abort, Response, redirect
 from flask_executor import Executor
+from langchain.chains.conversational_retrieval.base import BaseConversationalRetrievalChain
 
 from embeddings.documents.pdf import embed_pdf
 from models import MODELS, SELECTED_MODEL, MODEL_PATH
@@ -17,8 +18,8 @@ from models.llama import create_conversation
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
 app.config.update(
-    SESSION_COOKIE_SECURE=True,
-    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SECURE=False,
+    SESSION_COOKIE_HTTPONLY=False,
     SESSION_COOKIE_SAMESITE='Strict',
 )
 
@@ -32,13 +33,11 @@ app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 
 CONVERSATIONS = {}  # per user conversation
 ABORT = {}  # per user abort flag, not very nice, but works
+EMBEDDINGS = {}
 
 
-def long_running_pdf_indexer(name: str, file_or_path: str, model: str) -> str:
-
-    embed_pdf(name, file_or_path, model)
-    # time.sleep(90)
-    return "OK"
+def long_running_pdf_indexer(name: str, file_or_path: str, model: str) -> BaseConversationalRetrievalChain:
+    return embed_pdf(name, file_or_path, model)
 
 
 @app.route('/check/<string:name>')
@@ -48,7 +47,16 @@ def check(name: str):
         # noinspection PyProtectedMember
         return str(executor.futures._state(h))
     future = executor.futures.pop(h)
-    return str(future.result())
+    qa = future.result()
+    EMBEDDINGS[name] = qa, []
+    return "OK"
+
+
+@app.route('/embeddings/<string:name>')
+def embeddings(name: str):
+    if not EMBEDDINGS:
+        return redirect('/')
+    return render_template('index.html', selected_embedding=name, embeddings=EMBEDDINGS, models=MODELS, selected_model=SELECTED_MODEL, name=os.environ.get("CHAT_NAME", "local"))
 
 
 @app.route('/upload', methods=['POST'])
@@ -77,7 +85,14 @@ def upload():
     if os.path.splitext(dest)[1] != '.pdf':
         abort(400)
 
+    # if not EMBEDDINGS:
+    #     session['embeddings'] = {}
+
     executor.submit_stored(h, long_running_pdf_indexer, name, dest, model)
+
+    # embeddings = session.get('embeddings', [])
+
+    EMBEDDINGS[name] = None
 
     return "OK"  # todo: redirect to wait page.....
 
@@ -126,8 +141,13 @@ def get_input():
     conversation, q = CONVERSATIONS.get(token, None)
     if not conversation:
         abort(400)
-    binary = request.data
-    text = binary.decode('utf8')
+    data = request.json
+    text = data.get('input')
+    input_dict = {"input": text}
+    chat_history = None
+    if data['model'] in EMBEDDINGS:
+        conversation, chat_history = EMBEDDINGS[data['model']]
+        input_dict = {"question": text, "chat_history": chat_history}
 
     def fun(t):
         q.put(t)
@@ -142,7 +162,10 @@ def get_input():
         We run this as a thread to be able to get token by token so its cooler to wait
         """
         handler = StreamingLlamaHandler(fun, abortfn)
-        _answer = conversation.predict(input=t, callbacks=[handler])
+        # _answer = conversation.predict(input=t, callbacks=[handler])
+        _answer = conversation(input_dict, callbacks=[handler])
+        if chat_history is not None:
+            chat_history.append((text, _answer['answer']))
 
     return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')
 

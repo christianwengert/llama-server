@@ -2,6 +2,7 @@ import os.path
 from langchain import LlamaCpp, FAISS
 from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
+from langchain.chains.conversational_retrieval.base import BaseConversationalRetrievalChain
 from langchain.embeddings import LlamaCppEmbeddings, HuggingFaceEmbeddings
 from langchain.memory import ConversationTokenBufferMemory
 from embeddings import get_index
@@ -13,7 +14,7 @@ EMBEDDINGS_MODEL = 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0.bin'
 USE_HUGGING = True
 
 
-def embed_pdf(project_name: str, filepath: str, model: str):
+def embed_pdf(project_name: str, filepath: str, model: str, run_test=False) -> BaseConversationalRetrievalChain:
 
     prompt, stop, n_ctx = MODELS[model]
 
@@ -34,6 +35,7 @@ def embed_pdf(project_name: str, filepath: str, model: str):
                                         n_batch=512)
         db = get_index(embeddings, filename, EMBEDDINGS_MODEL, project_name, texts)
     print('index loaded')
+
     retriever = db.as_retriever()
 
     retriever.search_kwargs['distance_metric'] = 'cos'
@@ -60,26 +62,29 @@ def embed_pdf(project_name: str, filepath: str, model: str):
                                                memory=ConversationTokenBufferMemory(llm=llm, memory_key="chat_history", return_messages=True, max_token_limit=1024),
                                                return_source_documents=return_source_documents,
                                                max_tokens_limit=1500)
-    # print(qa.llm_chain.template)  also chain.combine_chain.prompt
 
-    questions = [
-        "What is this paper about?",
-        "Who are the authors?",
-        "What primitives are supported?",
-        "has TLS1.3 been formally verified?"
-    ]
+    if run_test:
 
-    chat_history = list()
+        questions = [
+            "What is this paper about?",
+            "Who are the authors?",
+            "What primitives are supported?",
+            "has TLS1.3 been formally verified?"
+        ]
 
-    for question in questions:
-        print(f"-> **Question**: {question} \n")
-        result = qa({"question": question, "chat_history": chat_history})
-        chat_history.append((question, result['answer']))
-        print(f"**Answer**: {result['answer']} \n")
-        # print(result['source_documents'])
+        chat_history = list()
+
+        for question in questions:
+            print(f"-> **Question**: {question} \n")
+            result = qa({"question": question, "chat_history": chat_history})
+            chat_history.append((question, result['answer']))
+            print(f"**Answer**: {result['answer']} \n")
+            # print(result['source_documents'])
+
+    return qa
 
 
 if __name__ == '__main__':
     model = "wizard-mega-13B.ggml.q5_0"  # "Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0"
     # embed_pdf('testproject', '/Users/christianwengert/Downloads/234.pdf', model)
-    embed_pdf('testproject', '/Users/christianwengert/Downloads/2014-070.pdf', model)
+    embed_pdf('testproject', '/Users/christianwengert/Downloads/2014-070.pdf', model, run_test=True)

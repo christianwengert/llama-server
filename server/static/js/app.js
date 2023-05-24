@@ -49861,6 +49861,9 @@
   };
   var setupModelChange = () => {
     let modelChangeSelect = document.getElementById("model-change");
+    if (!modelChangeSelect) {
+      return;
+    }
     modelChangeSelect.addEventListener("change", () => {
       document.location = "/?" + new URLSearchParams({
         model: modelChangeSelect.value
@@ -49879,6 +49882,7 @@
   var run = () => {
     setupModelChange();
     setupPdfUpload();
+    checkEmbeddings();
     const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
     stopButton.addEventListener("click", (e) => {
@@ -49888,14 +49892,19 @@
       stopButton.disabled = true;
     });
     const resetButton = document.getElementById("reset-button");
-    resetButton.addEventListener("click", (e) => {
-      e.preventDefault();
-      fetch("/reset").then(() => {
-        document.location.reload();
+    if (resetButton) {
+      resetButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        fetch("/reset").then(() => {
+          document.location.reload();
+        });
       });
-    });
+    }
     const textInput = document.getElementById("input-box");
-    const modelChangeSelector = document.getElementById("model-change");
+    let modelChangeSelector = document.getElementById("model-change");
+    if (!modelChangeSelector) {
+      modelChangeSelector = document.getElementById("embeddings-change");
+    }
     setFocusToInputField(textInput);
     textInput.addEventListener("keypress", handleInput);
     function handleInput(e) {
@@ -49959,8 +49968,45 @@
         xhr.addEventListener("error", function(e2) {
           console.log("error: " + e2);
         });
-        xhr.send(m);
+        xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        xhr.send(JSON.stringify({ "input": m, "model": modelChangeSelector.value }));
       }
+    }
+  };
+  var checkEmbeddings = () => {
+    const dialog = document.querySelector("#wait");
+    function openDialog() {
+      if (dialog.attributes.hasOwnProperty("open")) {
+        return;
+      }
+      dialog.showModal();
+    }
+    function closeDialog() {
+      if (dialog.attributes.hasOwnProperty("open")) {
+        dialog.close();
+      }
+    }
+    let clearFun;
+    const [_empty, path1, path2] = new URL(document.location.href).pathname.split("/");
+    const fn = () => {
+      fetch("/check/" + path2).then((response) => response.text()).then((data) => {
+        console.log(data);
+        if (data === "RUNNING") {
+          openDialog();
+          dialog.innerText = "Please wait";
+        } else if (data === "OK") {
+          closeDialog();
+          clearInterval(clearFun);
+        } else {
+          closeDialog();
+          console.warn("Got nothing");
+          clearInterval(clearFun);
+        }
+      });
+    };
+    if (path1 === "embeddings" && path2) {
+      fn();
+      clearFun = setInterval(fn, 1e3);
     }
   };
   var setupPdfUpload = () => {
@@ -49968,10 +50014,10 @@
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const file = document.getElementById("pdf-file");
-      const name = document.getElementById("pdf-jobname");
       let formData = new FormData();
       formData.append("file", file.files[0]);
-      formData.append("name", name.value);
+      const name = file.files[0].name;
+      formData.append("name", name);
       fetch(
         "/upload",
         {
@@ -49979,6 +50025,7 @@
           method: "post"
         }
       ).then(() => {
+        window.location.href = "/embeddings/" + name;
       });
     });
   };
