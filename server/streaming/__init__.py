@@ -9,6 +9,7 @@ class StreamingLlamaHandler(BaseCallbackHandler):
         # self.queue = q
         self.fun = fun
         self.abortfn = abortfn
+        self.is_preprocess = False
 
     @property
     def abort(self):
@@ -21,6 +22,8 @@ class StreamingLlamaHandler(BaseCallbackHandler):
 
     def on_llm_new_token(self, token: str, **kwargs: Any) -> None:
         """Run on new LLM token. Only available when streaming is enabled."""
+        if self.is_preprocess:
+            return
         self.fun(token)
 
     def on_llm_start(
@@ -31,7 +34,6 @@ class StreamingLlamaHandler(BaseCallbackHandler):
     def on_llm_end(self, response: LLMResult, **kwargs: Any) -> None:
         """Run when LLM ends running."""
         print('done')
-        self.fun("THIS IS THE END%^&*")
 
     def on_llm_error(
         self, error: Union[Exception, KeyboardInterrupt], **kwargs: Any
@@ -42,7 +44,11 @@ class StreamingLlamaHandler(BaseCallbackHandler):
         self, serialized: Dict[str, Any], inputs: Dict[str, Any], **kwargs: Any
     ) -> None:
         """Run when chain starts running."""
-        pass
+        print(serialized)
+        # if serialized['name'] != 'LLMChain':
+        #     self.is_preprocess = True
+        # else:
+        #     self.is_preprocess = False
 
     def on_chain_end(self, outputs: Dict[str, Any], **kwargs: Any) -> None:
         """Run when chain ends running."""

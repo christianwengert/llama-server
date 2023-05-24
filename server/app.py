@@ -94,7 +94,7 @@ def upload():
 
     EMBEDDINGS[name] = None
 
-    return "OK"  # todo: redirect to wait page.....
+    return "OK"  # redirect done in JS
 
 
 @app.route("/")
@@ -147,7 +147,7 @@ def get_input():
     chat_history = None
     if data['model'] in EMBEDDINGS:
         conversation, chat_history = EMBEDDINGS[data['model']]
-        input_dict = {"question": text, "chat_history": chat_history}
+        input_dict = {"question": text, "chat_history": chat_history}  # if we put in the chat history
 
     def fun(t):
         q.put(t)
@@ -166,6 +166,7 @@ def get_input():
         _answer = conversation(input_dict, callbacks=[handler])
         if chat_history is not None:
             chat_history.append((text, _answer['answer']))
+        fun("THIS IS THE END%^&*")
 
     return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')
 
