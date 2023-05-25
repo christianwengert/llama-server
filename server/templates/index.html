@@ -12,11 +12,12 @@
     <div class="header-inner"><a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a></div>
     <div class="header-inner">
 
-        {% if embeddings is defined %}
+        {% if show_embeddings is defined %}
         <label>
             <strong>Embedding</strong>:
             <select id="embeddings-change">
             {% for embedding in embeddings %}
+            <option></option>
             {% if embedding == selected_embedding %}
             <option selected="selected" value="{{ embedding }}">{{ embedding }}</option>
             {% else %}
@@ -64,10 +65,11 @@
         <div class="footer">
             <div class="footer-buttons">
                 <strong>
-                    Embeddings
+                    <a href="/embeddings">Embeddings
                     {% if embeddings is defined and embeddings|length > 0 %}
-                        <a href="/embeddings">({{ embeddings|length }} open)</a>
+                        ({{ embeddings|length }} open)
                     {% endif %}
+                    </a>
                 </strong>:
 
                 &nbsp;

@@ -50081,7 +50081,9 @@
       return;
     }
     embeddingsChanger.addEventListener("change", (e) => {
-      document.location.href = "/embeddings/" + embeddingsChanger.value;
+      if (embeddingsChanger.value) {
+        document.location.href = "/embeddings/" + embeddingsChanger.value;
+      }
     });
   };
   setupSwitchEmbedding();

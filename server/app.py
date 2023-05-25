@@ -69,7 +69,13 @@ def check(name: str):
 def embeddings(name: str = None):
     if name is not None and name not in EMBEDDINGS:
         return redirect('/')
-    return render_template('index.html', selected_embedding=name, embeddings=EMBEDDINGS, models=MODELS, selected_model=SELECTED_MODEL, name=os.environ.get("CHAT_NAME", "local"))
+    return render_template('index.html',
+                           selected_embedding=name,
+                           embeddings=EMBEDDINGS,
+                           show_embeddings=True,
+                           models=MODELS,
+                           selected_model=SELECTED_MODEL,
+                           name=os.environ.get("CHAT_NAME", "local"))
 
 
 @app.route('/upload', methods=['POST'])
@@ -132,7 +138,10 @@ def index():
     if token not in CONVERSATIONS:
         abort(400)
 
-    return render_template('index.html', models=MODELS, selected_model=SELECTED_MODEL, name=os.environ.get("CHAT_NAME", "local"))
+    return render_template('index.html', models=MODELS,
+                           selected_model=SELECTED_MODEL,
+                           embeddings=EMBEDDINGS,
+                           name=os.environ.get("CHAT_NAME", "local"))
 
 
 @app.route('/reset')
