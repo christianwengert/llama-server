@@ -56,4 +56,73 @@ Label[for=model-change] {
     display:table-cell;
     vertical-align:middle;
 }
-/*.Select-menu-outer { display : block !important; z-index: 1200}*/
+#chat {
+    height: calc(100vh - 120px);
+    overflow: scroll;
+}
+#footer {
+    position: fixed;
+    bottom: 0;
+    width: 100%;
+    margin: auto;
+    padding-bottom: 12px;
+}
+#footer-inner {
+    width: 80vw;
+    margin: auto;
+}
+#chat-input {
+    background-color: white;
+    width: 100%;
+    margin: auto;
+    min-height: 32px;
+    line-height: 32px;
+    border: 1px solid rgb(222, 222, 223);
+    border-radius: 4px;
+    padding: 4px 8px;
+    box-shadow: 5px 5px 15px 5px rgb(247, 247, 248);;
+}
+#reset-button {
+    font-weight: bold;
+    padding: 3px;
+    opacity: 0.5;
+    display:table-cell;
+    vertical-align:middle;
+}
+#reset-button:hover {
+    opacity: 1.0;
+}
+
+#chat-instruction {
+    background-color: white;
+    width: 80vw;
+    margin: auto;
+    font-size: 0.8rem;
+}
+
+
+.message {
+    padding-top: 24px;
+    padding-bottom: 24px;
+    width: 100%;
+    position: relative;
+    border-bottom: 1px solid rgb(222, 222, 223);
+}
+
+.inner-message {
+    margin: auto;
+    width: 80vw;
+    white-space: pre-wrap;
+    min-height: 12px;
+}
+.from-them {
+    background-color: rgb(247, 247, 248);
+}
+
+/*.from-them:before {*/
+/*    !*content: "AI";*!*/
+/*}*/
+
+.from-me {
+    background-color: white;
+}
