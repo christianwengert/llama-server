@@ -126,3 +126,6 @@ Label[for=model-change] {
 .from-me {
     background-color: white;
 }
+textarea {
+    font-size: 1rem;
+}

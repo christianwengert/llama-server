@@ -39,6 +39,7 @@ def make_layout(app_name: str) -> html.Div:
 
         html.Div(make_header(app_name), id="header"),
         html.Div(id='chat'),
+        html.Div(id='chat-hidden', hidden=True),
         make_footer(),
         html.Div(id='empty')
     ])
@@ -57,10 +58,10 @@ CHAT_INPUT_EVENT = {
 
 def make_footer() -> html.Div:
     return html.Div([
-        html.Div("Chat here (Shift+Enter to send)", id="chat-instruction"),
         html.Div([
             EventListener(
-                html.Div(id='chat-input', contentEditable="true"),
+                # html.Div(id='chat-input', contentEditable="true"),
+                dcc.Textarea(id='chat-input', rows=1, cols=80, wrap='hard', placeholder="Chat here (Shift+Enter for newline)"),
                 events=[CHAT_INPUT_EVENT],
                 logging=False,
                 id="event-listener"
