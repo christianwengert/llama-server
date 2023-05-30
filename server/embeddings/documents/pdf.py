@@ -1,8 +1,8 @@
 import os.path
 from langchain import FAISS
-from langchain.chains import ConversationalRetrievalChain
+from langchain.chains import ConversationalRetrievalChain, RetrievalQA
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
-from langchain.chains.conversational_retrieval.base import BaseConversationalRetrievalChain
+from langchain.chains.conversational_retrieval.base import BaseConversationalRetrievalChain, ChatVectorDBChain
 from langchain.embeddings import LlamaCppEmbeddings, HuggingFaceEmbeddings
 from langchain.memory import ConversationTokenBufferMemory
 from embeddings import get_index
@@ -10,7 +10,7 @@ from embeddings.documents import split_pdf
 from models import MODEL_PATH, MODELS
 from models.interruptable_llama import InterruptableLlamaCpp
 
-EMBEDDINGS_MODEL = 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0.bin'
+
 USE_HUGGING = True
 
 
@@ -51,17 +51,21 @@ def embed_pdf(project_name: str, filepath: str, model: str, run_test=False) -> B
                                 n_ctx=n_ctx,
                                 n_batch=512,
                                 max_tokens=256,
+                                verbose=True
                                 )
 
     chain_type = "stuff"
     return_source_documents = chain_type != 'stuff'
     qa = ConversationalRetrievalChain.from_llm(llm,
-                                               retriever,
+    # qa = ChatVectorDBChain.from_llm(llm,
+                                               retriever=retriever,
+                                               # vectorstore=db,
                                                condense_question_prompt=CONDENSE_QUESTION_PROMPT,
                                                chain_type=chain_type,
                                                memory=ConversationTokenBufferMemory(llm=llm, memory_key="chat_history", return_messages=True, max_token_limit=1024),
                                                return_source_documents=return_source_documents,
-                                               max_tokens_limit=1500)
+                                               max_tokens_limit=1500
+                                    )
 
     if run_test:
 
@@ -77,7 +81,7 @@ def embed_pdf(project_name: str, filepath: str, model: str, run_test=False) -> B
         for question in questions:
             print(f"-> **Question**: {question} \n")
             result = qa({"question": question, "chat_history": chat_history})
-            chat_history.append((question, result['answer']))
+            # chat_history.append((question, result['answer']))
             print(f"**Answer**: {result['answer']} \n")
             # print(result['source_documents'])
 
@@ -85,6 +89,6 @@ def embed_pdf(project_name: str, filepath: str, model: str, run_test=False) -> B
 
 
 if __name__ == '__main__':
-    model = "wizard-mega-13B.ggml.q5_0"  # "Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0"
+    model = "Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0"
     # embed_pdf('testproject', '/Users/christianwengert/Downloads/234.pdf', model)
     embed_pdf('testproject', '/Users/christianwengert/Downloads/2014-070.pdf', model, run_test=True)

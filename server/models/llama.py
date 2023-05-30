@@ -43,7 +43,7 @@ def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None, 
                                 n_ctx=n_ctx,
                                 n_batch=512,
                                 max_tokens=1024,
-                                use_mmap='65B' in model_path,
+                                # use_mmap='65B' in model_path,
                                 # use_mlock=True,
 
                                 )

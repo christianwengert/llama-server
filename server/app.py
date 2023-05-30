@@ -194,8 +194,8 @@ def get_input():
         """
         handler = StreamingLlamaHandler(fun, abortfn)
         _answer = conversation(input_dict, callbacks=[handler])
-        if chat_history is not None:
-            chat_history.append((text, _answer['answer']))
+        # if chat_history is not None:
+        #     chat_history.append((text, _answer['answer']))
         time.sleep(1.0)  # ugly hack
         fun("THIS IS THE END%^&*")
 
