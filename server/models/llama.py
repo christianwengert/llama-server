@@ -36,7 +36,7 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
 
 
 def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None, n_ctx=2048) -> ConversationChain:
-
+    # if this fails because of llama-cpp: https://github.com/abetlen/llama-cpp-python/issues/303
     llm = InterruptableLlamaCpp(model_path=model_path,
                                 temperature=0.8,
                                 n_threads=8,
