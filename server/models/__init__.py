@@ -41,7 +41,7 @@ ALPACA_TEMPLATE = """
 {history}
 ### Instruction:
 {input}
-### Response:"
+### Response:
 """
 
 ALPACA_PROMPT = PromptTemplate(
@@ -53,7 +53,7 @@ WIZARD_TEMPLATE = """
 {history}
 ### Instruction:
 {input}
-### Response:"
+### Response:
 """
 
 
@@ -63,12 +63,13 @@ WIZARD_PROMPT = PromptTemplate(
 
 
 MODELS = {  # Prompt, Stop, Context
-    'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048],
+    'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
     # 'wizard-vicuna-13B.ggml.q5_0': [WIZARD_PROMPT, None, 2048],
     # 'wizard-mega-13B.ggml.q5_0': [WIZARD_PROMPT, ["</s>"], 2048],
-    'Wizard-Vicuna-13B-Uncensored.ggml.q5_0': [WIZARD_PROMPT, None, 2048],
-    'WizardLM-30B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048],
-    'gpt4-alpaca-lora_mlp-65B.ggml.q5_0': [ALPACA_PROMPT, None, 2048],
+    'Wizard-Vicuna-13B-Uncensored.ggml.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
+    'WizardLM-30B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
+    'gpt4-alpaca-lora_mlp-65B.ggml.q5_0': [ALPACA_PROMPT, None, 2048, 'llama'],
+    'starchat-alpha-ggml-q5_0': [ALPACA_PROMPT, None, 8192, 'starcoder'],
 }
 
 SELECTED_MODEL = 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0'

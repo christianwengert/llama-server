@@ -133,8 +133,8 @@ def index():
         session['model'] = model
         q = queue.Queue()  # type: queue.Queue[str]
 
-        prompt, stop, n_ctx = MODELS[model]
-        CONVERSATIONS[token] = (create_conversation(model_path, prompt, stop, n_ctx), q)
+        prompt, stop, n_ctx, model_type = MODELS[model]
+        CONVERSATIONS[token] = (create_conversation(model_path, prompt, stop, n_ctx, model_type), q)
     if token not in CONVERSATIONS:
         abort(400)
 
@@ -192,12 +192,16 @@ def get_input():
         """
         We run this as a thread to be able to get token by token so its cooler to wait
         """
-        handler = StreamingLlamaHandler(fun, abortfn)
-        _answer = conversation(input_dict, callbacks=[handler])
-        # if chat_history is not None:
-        #     chat_history.append((text, _answer['answer']))
-        time.sleep(1.0)  # ugly hack
-        fun("THIS IS THE END%^&*")
+        try:
+            handler = StreamingLlamaHandler(fun, abortfn)
+            _answer = conversation(input_dict, callbacks=[handler])
+            # if chat_history is not None:
+            #     chat_history.append((text, _answer['answer']))
+        except Exception as _e:
+            pass
+        finally:
+            time.sleep(1.0)  # ugly hack
+            fun("THIS IS THE END%^&*")
 
     return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')
 

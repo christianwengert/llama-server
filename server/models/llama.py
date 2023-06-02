@@ -2,6 +2,8 @@ import queue
 import threading
 import time
 from typing import Callable
+
+from ctransformers.langchain import CTransformers
 from langchain import ConversationChain, BasePromptTemplate
 from langchain.memory import ConversationTokenBufferMemory
 
@@ -35,18 +37,34 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
     thread.join()
 
 
-def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None, n_ctx=2048) -> ConversationChain:
-    # if this fails because of llama-cpp: https://github.com/abetlen/llama-cpp-python/issues/303
-    llm = InterruptableLlamaCpp(model_path=model_path,
-                                temperature=0.8,
-                                n_threads=8,
-                                n_ctx=n_ctx,
-                                n_batch=512,
-                                max_tokens=1024,
-                                # use_mmap='65B' in model_path,
-                                # use_mlock=True,
-
-                                )
+def create_conversation(model_path: str,
+                        prompt: BasePromptTemplate,
+                        stop=None,
+                        n_ctx=2048,
+                        model_type=None) -> ConversationChain:
+    if model_type != 'llama':
+        llm = CTransformers(
+            model='NeoDim/starchat-alpha-GGML',
+            model_file=model_path,
+            model_type=model_type,
+            config=dict(
+                stream=True,
+                temperature=0.1,
+                batch_size=256,
+                threads=8,
+                context_length=8192,
+                stop='<|end|>\n<|user|>'
+                # verbose=True
+            )
+        )
+    else:  # use llama.cpp if possible
+        llm = InterruptableLlamaCpp(model_path=model_path,
+                                    temperature=0.8,
+                                    n_threads=8,
+                                    n_ctx=n_ctx,
+                                    n_batch=512,
+                                    max_tokens=1024,
+                                    )
 
     if stop is not None:
         llm.stop = stop
@@ -54,7 +72,7 @@ def create_conversation(model_path: str, prompt: BasePromptTemplate, stop=None, 
     conversation_chain = ConversationChain(
         llm=llm,
         verbose=True,
-        memory=ConversationTokenBufferMemory(llm=llm, max_token_limit=llm.n_ctx / 2),  # this one is limited
+        memory=ConversationTokenBufferMemory(llm=llm, max_token_limit=n_ctx / 2),  # this one is limited
     )
     conversation_chain.prompt = prompt
     return conversation_chain

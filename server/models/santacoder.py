@@ -12,15 +12,15 @@ model = f'{MODEL_PATH}/starchat-alpha-ggml-q5_0.bin'
 # llm = AutoModelForCausalLM.from_pretrained('/Users/christianwengert/Downloads/starchat-alpha-ggml-q5_0.bin', model_type='starcoder')
 
 llm = CTransformers(
-    model='NeoDim/starchat-alpha-GGML',
-    model_file='/Users/christianwengert/Downloads/starchat-alpha-ggml-q5_0.bin',
+    model='danforbes/santacoder-ggml-q4_1',
+    model_file='/Users/christianwengert/Downloads/santacoder-ggml-q4_1.bin',
     model_type="starcoder",
     config=dict(
-        stream=True,
+        # stream=True,
         temperature=0.1,
         batch_size=8,
         threads=4,
-        context_length=8192,
+        # context_length=8192,
         stop='<|end|>'  # \n<|user|>'
         # verbose=True
     ),
@@ -40,7 +40,7 @@ conversation = ConversationChain(
     # memory=memory
 )
 
-print(conversation.predict(input="create a fibonacci function in Python and then a fizzbuzz"))
+print(conversation.predict(input="Hi there!"))
 # conversation(input="Hi there!")
 # conversation(input="Hi there!")
 # conversation(input="Hi there!")
