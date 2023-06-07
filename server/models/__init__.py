@@ -62,6 +62,29 @@ WIZARD_PROMPT = PromptTemplate(
 )
 
 
+CODE_TEMPLATE = """
+You are an expert programmer.
+
+You generate correct code.
+
+You generate complete code.
+
+You comment your code. 
+
+Current conversation:
+{history}
+### Instruction:
+{input}
+### Response:
+"""
+
+
+CODE_PROMPT = PromptTemplate(
+    input_variables=["history", "input"], template=CODE_TEMPLATE
+)
+
+
+
 MODELS = {  # Prompt, Stop, Context
     'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
     # 'wizard-vicuna-13B.ggml.q5_0': [WIZARD_PROMPT, None, 2048],
