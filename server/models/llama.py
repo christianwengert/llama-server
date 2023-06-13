@@ -42,6 +42,8 @@ def create_conversation(model_path: str,
                         stop=None,
                         n_ctx=2048,
                         model_type=None) -> ConversationChain:
+    # model_type = 'starcoder'
+    # model_path =
     if model_type != 'llama':
         llm = CTransformers(
             model='NeoDim/starchat-alpha-GGML',
@@ -58,12 +60,19 @@ def create_conversation(model_path: str,
             )
         )
     else:  # use llama.cpp if possible
+        extra_args = {}
+        import platform
+        if 'arm64' in platform.platform() and 'macOS' in platform.platform() and 'q4_0' in model_path:
+            extra_args['n_gpu_layers'] = 1
+            print('Using METAL')
+
         llm = InterruptableLlamaCpp(model_path=model_path,
                                     temperature=0.8,
                                     n_threads=8,
                                     n_ctx=n_ctx,
                                     n_batch=512,
                                     max_tokens=1024,
+                                    **extra_args
                                     )
 
     if stop is not None:

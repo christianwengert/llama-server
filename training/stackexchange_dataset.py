@@ -2,6 +2,9 @@ import glob
 import json
 import os
 
+from peft import LoraConfig
+from transformers import TrainingArguments
+
 DATADIR = '/Users/christianwengert/src/stackexchange-dataset/out/'
 
 # Uses the output of pairer.py of https://github.com/EleutherAI/stackexchange-dataset
@@ -85,3 +88,7 @@ for exchange in exchanges:
 # }
 # """
 # json.loads('{}')
+
+LoraConfig()
+
+TrainingArguments()

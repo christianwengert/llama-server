@@ -37,6 +37,23 @@ OPEN_ASSISTANT_PROMPT = PromptTemplate(
 )
 
 
+
+STARCHAT_TEMPLATE = """
+<|system|> Below is a conversation between a human user and a helpful AI coding assistant. <|end|>
+{history}
+<|user|> {input} <|end|>
+<|assistant|>
+"""
+
+STARCHAT_PROMPT = PromptTemplate(
+    input_variables=["history", "input"], template=STARCHAT_TEMPLATE
+)
+
+
+
+
+
+
 ALPACA_TEMPLATE = """
 {history}
 ### Instruction:
@@ -62,6 +79,10 @@ WIZARD_PROMPT = PromptTemplate(
 )
 
 
+
+
+
+
 CODE_TEMPLATE = """
 You are an expert programmer.
 
@@ -84,8 +105,8 @@ CODE_PROMPT = PromptTemplate(
 )
 
 
-
 MODELS = {  # Prompt, Stop, Context
+    'wizardlm-30b.ggmlv3.q4_0': [WIZARD_PROMPT, None, 2048, 'llama'],
     'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
     # 'wizard-vicuna-13B.ggml.q5_0': [WIZARD_PROMPT, None, 2048],
     # 'wizard-mega-13B.ggml.q5_0': [WIZARD_PROMPT, ["</s>"], 2048],

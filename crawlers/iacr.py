@@ -2,6 +2,7 @@ import os
 from time import sleep
 
 import requests
+import tqdm
 from bs4 import BeautifulSoup
 
 base_url = 'https://eprint.iacr.org/complete/'  # Replace with the actual base URL
@@ -42,18 +43,18 @@ def pdf_crawler(url: str):
                 with open(abstract_file, "w") as f:
                     f.write(abstract.text)
                 print('Done')
-                sleep(5)
+                sleep(1)
     except Exception as e_:
         pass
 
 
-for offset in range(0, 20000, 100):
+for offset in tqdm.tqdm(range(13700, 20100 + 100, 100)):
 
     if not os.path.exists(f'{offset}'):
 
         pdf_crawler(f'{base_url}?offset={offset}')
 
-        with open(f'{offset}', 'w') as f:
-            f.write("")
+        # with open(f'{offset}', 'w') as f:
+        #     f.write("")
 
         sleep(10)
