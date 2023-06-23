@@ -62,7 +62,8 @@ def create_conversation(model_path: str,
     else:  # use llama.cpp if possible
         extra_args = {}
         import platform
-        if 'arm64' in platform.platform() and 'macOS' in platform.platform():
+        if 'arm64' in platform.platform() and 'macOS' in platform.platform() and \
+           '.q5_0' not in model_path and '.q5_1' not in model_path:
             extra_args['n_gpu_layers'] = 1
             print('Using METAL')
 

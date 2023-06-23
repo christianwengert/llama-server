@@ -11,24 +11,6 @@
 <div id="header">
     <div class="header-inner"><a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a></div>
     <div class="header-inner">
-
-        {% if show_embeddings is defined %}
-        <label>
-            <strong>Embedding</strong>:
-            <select id="embeddings-change">
-            {% for embedding in embeddings %}
-            <option></option>
-            {% if embedding == selected_embedding %}
-            <option selected="selected" value="{{ embedding }}">{{ embedding }}</option>
-            {% else %}
-            <option value="{{ embedding }}">{{ embedding }}</option>
-            {% endif %}
-            {% endfor %}
-            </select>
-        </label>
-
-        {% else %}
-
         <label>
             <strong>Model</strong>:
             <select id="model-change">
@@ -44,9 +26,7 @@
         <a href="#" id="reset-button"><img
                 src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjwhRE9DVFlQRSBzdmcgIFBVQkxJQyAnLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4nICAnaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkJz48c3ZnIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDQxIDM0IiBoZWlnaHQ9IjM0cHgiIGlkPSJMYXllcl8xIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA0MSAzNCIgd2lkdGg9IjQxcHgiIHhtbDpzcGFjZT0icHJlc2VydmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPjxwYXRoIGQ9Ik0zMy45NDksMTZDMzMuNDI5LDcuMDgsMjYuMDUxLDAsMTcsMEM3LjYxMSwwLDAsNy42MTEsMCwxN3M3LjYxMSwxNywxNywxN3YtNmMtNi4wNzUsMC0xMS00LjkyNS0xMS0xMSAgUzEwLjkyNSw2LDE3LDZjNS43MzcsMCwxMC40NDMsNC4zOTQsMTAuOTQ5LDEwaC02Ljg0OUwzMSwyNS44OTlMNDAuODk5LDE2SDMzLjk0OXoiIGZpbGw9IiMyMzFGMjAiLz48L3N2Zz4="
                 alt="refresh" width="16" height="16"></a>
-        {% endif %}
     </div>
-
 </div>
 <div class="container">
     <div id="extra-content">
@@ -55,42 +35,34 @@
     <div id="chat">
 
     </div>
-    <div class="chat-instruction">Chat here</div>
+    <div class="chat-instruction">Upload File</div>
     <div class="chat-input">
-        <div id="input-box" class="input-box" contenteditable="true" data-text="Type here..."></div>
-        <button id="stop-generating" disabled="disabled">
-            Stop generating
-            <span class="loading"></span>
-        </button>
+<!--        <form action='/translate' method="post" class="" enctype="multipart/form-data">-->
+
+<!--            <input id="file" name="file" type="file" required>-->
+
+<!--            <div>-->
+<!--                <input type="submit" value="Submit">-->
+<!--            </div>-->
+<!--        </form>-->
+        <div id="input-box" class="input-box">
+            <input id="file" name="file" type="file" required>
+        </div>
+<!--        <button id="stop-generating" disabled="disabled">-->
+<!--            Stop generating-->
+<!--            <span class="loading"></span>-->
+<!--        </button>-->
         <div class="footer">
             <div class="footer-buttons">
-                <strong>
-                    <a href="/embeddings">Embeddings
-                    {% if embeddings is defined and embeddings|length > 0 %}
-                        ({{ embeddings|length }} open)
-                    {% endif %}
-                    </a>
-                </strong>:
-
-                &nbsp;
-                <a href="#popup2" id="document-qa-button">PDF</a>
-                &nbsp;|&nbsp;
-                <a href="#popup3" id="source-qa-button">Source code</a>
-                &nbsp;|&nbsp;
-                <a href="#popup4" id="sql-qa-button">SQL</a>
-                &nbsp;|&nbsp;
-                <a href="/translate">Translate</a>
-
+                <a href="/">Back to Chat</a>
                 <a href="#popup1" id="help-button">Help</a>
             </div>
         </div>
     </div>
 </div>
 
+
 {% include 'common/popups/help.html' %}
-{% include 'common/popups/pdf.html' %}
-{% include 'common/popups/code.html' %}
-{% include 'common/popups/sql.html' %}
 
 
 <dialog id="wait"></dialog>

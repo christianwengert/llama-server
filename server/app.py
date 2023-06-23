@@ -121,8 +121,16 @@ def upload():
     return "OK"  # redirect done in JS
 
 
-@app.route("/translate", methods=['POST'])
-def translate():
+@app.route("/translate", methods=['GET', 'POST'])
+def transate():
+    if request.method == 'GET':
+        return render_template('translate.html', models=MODELS,
+                               selected_model=SELECTED_MODEL,
+                               name=os.environ.get("CHAT_NAME", "local"))
+    return translate_post()
+
+
+def translate_post():
 
     if not request.files:
         abort(400)
@@ -156,6 +164,7 @@ def translate():
         """
         We run this as a thread to be able to get token by token so its cooler to wait
         """
+        # noinspection PyBroadException
         try:
             handler = StreamingLlamaHandler(fun, abortfn)
             for text in _texts:
@@ -242,11 +251,10 @@ def get_input():
         """
         We run this as a thread to be able to get token by token so its cooler to wait
         """
+        # noinspection PyBroadException
         try:
             handler = StreamingLlamaHandler(fun, abortfn)
             _answer = conversation(input_dict, callbacks=[handler])
-            # if chat_history is not None:
-            #     chat_history.append((text, _answer['answer']))
         except Exception as _e:
             pass
         finally:

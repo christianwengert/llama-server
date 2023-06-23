@@ -25,7 +25,8 @@ def prepare_translation(file_or_path: str, model: str) -> Tuple[LLMChain, List[D
 
     extra_args = {}
     import platform
-    if 'arm64' in platform.platform() and 'macOS' in platform.platform():
+    if 'arm64' in platform.platform() and 'macOS' in platform.platform() and \
+       '.q5_0' not in model and '.q5_1' not in model:
         extra_args['n_gpu_layers'] = 1
         print('Using METAL')
 

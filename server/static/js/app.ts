@@ -41,21 +41,107 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
     }, 100)
 };
 
+const setupTranslation = () => {
+    const url = new URL(document.location.href)
+    if(url.pathname != '/translate') {
+        return
+    }
+
+    const fileInput = document.getElementById('file') as HTMLInputElement;
+    if(!fileInput) {
+        return
+    }
+
+    fileInput.addEventListener('change', (e) => {
+
+        fileInput.disabled = true;
+
+        const input = e.target as HTMLInputElement;
+        const files = input.files!;
+        const file = files[0]
+        let formData= new FormData();
+        formData.append('file', file);
+        const name = file.name;
+        formData.append('name', name);
+
+
+        const chat = document.getElementById('chat')!;
+        const ident = renderMessage('', 'them', chat)
+        const elem = document.getElementById(ident)!;
+        let modelChangeSelector = document.getElementById('model-change')! as HTMLSelectElement
+        const inner = elem.querySelector('.inner-message')! as HTMLElement;
+        inner.innerHTML = '<div class="loading"></div>'
+
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', '/translate');
+
+        let seenBytes= 0;
+        xhr.onreadystatechange = function () {
+
+            if (xhr.readyState == 3) {  // streaming
+                const newData = xhr.response.substring(seenBytes);
+                if (inner.querySelector('.loading')) {
+                    inner.innerHTML = "";
+                }
+                inner.innerHTML += newData;
+                seenBytes = xhr.responseText.length;
+            }
+            if (xhr.readyState == 4) {  // done
+                modelChangeSelector.disabled = false;
+                fileInput.disabled = false;
+                scrollToBottom()
+            }
+        };
+
+        xhr.addEventListener("error", function (e) {
+            console.log("error: " + e);
+        });
+        // xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+        // xhr.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+        xhr.send(formData);
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // fetch("/translate",
+        //     {
+        //         body: formData,
+        //         method: "post"
+        //     }).then(()=> {
+        //         window.location.href = '/embeddings/' + name;
+        //
+        // });
+    })
+};
+
 const run = () => {
     setupModelChange();
     setupPdfUpload();
     setupCodeUpload();
     setupSQLUpload();
     checkEmbeddings();
+    setupTranslation();
+
     const chat = document.getElementById('chat')!;
 
     // todo: We cannot stop generation yet
     const stopButton = document.getElementById('stop-generating')! as HTMLButtonElement;
-    stopButton.addEventListener('click', (e) => {
-        e.preventDefault();
-        fetch('/cancel').then(()=>{})
-        stopButton.disabled = true;
-    })
+    if(stopButton) {
+        stopButton.addEventListener('click', (e) => {
+            e.preventDefault();
+            fetch('/cancel').then(()=>{})
+            stopButton.disabled = true;
+        })
+    }
 
 
     const resetButton = document.getElementById('reset-button') as HTMLElement;
@@ -205,7 +291,12 @@ const checkEmbeddings = () => {
     }
 }
 const setupPdfUpload = () => {
-    const form = document.getElementById('upload-pdf')! as HTMLFormElement;
+    const form = document.getElementById('upload-pdf') as HTMLFormElement;
+
+    if(!form) {
+        return;
+    }
+
     form.addEventListener('submit', (e) => {
         e.preventDefault()
         const file = document.getElementById('pdf-file')! as HTMLInputElement;
@@ -230,6 +321,9 @@ const setupPdfUpload = () => {
 
 const setupSQLUpload = () => {
     const form = document.getElementById('upload-sql')! as HTMLFormElement;
+    if(!form) {
+        return;
+    }
     form.addEventListener('submit', (e) => {
         e.preventDefault()
         const file = document.getElementById('sql-file')! as HTMLInputElement;
@@ -254,6 +348,9 @@ const setupSQLUpload = () => {
 
 const setupCodeUpload = () => {
     const form = document.getElementById('upload-code')! as HTMLFormElement;
+    if(!form) {
+        return;
+    }
     form.addEventListener('submit', (e) => {
         e.preventDefault()
         const file = document.getElementById('code-folder')! as HTMLInputElement;

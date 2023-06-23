@@ -49879,20 +49879,71 @@
       textInput.focus();
     }, 100);
   };
+  var setupTranslation = () => {
+    const url = new URL(document.location.href);
+    if (url.pathname != "/translate") {
+      return;
+    }
+    const fileInput = document.getElementById("file");
+    if (!fileInput) {
+      return;
+    }
+    fileInput.addEventListener("change", (e) => {
+      fileInput.disabled = true;
+      const input = e.target;
+      const files = input.files;
+      const file = files[0];
+      let formData = new FormData();
+      formData.append("file", file);
+      const name = file.name;
+      formData.append("name", name);
+      const chat = document.getElementById("chat");
+      const ident = renderMessage("", "them", chat);
+      const elem = document.getElementById(ident);
+      let modelChangeSelector = document.getElementById("model-change");
+      const inner = elem.querySelector(".inner-message");
+      inner.innerHTML = '<div class="loading"></div>';
+      const xhr = new XMLHttpRequest();
+      xhr.open("POST", "/translate");
+      let seenBytes = 0;
+      xhr.onreadystatechange = function() {
+        if (xhr.readyState == 3) {
+          const newData = xhr.response.substring(seenBytes);
+          if (inner.querySelector(".loading")) {
+            inner.innerHTML = "";
+          }
+          inner.innerHTML += newData;
+          seenBytes = xhr.responseText.length;
+        }
+        if (xhr.readyState == 4) {
+          modelChangeSelector.disabled = false;
+          fileInput.disabled = false;
+          scrollToBottom();
+        }
+      };
+      xhr.addEventListener("error", function(e2) {
+        console.log("error: " + e2);
+      });
+      xhr.send(formData);
+    });
+  };
   var run = () => {
     setupModelChange();
     setupPdfUpload();
     setupCodeUpload();
     setupSQLUpload();
     checkEmbeddings();
+    setupTranslation();
     const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
-    stopButton.addEventListener("click", (e) => {
-      e.preventDefault();
-      fetch("/cancel").then(() => {
+    if (stopButton) {
+      stopButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        fetch("/cancel").then(() => {
+        });
+        stopButton.disabled = true;
       });
-      stopButton.disabled = true;
-    });
+    }
     const resetButton = document.getElementById("reset-button");
     if (resetButton) {
       resetButton.addEventListener("click", (e) => {
@@ -50012,6 +50063,9 @@
   };
   var setupPdfUpload = () => {
     const form = document.getElementById("upload-pdf");
+    if (!form) {
+      return;
+    }
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const file = document.getElementById("pdf-file");
@@ -50033,6 +50087,9 @@
   };
   var setupSQLUpload = () => {
     const form = document.getElementById("upload-sql");
+    if (!form) {
+      return;
+    }
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const file = document.getElementById("sql-file");
@@ -50054,6 +50111,9 @@
   };
   var setupCodeUpload = () => {
     const form = document.getElementById("upload-code");
+    if (!form) {
+      return;
+    }
     form.addEventListener("submit", (e) => {
       e.preventDefault();
       const file = document.getElementById("code-folder");
