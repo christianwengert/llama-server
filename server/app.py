@@ -127,6 +127,8 @@ def transate():
         return render_template('translate.html', models=MODELS,
                                selected_model=SELECTED_MODEL,
                                name=os.environ.get("CHAT_NAME", "local"))
+
+    session['translation'] = secrets.token_hex(16)
     return translate_post()
 
 
@@ -150,15 +152,17 @@ def translate_post():
     llm_chain, texts = prepare_translation(dest, model)
 
     q = queue.Queue()
-
+    token = session.get('translation', None)
+    ABORT[token] = False
     def fun(t):
         q.put(t)
 
     def abortfn():
-        # result = ABORT.get(token, False)
+
+        result = ABORT.get(token, False)
         # ABORT[token] = False
-        # return result
-        return False
+        return result
+        # return False
 
     def run_as_thread(_texts):
         """
@@ -168,6 +172,9 @@ def translate_post():
         try:
             handler = StreamingLlamaHandler(fun, abortfn)
             for text in _texts:
+                if ABORT.get(token, False):
+                    raise StopIteration
+
                 input_dict = {"input": text.page_content}
                 _answer = llm_chain(input_dict, callbacks=[handler])
         except Exception as _e:
@@ -212,7 +219,7 @@ def reset():
 
 @app.route('/cancel')
 def cancel():
-    token = session.get('llm', None)
+    token = session.get('llm', session.get('translation', None))
     if token:
         ABORT[token] = True
     else:

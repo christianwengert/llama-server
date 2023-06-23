@@ -49897,6 +49897,8 @@
       formData.append("file", file);
       const name = file.name;
       formData.append("name", name);
+      const stopButton = document.getElementById("stop-generating");
+      stopButton.disabled = false;
       const chat = document.getElementById("chat");
       const ident = renderMessage("", "them", chat);
       const elem = document.getElementById(ident);
@@ -49918,6 +49920,7 @@
         if (xhr.readyState == 4) {
           modelChangeSelector.disabled = false;
           fileInput.disabled = false;
+          stopButton.disabled = true;
           scrollToBottom();
         }
       };

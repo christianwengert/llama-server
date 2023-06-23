@@ -64,6 +64,8 @@ const setupTranslation = () => {
         const name = file.name;
         formData.append('name', name);
 
+        const stopButton = document.getElementById('stop-generating')! as HTMLButtonElement;
+        stopButton.disabled = false;
 
         const chat = document.getElementById('chat')!;
         const ident = renderMessage('', 'them', chat)
@@ -89,6 +91,7 @@ const setupTranslation = () => {
             if (xhr.readyState == 4) {  // done
                 modelChangeSelector.disabled = false;
                 fileInput.disabled = false;
+                stopButton.disabled = true;
                 scrollToBottom()
             }
         };
