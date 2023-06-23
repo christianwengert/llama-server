@@ -52,9 +52,9 @@ def create_conversation(model_path: str,
             config=dict(
                 stream=True,
                 temperature=0.1,
-                batch_size=256,
+                # batch_size=256,
                 threads=8,
-                context_length=8192,
+                context_length=n_ctx,
                 stop='<|end|>\n<|user|>'
                 # verbose=True
             )
@@ -62,7 +62,7 @@ def create_conversation(model_path: str,
     else:  # use llama.cpp if possible
         extra_args = {}
         import platform
-        if 'arm64' in platform.platform() and 'macOS' in platform.platform() and 'q4_0' in model_path:
+        if 'arm64' in platform.platform() and 'macOS' in platform.platform():
             extra_args['n_gpu_layers'] = 1
             print('Using METAL')
 

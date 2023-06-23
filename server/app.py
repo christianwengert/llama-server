@@ -13,6 +13,7 @@ from langchain.chains.base import Chain
 from embeddings.code.codebase import embed_code
 from embeddings.documents.pdf import embed_pdf
 from embeddings.sql.sql import embed_sql
+from embeddings.translation.translate import translate_file
 from models import MODELS, SELECTED_MODEL, MODEL_PATH
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
@@ -120,6 +121,30 @@ def upload():
     return "OK"  # redirect done in JS
 
 
+@app.route("/translate", methods=['POST'])
+# @app.route('/translate/<string:name>')
+def translate():
+
+    if not request.files:
+        abort(400)
+
+    files = request.files.getlist('file')
+    if len(files) > 1:
+        return 'upload only one file'
+
+    model = session.get('model', SELECTED_MODEL)
+    base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8), files[0].filename)
+
+    file = files[0]
+    dest = os.path.join(base_folder, file.filename)
+    os.makedirs(os.path.dirname(dest), exist_ok=True)
+    file.save(dest)
+    return translate_file(dest, model)
+
+
+    # return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')
+
+
 @app.route("/")
 def index():
     token = session.get('llm', None)
@@ -170,7 +195,7 @@ def get_input():
     data = request.json
     text = data.get('input')
     input_dict = {"input": text}
-    chat_history = None
+    # chat_history = None
     if data['model'] in EMBEDDINGS:  # special case for embeddings
 
         conversation, chat_history = EMBEDDINGS[data['model']]
@@ -178,7 +203,7 @@ def get_input():
             input_dict = {"question": text, "chat_history": chat_history}  # if we put in the chat history
         if conversation.__class__.__name__ == 'MyChain':  # SQL
             input_dict = {"query": text}
-            chat_history = None
+            # chat_history = None
 
     def fun(t):
         q.put(t)

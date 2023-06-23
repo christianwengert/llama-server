@@ -3,10 +3,10 @@ from langchain import ConversationChain
 from langchain.memory import ConversationTokenBufferMemory
 from models import MODEL_PATH, STARCHAT_PROMPT
 
-model = f'{MODEL_PATH}/starchat-alpha-ggml-q5_0.bin'
+model = f'{MODEL_PATH}starchat-beta.ggmlv3.q5_1.bin'
 
 llm = CTransformers(
-    model='danforbes/santacoder-ggml-q4_1',
+    model='TheBloke/starchat-beta-GGML',
     model_file=model,
     model_type="starcoder",
     config=dict(
@@ -40,6 +40,7 @@ conversation.prompt = prompt
 
 
 questions = [
+    'do I compress then encrypt or encrypt then compress?',
     'write an implementation of fizz buzz in Go',
     'write python code for bubble sort',
     'show me how to implement a calculation of the median value of an array of numbers in C',

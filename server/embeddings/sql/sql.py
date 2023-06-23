@@ -8,7 +8,7 @@ from models.interruptable_llama import InterruptableLlamaCpp
 
 def embed_sql(dbname: str, file_path: str, model: str, run_test: bool = False) -> SQLDatabaseChain:
 
-    prompt, stop, n_ctx = MODELS[model]
+    prompt, stop, n_ctx, _ = MODELS[model]
 
     connect_string = f"sqlite:///{file_path}"
 

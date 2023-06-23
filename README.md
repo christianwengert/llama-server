@@ -21,3 +21,10 @@ npm run build
 npm run build_mini
 ```
 
+
+
+
+
+CMAKE_ARGS="-DLLAMA_METAL=on -DBUILD_SHARED_LIBS=on" FORCE_CMAKE=1 python setup.py develop
+
+transformers:  pip install -e .

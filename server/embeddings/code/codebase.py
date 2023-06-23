@@ -18,7 +18,7 @@ ROOT_DIR = '/Users/christianwengert/src/filedrop/app'
 
 def embed_code(project_name: str, filepath: str, model: str, run_test=False) -> BaseConversationalRetrievalChain:
 
-    prompt, stop, n_ctx = MODELS[model]
+    prompt, stop, n_ctx, _ = MODELS[model]
 
     model_path = os.path.join(MODEL_PATH, f'{model}.bin')
 
