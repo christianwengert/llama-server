@@ -387,7 +387,7 @@ const setupSwitchEmbedding = () => {
         return;
     }
 
-    embeddingsChanger.addEventListener('change', (e) => {
+    embeddingsChanger.addEventListener('change', () => {
         if(embeddingsChanger.value) {
             document.location.href = '/embeddings/' + embeddingsChanger.value;
         }

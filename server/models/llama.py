@@ -55,7 +55,8 @@ def create_conversation(model_path: str,
                 # batch_size=256,
                 threads=8,
                 context_length=n_ctx,
-                stop='<|end|>\n<|user|>'
+                stop='<|end|>',
+                max_new_tokens=2048
                 # verbose=True
             )
         )
@@ -76,8 +77,8 @@ def create_conversation(model_path: str,
                                     **extra_args
                                     )
 
-    if stop is not None:
-        llm.stop = stop
+        if stop is not None:
+            llm.stop = stop
 
     conversation_chain = ConversationChain(
         llm=llm,

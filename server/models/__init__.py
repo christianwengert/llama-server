@@ -99,10 +99,11 @@ CODE_PROMPT = PromptTemplate(
 MODELS = {  # Prompt, Stop, Context
     'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
     'Wizard-Vicuna-13B-Uncensored.ggml.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
+    'WizardCoder-15B-1.0.ggmlv3.q5_1': [STARCHAT_PROMPT, None, 8092, 'starcoder'],
     'WizardLM-30B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
     'wizardlm-30b.ggmlv3.q5_K_S': [WIZARD_PROMPT, None, 2048, 'llama'],
+    'vicuna-33b-preview.ggmlv3.q5_K_S': [VICUNA_PROMPT, None, 2048, 'llama'],
     'guanaco-65B.ggmlv3.q4_0': [ALPACA_PROMPT, None, 2048, 'llama'],
-    'WizardCoder-15B-1.0.ggmlv3.q5_1': [STARCHAT_PROMPT, None, 8092, 'starcoder'],
 }
 
 SELECTED_MODEL = 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0'
