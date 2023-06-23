@@ -23,8 +23,10 @@ const setupModelChange = () => {
     if(!modelChangeSelect) {
         return;
     }
+    const url = new URL(document.location.href)
+
     modelChangeSelect!.addEventListener('change', ()=> {
-        document.location = '/?' + new URLSearchParams({
+        document.location = url.pathname + '?' + new URLSearchParams({
             model: modelChangeSelect.value
         })
     })
