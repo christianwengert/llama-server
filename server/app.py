@@ -13,7 +13,7 @@ from langchain.chains.base import Chain
 from embeddings.code.codebase import embed_code
 from embeddings.documents.pdf import embed_pdf
 from embeddings.sql.sql import embed_sql
-from embeddings.translation.translate import translate_file
+from embeddings.translation.translate import prepare_translation
 from models import MODELS, SELECTED_MODEL, MODEL_PATH
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
@@ -122,7 +122,6 @@ def upload():
 
 
 @app.route("/translate", methods=['POST'])
-# @app.route('/translate/<string:name>')
 def translate():
 
     if not request.files:
@@ -139,10 +138,36 @@ def translate():
     dest = os.path.join(base_folder, file.filename)
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     file.save(dest)
-    return translate_file(dest, model)
 
+    llm_chain, texts = prepare_translation(dest, model)
 
-    # return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')
+    q = queue.Queue()
+
+    def fun(t):
+        q.put(t)
+
+    def abortfn():
+        # result = ABORT.get(token, False)
+        # ABORT[token] = False
+        # return result
+        return False
+
+    def run_as_thread(_texts):
+        """
+        We run this as a thread to be able to get token by token so its cooler to wait
+        """
+        try:
+            handler = StreamingLlamaHandler(fun, abortfn)
+            for text in _texts:
+                input_dict = {"input": text.page_content}
+                _answer = llm_chain(input_dict, callbacks=[handler])
+        except Exception as _e:
+            pass
+        finally:
+            time.sleep(1.0)  # ugly hack
+            fun("THIS IS THE END%^&*")
+
+    return Response(streaming_answer_generator(run_as_thread, q, texts), mimetype='text/plain;charset=UTF-8 ')
 
 
 @app.route("/")

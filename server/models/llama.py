@@ -1,7 +1,7 @@
 import queue
 import threading
 import time
-from typing import Callable
+from typing import Callable, Any
 
 from ctransformers.langchain import CTransformers
 from langchain import ConversationChain, BasePromptTemplate
@@ -10,7 +10,7 @@ from langchain.memory import ConversationTokenBufferMemory
 from models.interruptable_llama import InterruptableLlamaCpp
 
 
-def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_input: str):
+def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_input: Any):
     """
     This takes every token and streams it back to the browser
     """

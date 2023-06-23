@@ -37,7 +37,6 @@ OPEN_ASSISTANT_PROMPT = PromptTemplate(
 )
 
 
-
 STARCHAT_TEMPLATE = """
 <|system|> Below is a conversation between a human user and a helpful AI coding assistant. <|end|>
 {history}
@@ -48,10 +47,6 @@ STARCHAT_TEMPLATE = """
 STARCHAT_PROMPT = PromptTemplate(
     input_variables=["history", "input"], template=STARCHAT_TEMPLATE
 )
-
-
-
-
 
 
 ALPACA_TEMPLATE = """
@@ -77,10 +72,6 @@ WIZARD_TEMPLATE = """
 WIZARD_PROMPT = PromptTemplate(
     input_variables=["history", "input"], template=WIZARD_TEMPLATE
 )
-
-
-
-
 
 
 CODE_TEMPLATE = """
@@ -111,7 +102,7 @@ MODELS = {  # Prompt, Stop, Context
     'WizardLM-30B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
     'wizardlm-30b.ggmlv3.q5_K_S': [WIZARD_PROMPT, None, 2048, 'llama'],
     'guanaco-65B.ggmlv3.q4_0': [ALPACA_PROMPT, None, 2048, 'llama'],
-    'WizardCoder-15B-1.0.ggmlv3.q5_1': [ALPACA_PROMPT, None, 8092, 'starcoder'],
+    'WizardCoder-15B-1.0.ggmlv3.q5_1': [STARCHAT_PROMPT, None, 8092, 'starcoder'],
 }
 
 SELECTED_MODEL = 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0'
