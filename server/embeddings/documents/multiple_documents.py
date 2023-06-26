@@ -27,25 +27,25 @@ def embed_docs():
 
     texts = []
 
-    if False:
-        with open('/Users/christianwengert/src/llama-server/training/crypto.stackexchange.json') as f:
-            dataset = json.load(f)
-
-        for i, d in tqdm.tqdm(enumerate(dataset['train'])):
-            question_string = f'Question: {d["question"]}'
-            answers_string = [f"Answer: {a}" for a in d['answers']]
-            document_string = question_string + '\n' + '\n'.join(answers_string)
-
-            texts.extend(text_splitter.split_text(document_string))
-    else:
-        files = list(find_pdf_files('/Users/christianwengert/Downloads/iacr'))
-        for i, f in tqdm.tqdm(enumerate(files)):
-            try:
-                loader = PyMuPDFLoader(f)
-                pages = loader.load()
-                texts.extend(text_splitter.split_documents(pages))
-            except Exception as _e:
-                print(f'Cannot load {f}')
+    # if False:
+    #     with open('/Users/christianwengert/src/llama-server/training/crypto.stackexchange.json') as f:
+    #         dataset = json.load(f)
+    #
+    #     for i, d in tqdm.tqdm(enumerate(dataset['train'])):
+    #         question_string = f'Question: {d["question"]}'
+    #         answers_string = [f"Answer: {a}" for a in d['answers']]
+    #         document_string = question_string + '\n' + '\n'.join(answers_string)
+    #
+    #         texts.extend(text_splitter.split_text(document_string))
+    # else:
+    #     files = list(find_pdf_files('/Users/christianwengert/Downloads/iacr'))
+    #     for i, f in tqdm.tqdm(enumerate(files)):
+    #         try:
+    #             loader = PyMuPDFLoader(f)
+    #             pages = loader.load()
+    #             texts.extend(text_splitter.split_documents(pages))
+    #         except Exception as _e:
+    #             print(f'Cannot load {f}')
 
 
 
@@ -57,7 +57,7 @@ def embed_docs():
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     # noinspection PyBroadException
     try:
-        db = FAISS.load_local('.', embeddings, 'stack-chunksize256')
+        db = FAISS.load_local('.', embeddings, 'iacr-chunksize256')
     except Exception as _e:
         db = FAISS.from_texts(texts, embeddings)
         db.save_local('.', 'stack-chunksize256')
@@ -90,8 +90,9 @@ def embed_docs():
 
     questions = [
         'What if LWE is not as secure as we think?',
+        'What are the problems with RSA-PKCS#1 V1.5?',
+        'Why should I use RSA-OAEP and not RSA-PKCS?'
         'How to determine cryptographic properties of AES S-Box?',
-        'Is a naive 27bit FPE algorithm using AES-CTR insecure?',
         'How to find second subgroup for ECC Pairing?',
         'How much would removing enigmas biggest flaw improve it?',
         'Why does "hex encoding of the plaintext before encryption", "harm security"?',
