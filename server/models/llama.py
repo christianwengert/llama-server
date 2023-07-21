@@ -46,8 +46,9 @@ def create_conversation(model_path: str,
     # model_path =
     if model_type != 'llama':
         llm = CTransformers(
-            model='NeoDim/starchat-alpha-GGML',
-            model_file=model_path,
+            model=model_path,
+            # model='NeoDim/starchat-alpha-GGML',
+            # model_file=model_path,
             model_type=model_type,
             config=dict(
                 stream=True,
@@ -67,15 +68,24 @@ def create_conversation(model_path: str,
            '.q5_0' not in model_path and '.q5_1' not in model_path:
             extra_args['n_gpu_layers'] = 1
             print('Using METAL')
+            # n_ctx = 8192
+            extra_args['rope_freq_base'] = 57200
+            extra_args['rope_freq_scale'] = 0.25
+
+        max_token = 1024
 
         llm = InterruptableLlamaCpp(model_path=model_path,
                                     temperature=0.8,
                                     n_threads=8,
                                     n_ctx=n_ctx,
                                     n_batch=512,
-                                    max_tokens=1024,
+                                    max_tokens=max_token,
                                     **extra_args
                                     )
+
+        # llm.client.params.rope_freq_base = 57200
+        # llm.client.params.rope_freq_scale = 0.25
+        # llm.client._n_ctx = 8192
 
         if stop is not None:
             llm.stop = stop
@@ -83,7 +93,7 @@ def create_conversation(model_path: str,
     conversation_chain = ConversationChain(
         llm=llm,
         verbose=True,
-        memory=ConversationTokenBufferMemory(llm=llm, max_token_limit=n_ctx / 2),  # this one is limited
+        memory=ConversationTokenBufferMemory(llm=llm, max_token_limit=n_ctx - 1200),  # this one is limited
     )
     conversation_chain.prompt = prompt
     return conversation_chain

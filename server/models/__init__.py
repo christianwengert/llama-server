@@ -96,6 +96,33 @@ CODE_PROMPT = PromptTemplate(
 )
 
 
+ORCA_TEMPLATE = """
+### Current conversation:
+{history}
+
+### System:
+You are an AI assistant that follows instruction extremely well. Help as much as you can.
+
+### User:
+{input}
+
+### Response:"
+"""
+ORCA_PROMPT = PromptTemplate(
+    input_variables=["history", "input"], template=ORCA_TEMPLATE
+)
+
+LLAMA2_TEMPLATE = """
+{history}
+System: You are a helpful, respectful and honest assistant. Always answer as helpfully as possible. If a question does not make any sense, or is not factually coherent, explain why instead of answering something not correct. If you don't know the answer to a question, please don't share false information.
+User: {input}
+Assistant:
+"""
+LLAMA2PROMPT = PromptTemplate(
+    input_variables=["history", "input"], template=LLAMA2_TEMPLATE
+)
+
+
 MODELS = {  # Prompt, Stop, Context
     'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
     'Wizard-Vicuna-13B-Uncensored.ggml.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
@@ -104,6 +131,7 @@ MODELS = {  # Prompt, Stop, Context
     'wizardlm-30b.ggmlv3.q5_K_S': [WIZARD_PROMPT, None, 2048, 'llama'],
     'vicuna-33b-preview.ggmlv3.q5_K_S': [VICUNA_PROMPT, None, 2048, 'llama'],
     'guanaco-65B.ggmlv3.q4_0': [ALPACA_PROMPT, None, 2048, 'llama'],
+    'llama-2-13b.ggmlv3.q5_K_M': [ALPACA_PROMPT, None, 4096, 'llama'],
 }
 
 SELECTED_MODEL = 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0'
