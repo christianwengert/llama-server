@@ -1,12 +1,12 @@
 import os
-from langchain import SQLDatabase, SQLDatabaseChain
+from langchain import SQLDatabase
 from sqlalchemy.exc import OperationalError
 
 from models import MODEL_PATH, MODELS, SELECTED_MODEL
 from models.interruptable_llama import InterruptableLlamaCpp
 
 
-def embed_sql(dbname: str, file_path: str, model: str, run_test: bool = False) -> SQLDatabaseChain:
+def embed_sql(dbname: str, file_path: str, model: str, run_test: bool = False):
 
     prompt, stop, n_ctx, _ = MODELS[model]
 

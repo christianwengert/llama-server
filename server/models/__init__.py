@@ -1,5 +1,5 @@
 import os
-
+from pathlib import Path
 from langchain import PromptTemplate
 
 
@@ -123,16 +123,47 @@ LLAMA2PROMPT = PromptTemplate(
 )
 
 
-MODELS = {  # Prompt, Stop, Context
-    'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
-    'Wizard-Vicuna-13B-Uncensored.ggml.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
-    'WizardCoder-15B-1.0.ggmlv3.q5_1': [STARCHAT_PROMPT, None, 8092, 'starcoder'],
-    'WizardLM-30B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
-    'wizardlm-30b.ggmlv3.q5_K_S': [WIZARD_PROMPT, None, 2048, 'llama'],
-    'vicuna-33b-preview.ggmlv3.q5_K_S': [VICUNA_PROMPT, None, 2048, 'llama'],
-    'guanaco-65B.ggmlv3.q4_0': [ALPACA_PROMPT, None, 2048, 'llama'],
-    'llama-2-13b.ggmlv3.q5_K_M': [ALPACA_PROMPT, None, 4096, 'llama'],
-}
+# MODELS = {  # Prompt, Stop, Context
+#     'Guanaco-7B.Q5_K_M.gguf'  #: [WIZARD_PROMPT, None, 4096, 'llama'],
+#     'sqlcoder.Q5_K_M.gguf'  #: [WIZARD_PROMPT, None, 4096, 'llama'],
+#     'wizardcoder-python-34b-v1.0.Q5_K_M.gguf'  #: [WIZARD_PROMPT, None, 4096, 'llama'],
+#     'wizardlm-70b-v1.0.q4_K_S.gguf'  #: [WIZARD_PROMPT, None, 4096, 'llama'],
+#     # 'orca-mini-3b.ggmlv3.q5_1.gguf': [ORCA_PROMPT, None, 2048, 'llama'],
+#     # 'Wizard-Vicuna-7B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
+#     # 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
+#     # 'WizardCoder-15B-1.0.ggmlv3.q5_1': [STARCHAT_PROMPT, None, 8092, 'starcoder'],
+#     # 'WizardLM-30B-Uncensored.ggmlv3.q5_0': [WIZARD_PROMPT, None, 2048, 'llama'],
+#     # 'wizardlm-30b.ggmlv3.q5_K_S': [WIZARD_PROMPT, None, 2048, 'llama'],
+#     # 'vicuna-33b-preview.ggmlv3.q5_K_S': [VICUNA_PROMPT, None, 2048, 'llama'],
+#     # 'guanaco-65B.ggmlv3.q4_0': [ALPACA_PROMPT, None, 2048, 'llama'],
+#     # 'llama-2-13b.ggmlv3.q5_K_M': [ALPACA_PROMPT, None, 4096, 'llama'],
+# }
 
-SELECTED_MODEL = 'Wizard-Vicuna-13B-Uncensored.ggml.q5_0'
-MODEL_PATH = os.environ.get("MODEL_PATH", '/Users/christianwengert/Downloads/')
+
+MODEL_PATH = os.environ.get("MODEL_PATH", '/Users/christianwengert/Downloads/models/')
+
+
+def list_files(directory, extension):
+    return [file for file in Path(directory).glob(f'*.{extension}')]
+
+
+EXTENSION = 'gguf'
+ggufs = list_files(MODEL_PATH, EXTENSION)
+
+MODELS = {os.path.basename(k): [] for k in ggufs}
+
+
+# TINY_PROMPT = f"<|im_start|>user\n{prompt}<|im_end|>\n<|im_start|>assistant\n"
+
+
+TINY_TEMPLATE = """
+{history}
+<|im_start|>user\n{input}<|im_end|>\n<|im_start|>assistant\n
+"""
+TINY_PROMPT = PromptTemplate(
+    input_variables=["history", "input"], template=TINY_TEMPLATE
+)
+PROMPT = TINY_PROMPT
+
+# MODELS = []
+SELECTED_MODEL = os.path.basename(ggufs[0])

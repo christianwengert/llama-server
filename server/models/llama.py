@@ -40,55 +40,36 @@ def streaming_answer_generator(fun: Callable[[str], None], q: queue.Queue, text_
 def create_conversation(model_path: str,
                         prompt: BasePromptTemplate,
                         stop=None,
-                        n_ctx=2048,
-                        model_type=None) -> ConversationChain:
-    # model_type = 'starcoder'
-    # model_path =
-    if model_type != 'llama':
-        llm = CTransformers(
-            model=model_path,
-            # model='NeoDim/starchat-alpha-GGML',
-            # model_file=model_path,
-            model_type=model_type,
-            config=dict(
-                stream=True,
-                temperature=0.1,
-                # batch_size=256,
-                threads=8,
-                context_length=n_ctx,
-                stop='<|end|>',
-                max_new_tokens=2048
-                # verbose=True
-            )
-        )
-    else:  # use llama.cpp if possible
-        extra_args = {}
-        import platform
-        if 'arm64' in platform.platform() and 'macOS' in platform.platform() and \
-           '.q5_0' not in model_path and '.q5_1' not in model_path:
-            extra_args['n_gpu_layers'] = 1
-            print('Using METAL')
-            # n_ctx = 8192
-            extra_args['rope_freq_base'] = 57200
-            extra_args['rope_freq_scale'] = 0.25
+                        n_ctx=4096,
+                        max_token=1024,
+                        temperature=0.5,
+                        n_threads=8
+                        ) -> ConversationChain:
 
-        max_token = 1024
+    extra_args = {}
+    import platform
+    if 'arm64' in platform.platform() and 'macOS' in platform.platform():
+        extra_args['n_gpu_layers'] = 1
+        print('Using METAL')
+        # n_ctx = 8192
+        # extra_args['rope_freq_base'] = 57200
+        # extra_args['rope_freq_scale'] = 0.25
 
-        llm = InterruptableLlamaCpp(model_path=model_path,
-                                    temperature=0.8,
-                                    n_threads=8,
-                                    n_ctx=n_ctx,
-                                    n_batch=512,
-                                    max_tokens=max_token,
-                                    **extra_args
-                                    )
+    llm = InterruptableLlamaCpp(model_path=model_path,
+                                temperature=temperature,
+                                n_threads=n_threads,
+                                n_ctx=n_ctx,
+                                n_batch=512,
+                                max_tokens=max_token,
+                                **extra_args
+                                )
 
-        # llm.client.params.rope_freq_base = 57200
-        # llm.client.params.rope_freq_scale = 0.25
-        # llm.client._n_ctx = 8192
+    # llm.client.params.rope_freq_base = 57200
+    # llm.client.params.rope_freq_scale = 0.25
+    # llm.client._n_ctx = 8192
 
-        if stop is not None:
-            llm.stop = stop
+    if stop is not None:
+        llm.stop = stop
 
     conversation_chain = ConversationChain(
         llm=llm,
