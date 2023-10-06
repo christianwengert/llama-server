@@ -12,39 +12,40 @@
     <div class="header-inner"><a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a></div>
     <div class="header-inner">
 
-        {% if show_embeddings is defined %}
-        <label>
-            <strong>Embedding</strong>:
-            <select id="embeddings-change">
-            {% for embedding in embeddings %}
-            <option></option>
-            {% if embedding == selected_embedding %}
-            <option selected="selected" value="{{ embedding }}">{{ embedding }}</option>
-            {% else %}
-            <option value="{{ embedding }}">{{ embedding }}</option>
-            {% endif %}
-            {% endfor %}
-            </select>
-        </label>
+<!--        {% if show_embeddings is defined %}-->
+<!--        <label>-->
+<!--            <strong>Embedding</strong>:-->
+<!--            <select id="embeddings-change">-->
+<!--            {% for embedding in embeddings %}-->
+<!--            <option></option>-->
+<!--            {% if embedding == selected_embedding %}-->
+<!--            <option selected="selected" value="{{ embedding }}">{{ embedding }}</option>-->
+<!--            {% else %}-->
+<!--            <option value="{{ embedding }}">{{ embedding }}</option>-->
+<!--            {% endif %}-->
+<!--            {% endfor %}-->
+<!--            </select>-->
+<!--        </label>-->
 
-        {% else %}
+<!--        {% else %}-->
 
         <label>
             <strong>Model</strong>:
-            <select id="model-change">
-                {% for name in models %}
-                {% if name == selected_model %}
-                <option selected="selected" value="{{ name }}">{{ name }}</option>
-                {% else %}
-                <option value="{{ name }}">{{ name }}</option>
-                {% endif %}
-                {% endfor %}
-            </select>
+            <span id="model-name">hello</span>
+<!--            <select id="model-change">-->
+<!--                {% for name in models %}-->
+<!--                {% if name == selected_model %}-->
+<!--                <option selected="selected" value="{{ name }}">{{ name }}</option>-->
+<!--                {% else %}-->
+<!--                <option value="{{ name }}">{{ name }}</option>-->
+<!--                {% endif %}-->
+<!--                {% endfor %}-->
+<!--            </select>-->
         </label>
         <a href="#" id="reset-button"><img
                 src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjwhRE9DVFlQRSBzdmcgIFBVQkxJQyAnLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4nICAnaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkJz48c3ZnIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDQxIDM0IiBoZWlnaHQ9IjM0cHgiIGlkPSJMYXllcl8xIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA0MSAzNCIgd2lkdGg9IjQxcHgiIHhtbDpzcGFjZT0icHJlc2VydmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPjxwYXRoIGQ9Ik0zMy45NDksMTZDMzMuNDI5LDcuMDgsMjYuMDUxLDAsMTcsMEM3LjYxMSwwLDAsNy42MTEsMCwxN3M3LjYxMSwxNywxNywxN3YtNmMtNi4wNzUsMC0xMS00LjkyNS0xMS0xMSAgUzEwLjkyNSw2LDE3LDZjNS43MzcsMCwxMC40NDMsNC4zOTQsMTAuOTQ5LDEwaC02Ljg0OUwzMSwyNS44OTlMNDAuODk5LDE2SDMzLjk0OXoiIGZpbGw9IiMyMzFGMjAiLz48L3N2Zz4="
                 alt="refresh" width="16" height="16"></a>
-        {% endif %}
+<!--        {% endif %}-->
     </div>
 
 </div>
@@ -64,26 +65,34 @@
         </button>
         <div class="footer">
             <div class="footer-buttons">
-                <strong>
-                    <a href="/embeddings">Embeddings
-                    {% if embeddings is defined and embeddings|length > 0 %}
-                        ({{ embeddings|length }} open)
-                    {% endif %}
-                    </a>
-                </strong>:
+<!--                <strong>-->
+<!--                    <a href="/embeddings">Embeddings-->
+<!--                    {% if embeddings is defined and embeddings|length > 0 %}-->
+<!--                        ({{ embeddings|length }} open)-->
+<!--                    {% endif %}-->
+<!--                    </a>-->
+<!--                </strong>:-->
 
-                &nbsp;
-                <a href="#popup2" id="document-qa-button">PDF</a>
-                &nbsp;|&nbsp;
-                <a href="#popup3" id="source-qa-button">Source code</a>
-                &nbsp;|&nbsp;
-                <a href="#popup4" id="sql-qa-button">SQL</a>
-                &nbsp;|&nbsp;
-                <a href="/translate">Translate</a>
-
+<!--                &nbsp;-->
+<!--                <a href="#popup2" id="document-qa-button">PDF</a>-->
+<!--                &nbsp;|&nbsp;-->
+<!--                <a href="#popup3" id="source-qa-button">Source code</a>-->
+<!--                &nbsp;|&nbsp;-->
+<!--                <a href="#popup4" id="sql-qa-button">SQL</a>-->
+<!--                &nbsp;|&nbsp;-->
+<!--                <a href="/translate">Translate</a>-->
+<!--                <div>-->
+<!--                    <strong>Timing: </strong>-->
+                <span id="timing-info"></span>
+<!--                </div>-->
+                <a href="#popup1" id="settings-button">Settings</a>
+<!--                |-->
                 <a href="#popup1" id="help-button">Help</a>
             </div>
+
         </div>
+
+
     </div>
 </div>
 

@@ -12,7 +12,9 @@ body {
     margin: 0;
     padding: 0;
 }
-
+#model-name {
+    font-weight: normal;
+}
 .message {
     padding-top: 24px;
     padding-bottom: 24px;
@@ -257,7 +259,7 @@ a:visited {
     align-items: flex-start;
 }
 
-#help-button {
+#settings-button {
     margin-left: auto;
 }
 #reset-button {

@@ -49850,6 +49850,10 @@
     let messages = document.getElementById("chat");
     messages.scrollTo(0, messages.scrollHeight);
   };
+  var round = (originalNumber, digits) => {
+    const t = 10 ** digits;
+    return Math.round(originalNumber * t) / t;
+  };
   var renderMessage = (message, direction, chat) => {
     const ident = (Math.random() + 1).toString(36).substring(2);
     const m = `
@@ -49859,95 +49863,15 @@
     chat.insertAdjacentHTML("beforeend", m);
     return ident;
   };
-  var setupModelChange = () => {
-    let modelChangeSelect = document.getElementById("model-change");
-    if (!modelChangeSelect) {
-      return;
-    }
-    const url = new URL(document.location.href);
-    modelChangeSelect.addEventListener("change", () => {
-      document.location = url.pathname + "?" + new URLSearchParams({
-        model: modelChangeSelect.value
-      });
-    });
-    const p = new URLSearchParams(document.location.search);
-    if (p.get("model")) {
-      modelChangeSelect.value = p.get("model") || "";
-    }
-  };
   var setFocusToInputField = (textInput) => {
     setTimeout(() => {
       textInput.focus();
-    }, 100);
-  };
-  var setupTranslation = () => {
-    const url = new URL(document.location.href);
-    if (url.pathname != "/translate") {
-      return;
-    }
-    const fileInput = document.getElementById("file");
-    if (!fileInput) {
-      return;
-    }
-    fileInput.addEventListener("change", (e) => {
-      fileInput.disabled = true;
-      const input = e.target;
-      const files = input.files;
-      const file = files[0];
-      let formData = new FormData();
-      formData.append("file", file);
-      const name = file.name;
-      formData.append("name", name);
-      const stopButton = document.getElementById("stop-generating");
-      stopButton.disabled = false;
-      const chat = document.getElementById("chat");
-      const ident = renderMessage("", "them", chat);
-      const elem = document.getElementById(ident);
-      let modelChangeSelector = document.getElementById("model-change");
-      const inner = elem.querySelector(".inner-message");
-      inner.innerHTML = '<div class="loading"></div>';
-      const xhr = new XMLHttpRequest();
-      xhr.open("POST", "/translate");
-      let seenBytes = 0;
-      xhr.onreadystatechange = function() {
-        if (xhr.readyState == 3) {
-          const newData = xhr.response.substring(seenBytes);
-          if (inner.querySelector(".loading")) {
-            inner.innerHTML = "";
-          }
-          inner.innerHTML += newData;
-          seenBytes = xhr.responseText.length;
-        }
-        if (xhr.readyState == 4) {
-          modelChangeSelector.disabled = false;
-          fileInput.disabled = false;
-          stopButton.disabled = true;
-          scrollToBottom();
-        }
-      };
-      xhr.addEventListener("error", function(e2) {
-        console.log("error: " + e2);
-      });
-      xhr.send(formData);
-    });
+    }, 200);
   };
   var run = () => {
-    setupModelChange();
-    setupPdfUpload();
-    setupCodeUpload();
-    setupSQLUpload();
-    checkEmbeddings();
-    setupTranslation();
     const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
-    if (stopButton) {
-      stopButton.addEventListener("click", (e) => {
-        e.preventDefault();
-        fetch("/cancel").then(() => {
-        });
-        stopButton.disabled = true;
-      });
-    }
+    stopButton.disabled = true;
     const resetButton = document.getElementById("reset-button");
     if (resetButton) {
       resetButton.addEventListener("click", (e) => {
@@ -49958,42 +49882,53 @@
       });
     }
     const textInput = document.getElementById("input-box");
-    let modelChangeSelector = document.getElementById("model-change");
-    if (!modelChangeSelector) {
-      modelChangeSelector = document.getElementById("embeddings-change");
-    }
-    setFocusToInputField(textInput);
     textInput.addEventListener("keypress", handleInput);
     function handleInput(e) {
       if (e.key === "Enter" && e.shiftKey === false) {
         e.preventDefault();
+        const xhr = new XMLHttpRequest();
         const m = textInput.innerText;
         renderMessage(textInput.innerText, "me", chat);
         textInput.innerText = "";
         textInput.contentEditable = "false";
+        if (stopButton) {
+          stopButton.addEventListener("click", (e2) => {
+            e2.preventDefault();
+            xhr.abort();
+            stopButton.disabled = true;
+          });
+        }
         stopButton.disabled = false;
-        modelChangeSelector.disabled = true;
         const ident = renderMessage("", "them", chat);
         const elem = document.getElementById(ident);
         const inner = elem.querySelector(".inner-message");
         inner.innerHTML = '<div class="loading"></div>';
         scrollToBottom();
-        const xhr = new XMLHttpRequest();
         xhr.open("POST", "/");
         let seenBytes = 0;
         xhr.onreadystatechange = function() {
           if (xhr.readyState == 3) {
-            const newData = xhr.response.substring(seenBytes);
+            const newData = JSON.parse(xhr.response.substring(seenBytes));
             if (inner.querySelector(".loading")) {
               inner.innerHTML = "";
             }
-            inner.innerHTML += newData;
+            if (seenBytes == 0) {
+              newData.content = newData.content.trimStart();
+            }
+            inner.innerHTML += newData.content;
             seenBytes = xhr.responseText.length;
           }
           if (xhr.readyState == 4) {
+            const unusedPart = '{"content": "", "stop": false}';
+            if (xhr.response.substring(seenBytes).indexOf(unusedPart) >= 0) {
+              seenBytes += unusedPart.length;
+            }
+            const data = xhr.response.substring(seenBytes);
+            const timings = JSON.parse(data).timings;
+            const timing = document.getElementById("timing-info");
+            timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token)`;
             textInput.contentEditable = "true";
             stopButton.disabled = true;
-            modelChangeSelector.disabled = false;
             const pattern = /```([a-z]+)? ?([^`]*)```/g;
             const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
             const intermediate = inner.innerText.replace(pattern, rep);
@@ -50026,131 +49961,11 @@
           console.log("error: " + e2);
         });
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        xhr.send(JSON.stringify({ "input": m, "model": modelChangeSelector.value }));
+        xhr.send(JSON.stringify({ "input": m }));
       }
     }
+    setFocusToInputField(textInput);
   };
-  var checkEmbeddings = () => {
-    const dialog = document.querySelector("#wait");
-    function openDialog() {
-      if (dialog.attributes.hasOwnProperty("open")) {
-        return;
-      }
-      dialog.showModal();
-    }
-    function closeDialog() {
-      if (dialog.attributes.hasOwnProperty("open")) {
-        dialog.close();
-      }
-    }
-    let clearFun;
-    const [_empty, path1, path2] = new URL(document.location.href).pathname.split("/");
-    const fn = () => {
-      fetch("/check/" + path2).then((response) => response.text()).then((data) => {
-        if (data === "RUNNING") {
-          openDialog();
-          dialog.innerText = "Please wait";
-        } else if (data === "OK") {
-          closeDialog();
-          clearInterval(clearFun);
-        } else {
-          closeDialog();
-          console.warn("Got nothing");
-          clearInterval(clearFun);
-        }
-      });
-    };
-    if (path1 === "embeddings" && path2) {
-      fn();
-      clearFun = setInterval(fn, 1e3);
-    }
-  };
-  var setupPdfUpload = () => {
-    const form = document.getElementById("upload-pdf");
-    if (!form) {
-      return;
-    }
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const file = document.getElementById("pdf-file");
-      let formData = new FormData();
-      formData.append("file", file.files[0]);
-      const name = file.files[0].name;
-      formData.append("name", name);
-      formData.append("embedding", "pdf");
-      fetch(
-        "/upload",
-        {
-          body: formData,
-          method: "post"
-        }
-      ).then(() => {
-        window.location.href = "/embeddings/" + name;
-      });
-    });
-  };
-  var setupSQLUpload = () => {
-    const form = document.getElementById("upload-sql");
-    if (!form) {
-      return;
-    }
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const file = document.getElementById("sql-file");
-      let formData = new FormData();
-      formData.append("file", file.files[0]);
-      const name = file.files[0].name;
-      formData.append("name", name);
-      formData.append("embedding", "sql");
-      fetch(
-        "/upload",
-        {
-          body: formData,
-          method: "post"
-        }
-      ).then(() => {
-        window.location.href = "/embeddings/" + name;
-      });
-    });
-  };
-  var setupCodeUpload = () => {
-    const form = document.getElementById("upload-code");
-    if (!form) {
-      return;
-    }
-    form.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const file = document.getElementById("code-folder");
-      const name = document.getElementById("code-jobname");
-      let formData = new FormData();
-      for (const f of file.files) {
-        formData.append("file", f);
-      }
-      formData.append("name", name.value);
-      formData.append("embedding", "code");
-      fetch(
-        "/upload",
-        {
-          body: formData,
-          method: "post"
-        }
-      ).then(() => {
-        window.location.href = "/embeddings/" + name.value;
-      });
-    });
-  };
-  var setupSwitchEmbedding = () => {
-    const embeddingsChanger = document.getElementById("embeddings-change");
-    if (!embeddingsChanger) {
-      return;
-    }
-    embeddingsChanger.addEventListener("change", (e) => {
-      if (embeddingsChanger.value) {
-        document.location.href = "/embeddings/" + embeddingsChanger.value;
-      }
-    });
-  };
-  setupSwitchEmbedding();
   run();
 })();
 //# sourceMappingURL=app.js.map
