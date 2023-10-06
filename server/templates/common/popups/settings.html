@@ -1,0 +1,138 @@
+<div id="popupSettings" class="overlay">
+    <div class="popup">
+        <h2>Settings</h2>
+        <a class="close" href="#">&times;</a>
+        <div class="scroll-content">
+
+            <form id="settings-form">
+                <div>
+                    <label for="n_predict">n_predict:</label>
+                    <input type="number" id="n_predict" name="n_predict" value="2048"><br>
+                </div>
+                <div class="param-help">
+                    Set the number of tokens to predict when generating text. Note: May exceed the set limit slightly if the last token is a partial multibyte character. When 0, no tokens will be generated but the prompt is evaluated into the cache. (default: 128, -1 = infinity).
+                </div>
+                 <div>
+                    <label for="n_keep">n_keep:</label>
+                    <input type="number" id="n_keep" name="n_predict" value="-1" step="1"><br>
+                </div>
+                <div class="param-help">
+                    Specify the number of tokens from the initial prompt to retain when the model resets its internal context. By default, this value is set to 0 (meaning no tokens are kept). Use -1 to retain all tokens from the initial prompt.
+                </div>
+                <div>
+                    <label for="temperature">Temperature:</label>
+                    <input type="number" id="temperature" name="temperature" step="0.01" value="0.5"><br>
+                </div>
+                <div class="param-help">
+                    Adjust the randomness of the generated text
+                </div>
+                <!-- Array of Strings -->
+                <div>
+                    <label for="stop">Stop:</label>
+                    <input type="text" id="stop" name="stop" value="</s>,Llama:,User:"><br>
+                </div>
+                <div class="param-help">
+                    Specify a JSON array of stopping strings. These words will not be included in the completion, so make sure to add them to the prompt for the next iteration (default: []).
+                </div>
+                <!-- More Numerical Settings -->
+                <div>
+                    <label for="repeat_last_n">Repeat Last N:</label>
+                    <input type="number" id="repeat_last_n" name="repeat_last_n" value="64"><br>
+                </div>
+                <div class="param-help">
+                    Last n tokens to consider for penalizing repetition (default: 64, 0 = disabled, -1 = ctx-size)
+                </div>
+                <div>
+                    <label for="repeat_penalty">Repeat Penalty:</label>
+                    <input type="number" id="repeat_penalty" name="repeat_penalty" step="0.01" value="1.18"><br>
+                </div>
+                <div class="param-help">
+                    Control the repetition of token sequences in the generated text (default: 1.1)
+                </div>
+                <div>
+                    <label for="top_k">Top K:</label>
+                    <input type="number" id="top_k" name="top_k" value="40"><br>
+                </div>
+                <div class="param-help">
+                    Limit the next token selection to the K most probable tokens (default: 40).
+                </div>
+                <div>
+                    <label for="top_p">Top P:</label>
+                    <input type="number" id="top_p" name="top_p" step="0.01" value="0.9"><br>
+                </div>
+                <div class="param-help">
+                    Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9).
+                </div>
+<!--                <div>-->
+<!--                    <label for="tfs_z">TFS Z:</label>-->
+<!--                    <input type="number" id="tfs_z" name="tfs_z" value="1"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Enable tail free sampling with parameter z (default: 1.0, 1.0 = disabled).-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label for="typical_p">Typical P:</label>-->
+<!--                    <input type="number" id="typical_p" name="typical_p" value="1"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label for="presence_penalty">Presence Penalty:</label>-->
+<!--                    <input type="number" id="presence_penalty" name="presence_penalty" value="0"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Repeat alpha presence penalty (default: 0.0, 0.0 = disabled).-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label for="frequency_penalty">Frequency Penalty:</label>-->
+<!--                    <input type="number" id="frequency_penalty" name="frequency_penalty" value="0"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled);-->
+<!--                </div>-->
+                <div>
+                    <label for="mirostat">Mirostat:</label>
+                    <input type="number" id="mirostat" name="mirostat" value="0"><br>
+                </div>
+                <div class="param-help">
+                    Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
+                </div>
+                <div>
+                    <label for="mirostat_tau">Mirostat Tau:</label>
+                    <input type="number" id="mirostat_tau" name="mirostat_tau" step="0.01" value="5"><br>
+                </div>
+                <div class="param-help">
+                    Set the Mirostat target entropy, parameter tau (default: 5.0).
+                </div>
+                <div>
+                    <label for="mirostat_eta">Mirostat Eta:</label>
+                    <input type="number" id="mirostat_eta" name="mirostat_eta" step="0.01" value="0.1"><br>
+                </div>
+                <div class="param-help">
+                    Set the Mirostat learning rate, parameter eta (default: 0.1).
+                </div>
+                <div>
+                    <label for="grammar">Grammar:</label>
+                    <textarea id="grammar" name="grammar"></textarea>
+                </div>
+                <div class="param-help">
+                    Set grammar for grammar-based sampling (default: no grammar)
+                </div>
+<!--                <div>-->
+<!--                    <label for="n_probs">N Probs:</label>-->
+<!--                    <input type="number" id="n_probs" name="n_probs" value="0"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+
+<!--                </div>-->
+<!--                <div>-->
+<!--                    &lt;!&ndash; Submit Button &ndash;&gt;-->
+<!--                    <input type="submit" value="Submit">-->
+<!--                </div>-->
+            </form>
+
+
+        </div>
+    </div>
+</div>

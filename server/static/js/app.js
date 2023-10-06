@@ -49961,11 +49961,19 @@
           console.log("error: " + e2);
         });
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        xhr.send(JSON.stringify({ "input": m }));
+        const settingsForm = document.getElementById("settings-form");
+        const formData = Object.fromEntries(new FormData(settingsForm).entries());
+        formData["input"] = m;
+        xhr.send(JSON.stringify(formData));
       }
     }
     setFocusToInputField(textInput);
   };
+  document.addEventListener("keydown", function(event) {
+    if (event.key === "Escape") {
+      window.location.hash = "";
+    }
+  });
   run();
 })();
 //# sourceMappingURL=app.js.map

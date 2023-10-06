@@ -152,11 +152,31 @@ const run = () => {
                 console.log("error: " + e);
             });
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-            xhr.send(JSON.stringify({'input': m}));
+
+
+            const settingsForm = document.getElementById("settings-form") as HTMLFormElement;
+
+            const formData = Object.fromEntries(new FormData(settingsForm).entries());
+            // console.log(formData)
+            formData['input'] = m
+
+            xhr.send(JSON.stringify(formData));
         }
     }
     setFocusToInputField(textInput);
 };
+
+
+document.addEventListener('keydown', function(event) {
+    if (event.key === 'Escape') {
+        // Remove the hash from the URL to close the element opened via CSS anchors
+        window.location.hash = '';
+
+        // Alternatively, manipulate the CSS classes or properties of elements
+        // For example, if you have elements that are opened with a class 'opened':
+        // document.querySelectorAll('.opened').forEach(el => el.classList.remove('opened'));
+    }
+});
 
 
 run()

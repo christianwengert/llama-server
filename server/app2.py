@@ -94,7 +94,7 @@ def get_input():
     history = '\n'.join(HISTORY[token])
 
     data = request.get_json()  # todo remove 'model' from data and add other params
-    text = data.get('input')
+    text = data.pop('input')
 
     HISTORY[token].append(f'User: {text}')
 
@@ -102,8 +102,8 @@ def get_input():
 
     post_data = {
         'stream': True,
-        'n_predict': 400,
-        'temperature': 0.7,
+        'n_predict': 2048,
+        'temperature': 0.8,
         'stop': ['</s>', 'Llama:', 'User:'],
         'repeat_last_n': 256,
         'repeat_penalty': 1.18,
@@ -120,6 +120,10 @@ def get_input():
         'n_probs': 0,
         'prompt': prompt
     }
+
+    # update the params
+    post_data.update(data)
+
 
     def generate():
         data = requests.request(method="POST",
