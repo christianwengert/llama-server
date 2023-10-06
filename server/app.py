@@ -185,93 +185,93 @@ def translate_post():
 
     return Response(streaming_answer_generator(run_as_thread, q, texts), mimetype='text/plain;charset=UTF-8 ')
 
-
-@app.route("/")
-def index():
-    token = session.get('llm', None)
-    set_model = session.get('model', None)
-    # check if model is set
-    model = request.args.get('model', SELECTED_MODEL)
-    model_path = os.path.join(MODEL_PATH, model)
-    if token is None or model != set_model:
-        token = secrets.token_hex(32)
-        session['llm'] = token
-        session['model'] = model
-        q = queue.Queue()  # type: queue.Queue[str]
-
-        prompt = WIZARD_PROMPT  # todo make prompt dependeing on gguf?
-        stop = []
-        n_ctx = 4096
-
-        CONVERSATIONS[token] = (create_conversation(model_path, prompt, stop, n_ctx), q)
-    if token not in CONVERSATIONS:
-        abort(400)
-
-    return render_template('index.html', models=MODELS,
-                           selected_model=SELECTED_MODEL,
-                           embeddings=EMBEDDINGS,
-                           name=os.environ.get("CHAT_NAME", "local"))
-
-
-@app.route('/reset')
-def reset():
-    if session.get('llm', None) is not None:
-        session['llm'] = None
-    return ""
-
-
-@app.route('/cancel')
-def cancel():
-    token = session.get('llm', session.get('translation', None))
-    if token:
-        ABORT[token] = True
-    else:
-        abort(400)
-    return ""
-
-
-@app.route('/', methods=["POST"])
-def get_input():
-    token = session.get('llm', None)
-    conversation, q = CONVERSATIONS.get(token, None)
-    if not conversation:
-        abort(400)
-    data = request.json
-    text = data.get('input')
-    input_dict = {"input": text}
-    # chat_history = None
-    if data['model'] in EMBEDDINGS:  # special case for embeddings
-
-        conversation, chat_history = EMBEDDINGS[data['model']]
-        if isinstance(conversation, ConversationalRetrievalChain):  # PDF + Code
-            input_dict = {"question": text, "chat_history": chat_history}  # if we put in the chat history
-        if conversation.__class__.__name__ == 'MyChain':  # SQL
-            input_dict = {"query": text}
-            # chat_history = None
-
-    def fun(t):
-        q.put(t)
-
-    def abortfn():
-        result = ABORT.get(token, False)
-        ABORT[token] = False
-        return result
-
-    def run_as_thread(_t):
-        """
-        We run this as a thread to be able to get token by token so its cooler to wait
-        """
-        # noinspection PyBroadException
-        try:
-            handler = StreamingLlamaHandler(fun, abortfn)
-            _answer = conversation(input_dict, callbacks=[handler])
-        except Exception as _e:
-            pass
-        finally:
-            time.sleep(1.0)  # ugly hack
-            fun("THIS IS THE END%^&*")
-
-    return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')
+#
+# @app.route("/")
+# def index():
+#     token = session.get('llm', None)
+#     set_model = session.get('model', None)
+#     # check if model is set
+#     model = request.args.get('model', SELECTED_MODEL)
+#     model_path = os.path.join(MODEL_PATH, model)
+#     if token is None or model != set_model:
+#         token = secrets.token_hex(32)
+#         session['llm'] = token
+#         session['model'] = model
+#         q = queue.Queue()  # type: queue.Queue[str]
+#
+#         prompt = WIZARD_PROMPT  # todo make prompt dependeing on gguf?
+#         stop = []
+#         n_ctx = 4096
+#
+#         CONVERSATIONS[token] = (create_conversation(model_path, prompt, stop, n_ctx), q)
+#     if token not in CONVERSATIONS:
+#         abort(400)
+#
+#     return render_template('index.html', models=MODELS,
+#                            selected_model=SELECTED_MODEL,
+#                            embeddings=EMBEDDINGS,
+#                            name=os.environ.get("CHAT_NAME", "local"))
+#
+#
+# @app.route('/reset')
+# def reset():
+#     if session.get('llm', None) is not None:
+#         session['llm'] = None
+#     return ""
+#
+#
+# @app.route('/cancel')
+# def cancel():
+#     token = session.get('llm', session.get('translation', None))
+#     if token:
+#         ABORT[token] = True
+#     else:
+#         abort(400)
+#     return ""
+#
+#
+# @app.route('/', methods=["POST"])
+# def get_input():
+#     token = session.get('llm', None)
+#     conversation, q = CONVERSATIONS.get(token, None)
+#     if not conversation:
+#         abort(400)
+#     data = request.json
+#     text = data.get('input')
+#     input_dict = {"input": text}
+#     # chat_history = None
+#     if data['model'] in EMBEDDINGS:  # special case for embeddings
+#
+#         conversation, chat_history = EMBEDDINGS[data['model']]
+#         if isinstance(conversation, ConversationalRetrievalChain):  # PDF + Code
+#             input_dict = {"question": text, "chat_history": chat_history}  # if we put in the chat history
+#         if conversation.__class__.__name__ == 'MyChain':  # SQL
+#             input_dict = {"query": text}
+#             # chat_history = None
+#
+#     def fun(t):
+#         q.put(t)
+#
+#     def abortfn():
+#         result = ABORT.get(token, False)
+#         ABORT[token] = False
+#         return result
+#
+#     def run_as_thread(_t):
+#         """
+#         We run this as a thread to be able to get token by token so its cooler to wait
+#         """
+#         # noinspection PyBroadException
+#         try:
+#             handler = StreamingLlamaHandler(fun, abortfn)
+#             _answer = conversation(input_dict, callbacks=[handler])
+#         except Exception as _e:
+#             pass
+#         finally:
+#             time.sleep(1.0)  # ugly hack
+#             fun("THIS IS THE END%^&*")
+#
+#     return Response(streaming_answer_generator(run_as_thread, q, text), mimetype='text/plain;charset=UTF-8 ')
 
 
 if __name__ == '__main__':

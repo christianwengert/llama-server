@@ -4,6 +4,8 @@ import os
 import secrets
 # import tempfile
 import urllib
+from typing import Dict, Any
+
 import requests
 from flask import Flask, render_template, request, session, Response
 
@@ -72,9 +74,10 @@ def index():
     if token is None:
         token = secrets.token_hex(32)
         session['token'] = token
-    return render_template('index.html', models=[],
-                           selected_model=None,
-                           name=os.environ.get("CHAT_NAME", "local"))
+    return render_template('index.html',
+                           name=os.environ.get("CHAT_NAME", "local"),
+                           git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
+                           )
 
 
 @app.route('/reset')
@@ -100,29 +103,9 @@ def get_input():
 
     prompt = f'{INSTRUCTION}\n\n{history}\nUser: {text}\nLlama:'
 
-    post_data = {
-        'stream': True,
-        'n_predict': 2048,
-        'temperature': 0.8,
-        'stop': ['</s>', 'Llama:', 'User:'],
-        'repeat_last_n': 256,
-        'repeat_penalty': 1.18,
-        'top_k': 40,
-        'top_p': 0.5,
-        'tfs_z': 1,
-        'typical_p': 1,
-        'presence_penalty': 0,
-        'frequency_penalty': 0,
-        'mirostat': 0,
-        'mirostat_tau': 5,
-        'mirostat_eta': 0.1,
-        'grammar': '',
-        'n_probs': 0,
-        'prompt': prompt
-    }
+    post_data = get_llama_params(data)
 
-    # update the params
-    post_data.update(data)
+    post_data['prompt'] = prompt
 
     def generate():
         data = requests.request(method="POST",
@@ -147,6 +130,30 @@ def get_input():
         HISTORY[token].append(f'Llama: {output}')
 
     return Response(generate(), mimetype='text/event-stream')
+
+
+def get_llama_params(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
+    default_params = {
+        'stream': True,
+        'n_predict': 2048,
+        'temperature': 0.8,
+        'stop': ['</s>', 'Llama:', 'User:'],
+        'repeat_last_n': 256,
+        'repeat_penalty': 1.18,
+        'top_k': 40,
+        'top_p': 0.5,
+        'tfs_z': 1,
+        'typical_p': 1,
+        'presence_penalty': 0,
+        'frequency_penalty': 0,
+        'mirostat': 0,
+        'mirostat_tau': 5,
+        'mirostat_eta': 0.1,
+        'grammar': '',
+        'n_probs': 0,
+    }
+    default_params.update(parames_from_post)
+    return default_params
 
 
 if __name__ == '__main__':

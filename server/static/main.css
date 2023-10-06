@@ -312,10 +312,12 @@ a:visited {
     width: 100%;
     display: flex;
     margin-bottom: 0.2rem;
+    align-items: center;
 }
 .param-help {
     margin-bottom: 1.5rem !important;
-    color: #6a737d;
+    color: rgba(106, 115, 125, 0.64);
+    /*color: rgba(93, 65, 178, 0.5);*/
     font-size: smaller;
 }
 #settings-form > div> label {
@@ -323,9 +325,10 @@ a:visited {
     width: 200px;
 }
 
-#settings-form > div>input, textarea {
+#settings-form > div > input, textarea {
     margin-left: auto;
-    width: 200px;
+    min-width: 200px;
+    width: 40vw;
     padding: 4px;
     border-radius: 5px;
 }
@@ -350,7 +353,8 @@ a:visited {
   padding: 20px;
   background: #fff;
   border-radius: 5px;
-  width: 60%;
+  width: 60vw;
+    max-width: 600px;
   position: relative;
   transition: all 5s ease-in-out;
     max-height: 80vh;

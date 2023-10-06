@@ -5,48 +5,17 @@
         <div class="content">
             <div>
                 <div>
-                    <h1>Issues?</h1>
-                    Open issue on <a href="http://gitea.cry/wengert/{{name}}GPT" target="_blank">gitea.cry/wengert/{{name}}GPT</a>
-                </div>
-                <div>
-                    <h1>Questions?</h1>
-                    Ask <a href="mailto:wengert@yoda.cry">wengert@yoda.cry</a>
-                </div>
-                <div>
-                    <h1>Models</h1>
-                    In general: More parameters are better, but slower (scales +/- linearly with number of parameters).
-                    Most models here are uncensored models have (almost) no ethical or moral barriers. Use at your own risk (or to build some Molotov cocktails).
-                    <ul>
-                        {% for name in models %}
-                        <li> {{ name }}
-                            {% if name == selected_model %}
-                            (<strong>default</strong>)
-                            {% endif %}
-                        </li>
-                        {% endfor %}
-                    </ul>
-                    <strong>A note about quantization:</strong> The q5_0 is a method to quantize the model weights
-                    (16bits floating point) to
-                    for example 5 bit. The quality will be slightly less but speed and memory consumption are far
-                    better.
-                </div>
-
-                <div>
-                    <h1>News</h1>
-                    <ul>
-                        <li>25.5.2023 New models</li>
-                        <li>25.5.2023 New models</li>
-                        <li>15.5.2023 Changed all models because of breaking change in the library</li>
-                        <li>10.5.2023 Simple {{name}}GPT online</li>
-                    </ul>
+                    <h1>Issues or questions?</h1>
+                    Open issue on <a href="{{git}}" target="_blank">{{git}}</a>
                 </div>
 
                 <div>
                     <h1>Coming up next</h1>
                     <ul>
-                        <li>Make text generation cancellable</li>
-                        <li>Document embedding (i.e. ask your PDF)</li>
-                        <li>Source code embedding (i.e. ask your code)</li>
+                        <li>Semantic search for single document (i.e. ask your PDF)</li>
+                        <li>Finetuning models</li>
+                        <li>Semantic search for many documents (i.e. ask all your documents)</li>
+                        <li>Source code search (i.e. ask your code)</li>
                         <li>More models</li>
                     </ul>
                 </div>
