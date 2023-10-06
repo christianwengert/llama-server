@@ -14,7 +14,7 @@ from embeddings.code.codebase import embed_code
 from embeddings.documents.pdf import embed_pdf
 from embeddings.sql.sql import embed_sql
 from embeddings.translation.translate import prepare_translation
-from models import MODELS, SELECTED_MODEL, MODEL_PATH, PROMPT, EXTENSION
+from models import MODELS, SELECTED_MODEL, MODEL_PATH, PROMPT, EXTENSION, WIZARD_PROMPT
 from streaming import StreamingLlamaHandler
 from models.llama import streaming_answer_generator
 from models.llama import create_conversation
@@ -199,8 +199,8 @@ def index():
         session['model'] = model
         q = queue.Queue()  # type: queue.Queue[str]
 
-        prompt = PROMPT  # todo make prompt dependeing on gguf?
-        stop = None
+        prompt = WIZARD_PROMPT  # todo make prompt dependeing on gguf?
+        stop = []
         n_ctx = 4096
 
         CONVERSATIONS[token] = (create_conversation(model_path, prompt, stop, n_ctx), q)

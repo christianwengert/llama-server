@@ -165,5 +165,16 @@ TINY_PROMPT = PromptTemplate(
 )
 PROMPT = TINY_PROMPT
 
+
+# FALCON
+# Prompt template: Falcon
+#
+# {system_message}
+# User: {prompt}
+# Assistant:
+
+
+
 # MODELS = []
+
 SELECTED_MODEL = os.path.basename(ggufs[0])
