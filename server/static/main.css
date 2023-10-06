@@ -261,10 +261,13 @@ a:visited {
     /*top: 20px;*/
 }
 .footer a {
-    color: rgb(128, 128, 128);
+    /*color: rgb(128, 128, 128);*/
+    opacity: 0.5;
+
 }
 .footer a:hover {
-    color: black;
+    opacity: 1.0;
+    /*color: black;*/
 }
 .footer-buttons {
     margin: auto;
@@ -278,12 +281,16 @@ a:visited {
     margin-left: auto;
 }
 #reset-button {
-    font-weight: bold;
+    font-weight: normal;
     padding: 3px;
+    font-size: smaller;
     opacity: 0.5;
 }
 #reset-button:hover {
     opacity: 1.0;
+}
+#reset-button > img {
+ padding-top: 4px;
 }
 
 .overlay {

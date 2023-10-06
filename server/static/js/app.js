@@ -49850,6 +49850,24 @@
     let messages = document.getElementById("chat");
     messages.scrollTo(0, messages.scrollHeight);
   };
+  var getFormDataAsJSON = (formId) => {
+    const form = document.getElementById(formId);
+    const formData = {};
+    if (form) {
+      for (const [key, value] of new FormData(form).entries()) {
+        if (value === "true") {
+          formData[key] = true;
+        } else if (value === "false") {
+          formData[key] = false;
+        } else if (value !== "" && !isNaN(Number(value))) {
+          formData[key] = parseFloat(value);
+        } else {
+          formData[key] = value.toString();
+        }
+      }
+    }
+    return formData;
+  };
   var round = (originalNumber, digits) => {
     const t = 10 ** digits;
     return Math.round(originalNumber * t) / t;
@@ -49961,9 +49979,9 @@
           console.log("error: " + e2);
         });
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-        const settingsForm = document.getElementById("settings-form");
-        const formData = Object.fromEntries(new FormData(settingsForm).entries());
-        formData["input"] = m;
+        const formData = getFormDataAsJSON("settings-form");
+        formData.input = m;
+        formData.stop = formData.stop.split(",");
         xhr.send(JSON.stringify(formData));
       }
     }

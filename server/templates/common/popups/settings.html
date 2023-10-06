@@ -7,14 +7,14 @@
             <form id="settings-form">
                 <div>
                     <label for="n_predict">n_predict:</label>
-                    <input type="number" id="n_predict" name="n_predict" value="2048"><br>
+                    <input type="number" id="n_predict" name="n_predict" value="1024"><br>
                 </div>
                 <div class="param-help">
-                    Set the number of tokens to predict when generating text. Note: May exceed the set limit slightly if the last token is a partial multibyte character. When 0, no tokens will be generated but the prompt is evaluated into the cache. (default: 128, -1 = infinity).
+                    Set the number of tokens to predict when generating text. Note: May exceed the set limit slightly if the last token is a partial multibyte character. When 0, no tokens will be generated but the prompt is evaluated into the cache. (default: 1024, -1 = infinity).
                 </div>
                  <div>
                     <label for="n_keep">n_keep:</label>
-                    <input type="number" id="n_keep" name="n_predict" value="-1" step="1"><br>
+                    <input type="number" id="n_keep" name="n_keep" value="-1" step="1"><br>
                 </div>
                 <div class="param-help">
                     Specify the number of tokens from the initial prompt to retain when the model resets its internal context. By default, this value is set to 0 (meaning no tokens are kept). Use -1 to retain all tokens from the initial prompt.

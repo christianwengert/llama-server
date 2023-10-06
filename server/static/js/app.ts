@@ -7,6 +7,30 @@ const scrollToBottom = () => {
     messages.scrollTo(0, messages.scrollHeight);
 }
 
+const getFormDataAsJSON = (formId: string): Record<string, string | number | boolean> => {
+  const form = document.getElementById(formId) as HTMLFormElement;
+  const formData: Record<string, string | number | boolean> = {};
+
+  if (form) {
+    for (const [key, value] of new FormData(form).entries()) {
+      if (value === 'true') {
+          formData[key] = true;
+      } else if (value === 'false') {
+          formData[key] = false;
+      } else if (value !== "" && !isNaN(Number(value))) {
+          // @ts-ignore
+          formData[key] = parseFloat(value);
+      }
+      else {
+          formData[key] = value.toString();
+      }
+    }
+  }
+
+  return formData;
+};
+
+
 
 const round = (originalNumber: number, digits: number) => {
     const t = 10 ** digits;
@@ -154,11 +178,13 @@ const run = () => {
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
 
-            const settingsForm = document.getElementById("settings-form") as HTMLFormElement;
+            // const settingsForm = document.getElementById("settings-form") as HTMLFormElement;
 
-            const formData = Object.fromEntries(new FormData(settingsForm).entries());
+            const formData = getFormDataAsJSON('settings-form')
             // console.log(formData)
-            formData['input'] = m
+            formData.input = m
+            // @ts-ignore
+            formData.stop = formData.stop.split(',')
 
             xhr.send(JSON.stringify(formData));
         }

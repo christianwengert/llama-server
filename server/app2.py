@@ -124,7 +124,6 @@ def get_input():
     # update the params
     post_data.update(data)
 
-
     def generate():
         data = requests.request(method="POST",
                                 url=urllib.parse.urljoin(args.llama_api, "/completion"),
