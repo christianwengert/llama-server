@@ -49908,7 +49908,6 @@
         const m = textInput.innerText;
         renderMessage(textInput.innerText, "me", chat);
         textInput.innerText = "";
-        textInput.contentEditable = "false";
         if (stopButton) {
           stopButton.addEventListener("click", (e2) => {
             e2.preventDefault();
@@ -49926,20 +49925,32 @@
         let seenBytes = 0;
         xhr.onreadystatechange = function() {
           if (xhr.readyState == 3) {
-            const newData = JSON.parse(xhr.response.substring(seenBytes));
-            if (inner.querySelector(".loading")) {
-              inner.innerHTML = "";
+            const packages = xhr.response.substring(seenBytes).split("}{");
+            for (let p of packages) {
+              if (!p.startsWith("{")) {
+                p = "{" + p + "}";
+              }
+              let newData;
+              try {
+                newData = JSON.parse(p);
+              } catch (e2) {
+                console.log(e2, p);
+              }
+              if (inner.querySelector(".loading")) {
+                inner.innerHTML = "";
+              }
+              if (seenBytes == 0) {
+                newData.content = newData.content.trimStart();
+              }
+              inner.innerHTML += newData.content;
             }
-            if (seenBytes == 0) {
-              newData.content = newData.content.trimStart();
-            }
-            inner.innerHTML += newData.content;
             seenBytes = xhr.responseText.length;
           }
           if (xhr.readyState == 4) {
             const unusedPart = '{"content": "", "stop": false}';
-            if (xhr.response.substring(seenBytes).indexOf(unusedPart) >= 0) {
-              seenBytes += unusedPart.length;
+            const a = xhr.response.substring(seenBytes).indexOf("}{");
+            if (a >= 0) {
+              seenBytes += a + 1;
             }
             const data = xhr.response.substring(seenBytes);
             const timings = JSON.parse(data).timings;

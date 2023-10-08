@@ -47,27 +47,6 @@ parser.add_argument("--port", type=int, help="Set the port to listen.(default: 8
 args = parser.parse_args()
 
 
-# convert chat to prompt
-def convert_chat(messages):
-    prompt = "" + args.chat_prompt.replace("\\n", "\n")
-
-    system_n = args.system_name.replace("\\n", "\n")
-    user_n = args.user_name.replace("\\n", "\n")
-    ai_n = args.ai_name.replace("\\n", "\n")
-    stop = args.stop.replace("\\n", "\n")
-
-    for line in messages:
-        if line["role"] == "system":
-            prompt += f"{system_n}{line['content']}"
-        if line["role"] == "user":
-            prompt += f"{user_n}{line['content']}"
-        if line["role"] == "assistant":
-            prompt += f"{ai_n}{line['content']}{stop}"
-    prompt += ai_n.rstrip()
-
-    return prompt
-
-
 @app.route("/")
 def index():
     token = session.get('token', None)
@@ -82,9 +61,10 @@ def index():
 
 @app.route('/reset')
 def reset():
-    if session.get('token', None) is not None:
+    token = session.get('token', None)
+    if token is not None:
         session['token'] = None
-        session['history'] = []
+        HISTORY[token] = []
     return ""
 
 
