@@ -79,9 +79,11 @@ def get_input():
     data = request.get_json()  # todo remove 'model' from data and add other params
     text = data.pop('input')
 
+    system_prompt = data.get('system_prompt', INSTRUCTION)
+
     HISTORY[token].append(f'User: {text}')
 
-    prompt = f'{INSTRUCTION}\n\n{history}\nUser: {text}\nLlama:'
+    prompt = f'{system_prompt}\n\n{history}\nUser: {text}\nLlama:'
 
     post_data = get_llama_params(data)
 
