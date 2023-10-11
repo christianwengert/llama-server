@@ -1,0 +1,37 @@
+<div id="popupUpload" class="overlay">
+    <div class="popup">
+        <h2>Upload files</h2>
+        <a class="close" href="#">&times;</a>
+        <div class="scroll-content">
+            <form id="upload-form" class="popup-form">
+
+                <div>
+                    <label for="file">File</label>
+                    <input id="file" name="file" type="file" required>
+                </div>
+                <div class="param-help">
+                    Single documents or zip-archives.
+                </div>
+
+                <div>
+                    <label for="collection-selector">Collection</label>
+                    <select id="collection-selector" name="collection-selector">
+                        <option value="None">None, just use file in the current context</option>
+                        <option value="New" disabled>New collection</option>
+                        <option value="iacr" disabled>IACR</option>
+                    </select>
+                </div>
+
+                <div class="param-help">
+                    Todo
+                </div>
+                <div>
+                    <button id="upload-button" class="ml-auto">
+                        Upload
+                    </button>
+                </div>
+
+            </form>
+        </div>
+    </div>
+</div>

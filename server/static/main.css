@@ -164,7 +164,7 @@ pre code {
 }
 
 
-input, textarea {
+input, textarea, select {
     min-height: 24px;
     line-height: 24px;
     border: 1px solid rgb(222, 222, 223);
@@ -185,7 +185,30 @@ input, textarea {
     padding: 4px 8px;
     box-shadow: 5px 5px 15px 5px rgb(247, 247, 248);;
 }
+/*#upload-plus {*/
+/*    !*border-radius: 10px;*!*/
+/*    !*background-color: #b4f1b4;*!*/
+/*    !*padding: 4px;*!*/
+/*    !*width: 16px;*!*/
+/*    !*height: 10px;*!*/
+/*    position: relative;*/
+/*    !*display: inline-block;*!*/
 
+/*}*/
+
+/*#upload-plus:after {*/
+/*    content: "+";*/
+/*    font-size: 20px;*/
+/*    position: absolute;*/
+/*    height: 28px;*/
+/*    width: 28px;*/
+/*    background-color: #b4f1b4;*/
+/*    border-radius: 14px;*/
+/*    display: block;*/
+/*    text-align: center;*/
+/*    line-height: 28px;*/
+/*    top: -5px;*/
+/*}*/
 #stop-generating {
     /*display: none;*/
     right: 12%;
@@ -310,7 +333,7 @@ a:visited {
   visibility: visible;
   opacity: 1;
 }
-#settings-form > div {
+.popup-form > div {
     width: 100%;
     display: flex;
     margin-bottom: 0.2rem;
@@ -322,24 +345,33 @@ a:visited {
     /*color: rgba(93, 65, 178, 0.5);*/
     font-size: smaller;
 }
-#settings-form > div> label {
+.popup-form > div> label {
     display: inline-block;
     width: 200px;
 }
 
-#settings-form > div > input, textarea {
+.popup-form > div > input, textarea, select {
     margin-left: auto;
     min-width: 200px;
     width: 40vw;
     padding: 4px;
+    /*border: 1px solid;*/
     border-radius: 5px;
+    background-color: white;
+}
+.popup-form > div > select {
+    height: 32px;
+
+}
+.ml-auto {
+    margin-left: auto;
 }
 
-#settings-form > div>input[type=text], textarea {
+.popup-form > div>input[type=text], textarea, input[type=file] {
     text-align: left;
 }
 
-#settings-form {
+.popup-form {
     width: calc(100% - 20px);
 }
 
@@ -358,7 +390,7 @@ a:visited {
   width: 60vw;
     max-width: 600px;
   position: relative;
-  transition: all 5s ease-in-out;
+  /*transition: all 5s ease-in-out;*/
     max-height: 80vh;
     overflow: hidden;
 

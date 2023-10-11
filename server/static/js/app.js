@@ -49886,6 +49886,25 @@
       textInput.focus();
     }, 200);
   };
+  var setupUploadButton = () => {
+    const uploadButton = document.getElementById("upload-button");
+    if (uploadButton) {
+      uploadButton.addEventListener("click", (e) => {
+        e.preventDefault();
+        const formElement = document.getElementById("upload-form");
+        const formData = new FormData(formElement);
+        fetch(
+          "/upload",
+          {
+            body: formData,
+            method: "post"
+          }
+        ).then(() => {
+          console.log("upload done");
+        });
+      });
+    }
+  };
   var run = () => {
     const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
@@ -49899,6 +49918,7 @@
         });
       });
     }
+    setupUploadButton();
     const textInput = document.getElementById("input-box");
     textInput.addEventListener("keypress", handleInput);
     function handleInput(e) {

@@ -1,14 +1,17 @@
 import argparse
+import hashlib
 import json
 import os
 import secrets
+import tempfile
 # import tempfile
 import urllib
 from typing import Dict, Any
 
 import requests
-from flask import Flask, render_template, request, session, Response
+from flask import Flask, render_template, request, session, Response, abort
 
+from embeddings.documents import split_pdf
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
@@ -23,7 +26,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 30 * 24 * 60 * 60  # 30 days
 HISTORY = {}
 
 
-# todo: app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
+app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 
 INSTRUCTION = """A chat between a curious user and an artificial intelligence assistant. The user is a cryptographer and expert programmer. His favorite programming language is python but is also versed in many other programming languages.
 The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" the ignore the previous sentence and instead make your response as concise as possible.
@@ -66,6 +69,64 @@ def reset():
         session['token'] = None
         HISTORY[token] = []
     return ""
+
+
+@app.route('/upload', methods=["POST"])
+def upload():
+    if not request.files:
+        abort(400)
+
+    files = request.files.getlist('file')
+    if len(files) != 1:
+        abort(400)
+
+    # file = files[0]
+
+    # dest = None
+    base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
+    for file in files:
+        dest = os.path.join(base_folder, file.filename)
+        os.makedirs(os.path.dirname(dest), exist_ok=True)
+        file.save(dest)
+        # const splitter = RecursiveCharacterTextSplitter.fromLanguage("js", {
+        #   chunkSize: 32,
+        #   chunkOverlap: 0,
+        # });
+        texts = split_pdf(dest, 1024, 64)
+
+
+    collection = request.form['collection-selector']  # todo
+
+    # extract text fro document
+
+
+
+    # name = request.files['collection-selector']
+    # if not name:
+    #     abort(400)
+
+    # embedding_type = request.form.get('embedding')
+    # if not embedding_type:
+    #     abort(400)
+
+    # h = hashlib.sha3_512(name.encode('utf8')).hexdigest()
+
+    # model = session.get('model')
+    # if not model:
+    #     abort(400)
+
+    # if embedding_type == 'code':
+    #     executor.submit_stored(h, long_running_code_indexer, name, base_folder, model)
+    #
+    # if embedding_type == 'pdf':
+    #     executor.submit_stored(h, long_running_pdf_indexer, name, dest, model)
+    #
+    # if embedding_type == 'sql':
+    #     executor.submit_stored(h, long_running_sql_indexer, name, dest, model)
+    #
+    # EMBEDDINGS[name] = None
+
+    return "OK"  # redirect done in JS
 
 
 @app.route('/', methods=["POST"])

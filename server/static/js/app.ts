@@ -8,33 +8,31 @@ const scrollToBottom = () => {
 }
 
 const getFormDataAsJSON = (formId: string): Record<string, string | number | boolean> => {
-  const form = document.getElementById(formId) as HTMLFormElement;
-  const formData: Record<string, string | number | boolean> = {};
+    const form = document.getElementById(formId) as HTMLFormElement;
+    const formData: Record<string, string | number | boolean> = {};
 
-  if (form) {
-    for (const [key, value] of new FormData(form).entries()) {
-      if (value === 'true') {
-          formData[key] = true;
-      } else if (value === 'false') {
-          formData[key] = false;
-      } else if (value !== "" && !isNaN(Number(value))) {
-          // @ts-ignore
-          formData[key] = parseFloat(value);
-      }
-      else {
-          formData[key] = value.toString();
-      }
+    if (form) {
+        for (const [key, value] of new FormData(form).entries()) {
+            if (value === 'true') {
+                formData[key] = true;
+            } else if (value === 'false') {
+                formData[key] = false;
+            } else if (value !== "" && !isNaN(Number(value))) {
+                // @ts-ignore
+                formData[key] = parseFloat(value);
+            } else {
+                formData[key] = value.toString();
+            }
+        }
     }
-  }
 
-  return formData;
+    return formData;
 };
-
 
 
 const round = (originalNumber: number, digits: number) => {
     const t = 10 ** digits;
-    return Math.round(originalNumber * t ) / t;
+    return Math.round(originalNumber * t) / t;
 }
 
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement): string => {
@@ -55,13 +53,37 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
 };
 
 
+const setupUploadButton = () => {
+    const uploadButton = document.getElementById('upload-button')
+    if (uploadButton) {
+        uploadButton.addEventListener('click', (e) => {
+            e.preventDefault();
+
+            const formElement = document.getElementById("upload-form") as HTMLFormElement;
+
+            // Create a new FormData object
+            const formData = new FormData(formElement);
+
+            fetch("/upload",
+                {
+                    body: formData,
+                    method: "post"
+                }).then(()=> {
+                    // window.location.href = '/embeddings/' + name;
+                    console.log('upload done')
+            });
+
+        })
+    }
+};
+
 const run = () => {
 
     const chat = document.getElementById('chat')!;
     const stopButton = document.getElementById('stop-generating')! as HTMLButtonElement;
     stopButton.disabled = true;
     const resetButton = document.getElementById('reset-button') as HTMLElement;
-    if(resetButton) {
+    if (resetButton) {
         resetButton.addEventListener('click', (e) => {
             e.preventDefault();
             fetch('/reset').then(() => {
@@ -69,6 +91,8 @@ const run = () => {
             })
         })
     }
+
+    setupUploadButton()
 
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
 
@@ -83,7 +107,7 @@ const run = () => {
             textInput.innerText = '';
             // textInput.contentEditable = "false";
 
-            if(stopButton) {
+            if (stopButton) {
                 stopButton.addEventListener('click', (e) => {
                     e.preventDefault();
                     xhr.abort();
@@ -106,7 +130,7 @@ const run = () => {
             xhr.onreadystatechange = function () {
 
                 if (xhr.readyState == 3) {  // streaming
-
+                    // we might receive many tokens at once, so we need to split them and apply them
                     const packages = xhr.response.substring(seenBytes).split('}{');
                     for (let p of packages) {
                         if (!p.startsWith('{')) {
@@ -135,7 +159,7 @@ const run = () => {
                     // this string is prepended (the last one)
                     // '{"content": "", "stop": false}'
                     // the following code gets rid of it if available
-                    const unusedPart = '{"content": "", "stop": false}'
+                    // const unusedPart = '{"content": "", "stop": false}'
                     const a = xhr.response.substring(seenBytes).indexOf('}{')
                     if (a >= 0) {
                         seenBytes += a + 1;
@@ -191,9 +215,6 @@ const run = () => {
             });
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
-
-            // const settingsForm = document.getElementById("settings-form") as HTMLFormElement;
-
             const formData = getFormDataAsJSON('settings-form')
             // console.log(formData)
             formData.input = m
@@ -203,11 +224,12 @@ const run = () => {
             xhr.send(JSON.stringify(formData));
         }
     }
+
     setFocusToInputField(textInput);
 };
 
 
-document.addEventListener('keydown', function(event) {
+document.addEventListener('keydown', function (event) {
     if (event.key === 'Escape') {
         // Remove the hash from the URL to close the element opened via CSS anchors
         window.location.hash = '';

@@ -54,7 +54,11 @@
 <!--                    <strong>Timing: </strong>-->
                 <span id="timing-info"></span>
 <!--                </div>-->
-                <a href="#popupTranslate" id="translate-button">Translate</a>&nbsp;
+                <!--suppress HtmlUnknownAnchorTarget -->
+                <a href="#popupUpload" id="translate-button">
+                    Upload
+                    <span id="upload-plus"></span>
+                </a>&nbsp;
                 <!--suppress HtmlUnknownAnchorTarget -->
                 <a href="#popupSettings" id="settings-button">Settings</a>&nbsp;
 <!--                |-->
@@ -70,7 +74,7 @@
 
 {% include 'common/popups/help.html' %}
 {% include 'common/popups/settings.html' %}
-{% include 'common/popups/translate.html' %}
+{% include 'common/popups/upload.html' %}
 <!--{% include 'common/popups/code.html' %}-->
 <!--{% include 'common/popups/sql.html' %}-->
 
