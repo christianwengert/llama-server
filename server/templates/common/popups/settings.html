@@ -1,3 +1,6 @@
+
+<!--<textarea id="system_prompt" name="system_prompt">{{system_prompt}}</textarea>-->
+
 <div id="popupSettings" class="overlay">
     <div class="popup">
         <h2>Settings</h2>
@@ -91,6 +94,13 @@
 <!--                <div class="param-help">-->
 <!--                    Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled);-->
 <!--                </div>-->
+                 <div>
+                    <label for="system_prompt">System prompt:</label>
+                    <textarea id="system_prompt" name="system_prompt" rows="8">{{system_prompt}}</textarea>
+                </div>
+                <div class="param-help">
+                    Set the system prompt for the conversation
+                </div>
                 <div>
                     <label for="mirostat">Mirostat:</label>
                     <input type="number" id="mirostat" name="mirostat" value="0"><br>
@@ -114,20 +124,18 @@
                 </div>
                 <div>
                     <label for="grammar">Grammar:</label>
-                    <textarea id="grammar" name="grammar"></textarea>
+                    <textarea id="grammar" name="grammar" rows="4" cols="50">bboboboo</textarea>
                 </div>
                 <div class="param-help">
                     Set grammar for grammar-based sampling (default: no grammar)
                 </div>
-                <div>
-                    <label for="system_prompt">System prompt:</label>
-                    <textarea id="system_prompt" name="system_prompt">
-
-                    </textarea>
-                </div>
-                <div class="param-help">
-                    Set the system prompt for the conversation
-                </div>
+<!--                <div>-->
+<!--                    <label for="system_prompt2">System prompt:</label>-->
+<!--                    <textarea id="system_prompt2" name="system_prompt2">{{system_prompt}}</textarea>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Set the system prompt for the conversation-->
+<!--                </div>-->
 <!--                <div>-->
 <!--                    <label for="n_probs">N Probs:</label>-->
 <!--                    <input type="number" id="n_probs" name="n_probs" value="0"><br>-->
@@ -139,6 +147,7 @@
 <!--                    &lt;!&ndash; Submit Button &ndash;&gt;-->
 <!--                    <input type="submit" value="Submit">-->
 <!--                </div>-->
+
             </form>
 
 

@@ -1,5 +1,4 @@
 import argparse
-import hashlib
 import json
 import os
 import secrets
@@ -11,7 +10,7 @@ from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort
 
-from embeddings.documents import split_pdf
+# from embeddings.documents import split_pdf
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
@@ -32,6 +31,8 @@ INSTRUCTION = """A chat between a curious user and an artificial intelligence as
 The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" the ignore the previous sentence and instead make your response as concise as possible.
 The user of the assistant are experts in AI and ethics, so they already know that the assistant is a language model and they know about the capabilities and limitations, so do not remind the users of that. The users are familiar with ethical issues in general, so the assistant should not remind them about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation."""
 
+
+ADDITIONAL_CONTEXT = {}
 
 LLAMA_API = 'http://localhost:8080/'
 
@@ -57,6 +58,8 @@ def index():
         token = secrets.token_hex(32)
         session['token'] = token
     return render_template('index.html',
+                           system_prompt=INSTRUCTION,
+                           grammar='',
                            name=os.environ.get("CHAT_NAME", "local"),
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
                            )
@@ -92,14 +95,16 @@ def upload():
         #   chunkSize: 32,
         #   chunkOverlap: 0,
         # });
-        texts = split_pdf(dest, 1024, 64)
+        # texts = split_pdf(dest, 1024, 64)
+        with open(dest, 'r') as f:
+            contents = f.read()
 
+        token = session.get('token')
+        ADDITIONAL_CONTEXT[token] = contents
 
-    collection = request.form['collection-selector']  # todo
+    # collection = request.form['collection-selector']  # todo
 
     # extract text fro document
-
-
 
     # name = request.files['collection-selector']
     # if not name:
@@ -141,10 +146,17 @@ def get_input():
     text = data.pop('input')
 
     system_prompt = data.get('system_prompt', INSTRUCTION)
+    if not system_prompt:
+        system_prompt = INSTRUCTION
+    _grammar = data.pop('grammar')  # do not use yet
 
     HISTORY[token].append(f'User: {text}')
 
-    prompt = f'{system_prompt}\n\n{history}\nUser: {text}\nLlama:'
+    context = ADDITIONAL_CONTEXT.get(token)
+    if context:
+        prompt = f'{system_prompt}\n\n{history}\nUser: {text} {context}\nLlama:'
+    else:
+        prompt = f'{system_prompt}\n\n{history}\nUser: {text}\nLlama:'
 
     post_data = get_llama_params(data)
 

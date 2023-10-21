@@ -230,13 +230,10 @@ const run = () => {
 
 
 document.addEventListener('keydown', function (event) {
+    // close popups on escape key
     if (event.key === 'Escape') {
         // Remove the hash from the URL to close the element opened via CSS anchors
         window.location.hash = '';
-
-        // Alternatively, manipulate the CSS classes or properties of elements
-        // For example, if you have elements that are opened with a class 'opened':
-        // document.querySelectorAll('.opened').forEach(el => el.classList.remove('opened'));
     }
 });
 
