@@ -153,7 +153,7 @@ def get_input():
     HISTORY[token].append(f'User: {text}')
 
     context = ADDITIONAL_CONTEXT.get(token)
-    if context:
+    if context:   # todo here this is not workong great!
         prompt = f'{system_prompt}\n\n{history}\nUser: {text} {context}\nLlama:'
     else:
         prompt = f'{system_prompt}\n\n{history}\nUser: {text}\nLlama:'
@@ -161,12 +161,14 @@ def get_input():
     post_data = get_llama_params(data)
 
     post_data['prompt'] = prompt
+    post_data.pop('system_prompt')
 
     def generate():
         data = requests.request(method="POST",
                                 url=urllib.parse.urljoin(args.llama_api, "/completion"),
                                 data=json.dumps(post_data),
                                 stream=True)
+
         responses = []
         for i, line in enumerate(data.iter_lines()):
             if line:
@@ -191,7 +193,7 @@ def get_llama_params(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
     default_params = {
         'stream': True,
         'n_predict': 2048,
-        'temperature': 0.8,
+        'temperature': 0.5,
         'stop': ['</s>', 'Llama:', 'User:'],
         'repeat_last_n': 256,
         'repeat_penalty': 1.18,
