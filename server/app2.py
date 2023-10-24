@@ -3,14 +3,11 @@ import json
 import os
 import secrets
 import tempfile
-# import tempfile
 import urllib
 from typing import Dict, Any
-
 import requests
 from flask import Flask, render_template, request, session, Response, abort
 
-# from embeddings.documents import split_pdf
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
@@ -21,20 +18,17 @@ app.config.update(
 )
 app.config["SESSION_PERMANENT"] = True
 app.config["PERMANENT_SESSION_LIFETIME"] = 30 * 24 * 60 * 60  # 30 days
+app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
+
 
 HISTORY = {}
+ADDITIONAL_CONTEXT = {}
+LLAMA_API = 'http://localhost:8080/'
 
-
-app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 
 INSTRUCTION = """A chat between a curious user and an artificial intelligence assistant. The user is a cryptographer and expert programmer. His favorite programming language is python but is also versed in many other programming languages.
 The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" the ignore the previous sentence and instead make your response as concise as possible.
 The user of the assistant are experts in AI and ethics, so they already know that the assistant is a language model and they know about the capabilities and limitations, so do not remind the users of that. The users are familiar with ethical issues in general, so the assistant should not remind them about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation."""
-
-
-ADDITIONAL_CONTEXT = {}
-
-LLAMA_API = 'http://localhost:8080/'
 
 
 parser = argparse.ArgumentParser(description="An example of using server.cpp with a similar API to OAI. It must be used together with server.cpp.")
@@ -191,24 +185,28 @@ def get_input():
 
 def get_llama_params(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
     default_params = {
-        'stream': True,
-        'n_predict': 2048,
-        'temperature': 0.5,
-        'stop': ['</s>', 'Llama:', 'User:'],
-        'repeat_last_n': 256,
-        'repeat_penalty': 1.18,
-        'top_k': 40,
-        'top_p': 0.5,
-        'tfs_z': 1,
-        'typical_p': 1,
-        'presence_penalty': 0,
+        'cache_prompt': True,
         'frequency_penalty': 0,
+        'grammar': '',
+        'image_data': [],
         'mirostat': 0,
         'mirostat_tau': 5,
         'mirostat_eta': 0.1,
-        'grammar': '',
+        'n_predict': 2048,
         'n_probs': 0,
+        'presence_penalty': 0,
+        'repeat_last_n': 256,
+        'repeat_penalty': 1.18,
+        'stop': ['</s>', 'Llama:', 'User:'],
+        'stream': True,
+        'temperature': 0.7,
+        'tfs_z': 1,
+        'top_k': 40,
+        'top_p': 0.5,
+        'typical_p': 1,
     }
+
+    # 'slot_id': 0 or 1
     default_params.update(parames_from_post)
     return default_params
 
