@@ -49901,6 +49901,7 @@
           }
         ).then(() => {
           console.log("upload done");
+          document.location.hash = "";
         });
       });
     }
@@ -49967,7 +49968,6 @@
             seenBytes = xhr.responseText.length;
           }
           if (xhr.readyState == 4) {
-            const unusedPart = '{"content": "", "stop": false}';
             const a = xhr.response.substring(seenBytes).indexOf("}{");
             if (a >= 0) {
               seenBytes += a + 1;

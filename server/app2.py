@@ -4,10 +4,10 @@ import os
 import secrets
 import tempfile
 import urllib
+from functools import wraps
 from typing import Dict, Any
 import requests
-from flask import Flask, render_template, request, session, Response, abort
-
+from flask import Flask, render_template, request, session, Response, abort, redirect, url_for
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
@@ -45,7 +45,33 @@ parser.add_argument("--port", type=int, help="Set the port to listen.(default: 8
 args = parser.parse_args()
 
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'username' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        if username:
+            session['username'] = username
+            return redirect(url_for('index'))
+    return '''
+    <form method="post">
+        <label>Username:</label>
+        <input type="text" name="username">
+        <button type="submit">Login</button>
+    </form>
+    '''  # todo: make a site
+
+
 @app.route("/")
+@login_required
 def index():
     token = session.get('token', None)
     if token is None:
@@ -128,13 +154,30 @@ def upload():
     return "OK"  # redirect done in JS
 
 
+@app.route('/embeddings', methods=["POST"])
+def embeddings():
+    data = request.get_json()
+    if 'content' not in data:
+        abort(400)
+    if len(data) > 1:
+        abort(400)
+    return get_embeddings(data)
+
+
+def get_embeddings(data):
+    data = requests.request(method="POST",
+                            url=urllib.parse.urljoin(args.llama_api, "/embedding"),
+                            data=json.dumps(data),
+                            )
+    data_json = data.json()
+    return data_json
+
+
 @app.route('/', methods=["POST"])
 def get_input():
     token = session.get('token', None)
     if token not in HISTORY:
         HISTORY[token] = []
-
-    history = '\n'.join(HISTORY[token])
 
     data = request.get_json()  # todo remove 'model' from data and add other params
     text = data.pop('input')
@@ -142,15 +185,20 @@ def get_input():
     system_prompt = data.get('system_prompt', INSTRUCTION)
     if not system_prompt:
         system_prompt = INSTRUCTION
-    _grammar = data.pop('grammar')  # do not use yet
+    _grammar = data.pop('grammar')  # todo: not ready yet
 
-    HISTORY[token].append(f'User: {text}')
+    assistant = 'Llama'
+    user = 'User'
 
     context = ADDITIONAL_CONTEXT.get(token)
     if context:   # todo here this is not workong great!
-        prompt = f'{system_prompt}\n\n{history}\nUser: {text} {context}\nLlama:'
-    else:
-        prompt = f'{system_prompt}\n\n{history}\nUser: {text}\nLlama:'
+        context = context.strip()
+        HISTORY[token].append(f'{user}: This is the context: {context}')
+        HISTORY[token].append(f'{assistant}: OK')
+        ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
+
+    history = '\n'.join(HISTORY[token])
+    prompt = f'{system_prompt}\n\n{history}\nUser: {text}\n{assistant}:'
 
     post_data = get_llama_params(data)
 
@@ -169,7 +217,7 @@ def get_input():
                 decoded_line = line.decode('utf-8')
                 response = json.loads(decoded_line[6:])
 
-                if response["stop"]:
+                if response.get("stop"):
                     # session['history'].append(responses)
                     pass
                 else:
@@ -177,7 +225,8 @@ def get_input():
 
                 yield json.dumps(response)
 
-        output = "".join([json.loads(a)['content'] for a in responses]).strip()
+        output = "".join([json.loads(a)['content'] for a in responses if 'embedding' not in a]).strip()
+        HISTORY[token].append(f'User: {text}')
         HISTORY[token].append(f'Llama: {output}')
 
     return Response(generate(), mimetype='text/event-stream')

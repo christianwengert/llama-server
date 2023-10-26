@@ -71,6 +71,7 @@ const setupUploadButton = () => {
                 }).then(()=> {
                     // window.location.href = '/embeddings/' + name;
                     console.log('upload done')
+                    document.location.hash = ''
             });
 
         })
