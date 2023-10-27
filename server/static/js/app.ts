@@ -47,9 +47,11 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
 
 
 const setFocusToInputField = (textInput: HTMLDivElement) => {
-    setTimeout(() => {
-        textInput.focus()
-    }, 200)
+    if(textInput) {
+        setTimeout(() => {
+            textInput.focus()
+        }, 200)
+    }
 };
 
 
@@ -82,7 +84,9 @@ const run = () => {
 
     const chat = document.getElementById('chat')!;
     const stopButton = document.getElementById('stop-generating')! as HTMLButtonElement;
-    stopButton.disabled = true;
+    if(stopButton) {
+        stopButton.disabled = true;
+    }
     const resetButton = document.getElementById('reset-button') as HTMLElement;
     if (resetButton) {
         resetButton.addEventListener('click', (e) => {
@@ -96,8 +100,9 @@ const run = () => {
     setupUploadButton()
 
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
-
-    textInput.addEventListener('keypress', handleInput)
+    if(textInput) {
+        textInput.addEventListener('keypress', handleInput)
+    }
 
     function handleInput(e: KeyboardEvent) {
         if (e.key === 'Enter' && e.shiftKey === false) {
@@ -168,9 +173,13 @@ const run = () => {
 
                     const data = xhr.response.substring(seenBytes);
                     const timings = JSON.parse(data).timings
+                    let model = JSON.parse(data).model
+                    if(model) {
+                        model = model.split('/').slice(-1);
+                    }
 
                     const timing = document.getElementById('timing-info')! as HTMLSpanElement;
-                    timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token)`
+                    timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `
 
                     textInput.contentEditable = "true";
                     stopButton.disabled = true;

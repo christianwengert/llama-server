@@ -216,6 +216,7 @@ input, textarea, select {
     border: none;
     position: absolute;
     bottom: 10px;
+    cursor: pointer;
     /*display: none !important;*/
 }
 
@@ -231,6 +232,28 @@ button:disabled {
 /*    outline: none;*/
 /*}*/
 
+
+#login-form {
+    margin: auto;
+}
+#login-form > input {
+    text-align: left;
+}
+#login-form-outer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    -webkit-align-items: center;
+    /*border: 1px solid rebeccapurple;*/
+}
+
+#timing-info {
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    width: calc(100% - 200px)
+}
 
 .loading {
     width: 20px;
@@ -305,16 +328,19 @@ a:visited {
 #settings-button {
     margin-left: auto;
 }
-#reset-button {
+
+
+.header-button {
+    margin-left: 12px;
     font-weight: normal;
     padding: 3px;
     font-size: smaller;
     opacity: 0.5;
 }
-#reset-button:hover {
+.header-button:hover {
     opacity: 1.0;
 }
-#reset-button > img {
+.header-button > img {
  padding-top: 4px;
 }
 
@@ -328,10 +354,12 @@ a:visited {
   /*transition: opacity 500ms;*/
   visibility: hidden;
   opacity: 0;
+    z-index: 999;
 }
 .overlay:target {
   visibility: visible;
   opacity: 1;
+    z-index: 998;
 }
 .popup-form > div {
     width: 100%;

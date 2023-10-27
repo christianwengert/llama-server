@@ -49882,9 +49882,11 @@
     return ident;
   };
   var setFocusToInputField = (textInput) => {
-    setTimeout(() => {
-      textInput.focus();
-    }, 200);
+    if (textInput) {
+      setTimeout(() => {
+        textInput.focus();
+      }, 200);
+    }
   };
   var setupUploadButton = () => {
     const uploadButton = document.getElementById("upload-button");
@@ -49909,7 +49911,9 @@
   var run = () => {
     const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
-    stopButton.disabled = true;
+    if (stopButton) {
+      stopButton.disabled = true;
+    }
     const resetButton = document.getElementById("reset-button");
     if (resetButton) {
       resetButton.addEventListener("click", (e) => {
@@ -49921,7 +49925,9 @@
     }
     setupUploadButton();
     const textInput = document.getElementById("input-box");
-    textInput.addEventListener("keypress", handleInput);
+    if (textInput) {
+      textInput.addEventListener("keypress", handleInput);
+    }
     function handleInput(e) {
       if (e.key === "Enter" && e.shiftKey === false) {
         e.preventDefault();
@@ -49974,8 +49980,12 @@
             }
             const data = xhr.response.substring(seenBytes);
             const timings = JSON.parse(data).timings;
+            let model = JSON.parse(data).model;
+            if (model) {
+              model = model.split("/").slice(-1);
+            }
             const timing = document.getElementById("timing-info");
-            timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token)`;
+            timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `;
             textInput.contentEditable = "true";
             stopButton.disabled = true;
             const pattern = /```([a-z]+)? ?([^`]*)```/g;

@@ -1,10 +1,21 @@
 <div id="popupUpload" class="overlay">
     <div class="popup">
-        <h2>Upload files</h2>
+        <h2>Add context</h2>
         <a class="close" href="#">&times;</a>
         <div class="scroll-content">
-            <form id="upload-form" class="popup-form">
+            <div>
+                <p>
+                    You can add context to the current prompt either by just adding a file (must be shorter than ~1500
+                    words).
+                </p>
 
+                <p>
+                    If you want to add several documents or larger files or being able to reuse an uploaded file, you
+                    can add it to a collection. TODO More help
+                </p>
+            </div>
+            <br>
+            <form id="upload-form" class="popup-form">
                 <div>
                     <label for="file">File</label>
                     <input id="file" name="file" type="file" required>

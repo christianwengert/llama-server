@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="stylesheet" href="/static/js/app.css">
+    <link rel="stylesheet" href='/static/main.css'/>
+    <script type="module" src="/static/js/app.js"></script>
+    <title>{{name}}GPT</title>
+</head>
+<body>
+
+<div id="header">
+    <div class="header-inner"><a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a></div>
+    <div class="header-inner">
+        {% block control_top_right %}
+        {% endblock control_top_right %}
+    </div>
+</div>
+
+<div class="page">
+<!--    <div class="sidebar">-->
+<!--        {% block sidebar %}-->
+<!--        {% endblock sidebar %}-->
+<!--    </div>-->
+    <div class="container">
+
+        {% block content %}
+        {% endblock content %}
+    </div>
+</div>
+
+
+
+<dialog id="wait"></dialog>
+
+
+</body>
+</html>

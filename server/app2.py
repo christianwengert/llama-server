@@ -8,6 +8,8 @@ from functools import wraps
 from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for
+from flask_session import Session
+
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
@@ -16,9 +18,11 @@ app.config.update(
     SESSION_COOKIE_HTTPONLY=False,
     SESSION_COOKIE_SAMESITE='Strict',
 )
-app.config["SESSION_PERMANENT"] = True
+app.config['SESSION_TYPE'] = 'filesystem'  # Filesystem-based sessions
+app.config['SESSION_PERMANENT'] = True  # Persist sessions across restarts
 app.config["PERMANENT_SESSION_LIFETIME"] = 30 * 24 * 60 * 60  # 30 days
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
+Session(app)
 
 
 HISTORY = {}
@@ -41,7 +45,6 @@ parser.add_argument("--llama-api", type=str, help="Set the address of server.cpp
 parser.add_argument("--api-key", type=str, help="Set the api key to allow only few user(default: NULL)", default="")
 parser.add_argument("--host", type=str, help="Set the ip address to listen.(default: 127.0.0.1)", default='127.0.0.1')
 parser.add_argument("--port", type=int, help="Set the port to listen.(default: 8081)", default=8081)
-
 args = parser.parse_args()
 
 
@@ -54,6 +57,12 @@ def login_required(f):
     return decorated_function
 
 
+@app.route('/logout', methods=['GET'])
+def logout():
+    session.pop('username')
+    return redirect(url_for('login'))
+
+
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -61,13 +70,10 @@ def login():
         if username:
             session['username'] = username
             return redirect(url_for('index'))
-    return '''
-    <form method="post">
-        <label>Username:</label>
-        <input type="text" name="username">
-        <button type="submit">Login</button>
-    </form>
-    '''  # todo: make a site
+
+    return render_template('login.html',
+                           name=os.environ.get("CHAT_NAME", "local")
+                           )
 
 
 @app.route("/")
@@ -191,7 +197,7 @@ def get_input():
     user = 'User'
 
     context = ADDITIONAL_CONTEXT.get(token)
-    if context:   # todo here this is not workong great!
+    if context:
         context = context.strip()
         HISTORY[token].append(f'{user}: This is the context: {context}')
         HISTORY[token].append(f'{assistant}: OK')

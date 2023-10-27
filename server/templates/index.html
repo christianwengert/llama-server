@@ -1,27 +1,21 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <link rel="stylesheet" href="/static/js/app.css">
-    <link rel="stylesheet" href='/static/main.css'/>
-    <script type="module" src="/static/js/app.js"></script>
-    <title>{{name}}GPT</title>
-</head>
-<body>
+{% extends "base.html" %}
 
-<div id="header">
-    <div class="header-inner"><a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a></div>
-    <div class="header-inner">
+{% block control_top_right %}
+    <a class="header-button" href="#" id="reset-button">Reset Model <img
+            src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjwhRE9DVFlQRSBzdmcgIFBVQkxJQyAnLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4nICAnaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkJz48c3ZnIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDQxIDM0IiBoZWlnaHQ9IjM0cHgiIGlkPSJMYXllcl8xIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA0MSAzNCIgd2lkdGg9IjQxcHgiIHhtbDpzcGFjZT0icHJlc2VydmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPjxwYXRoIGQ9Ik0zMy45NDksMTZDMzMuNDI5LDcuMDgsMjYuMDUxLDAsMTcsMEM3LjYxMSwwLDAsNy42MTEsMCwxN3M3LjYxMSwxNywxNywxN3YtNmMtNi4wNzUsMC0xMS00LjkyNS0xMS0xMSAgUzEwLjkyNSw2LDE3LDZjNS43MzcsMCwxMC40NDMsNC4zOTQsMTAuOTQ5LDEwaC02Ljg0OUwzMSwyNS44OTlMNDAuODk5LDE2SDMzLjk0OXoiIGZpbGw9IiMyMzFGMjAiLz48L3N2Zz4="
+            alt="refresh" width="16" height="16"></a>
+    <a class="header-button" href="/logout" id="logout-button">Logout</a>
+{% endblock control_top_right %}
 
-        <a href="#" id="reset-button">Reset Model <img
-                src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjwhRE9DVFlQRSBzdmcgIFBVQkxJQyAnLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4nICAnaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkJz48c3ZnIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDQxIDM0IiBoZWlnaHQ9IjM0cHgiIGlkPSJMYXllcl8xIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA0MSAzNCIgd2lkdGg9IjQxcHgiIHhtbDpzcGFjZT0icHJlc2VydmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPjxwYXRoIGQ9Ik0zMy45NDksMTZDMzMuNDI5LDcuMDgsMjYuMDUxLDAsMTcsMEM3LjYxMSwwLDAsNy42MTEsMCwxN3M3LjYxMSwxNywxNywxN3YtNmMtNi4wNzUsMC0xMS00LjkyNS0xMS0xMSAgUzEwLjkyNSw2LDE3LDZjNS43MzcsMCwxMC40NDMsNC4zOTQsMTAuOTQ5LDEwaC02Ljg0OUwzMSwyNS44OTlMNDAuODk5LDE2SDMzLjk0OXoiIGZpbGw9IiMyMzFGMjAiLz48L3N2Zz4="
-                alt="refresh" width="16" height="16"></a>
+
+{% block sidebar %}
+    <div id="sidebar">
+        hkjsdhjh
     </div>
+{% endblock sidebar %}
 
-</div>
-<div class="container">
-    <div id="extra-content">
-        {{ extra_content|safe }}
-    </div>
+
+{% block content %}
     <div id="chat">
 
     </div>
@@ -52,13 +46,14 @@
 <!--                <a href="/translate">Translate</a>-->
 <!--                <div>-->
 <!--                    <strong>Timing: </strong>-->
-                <span id="timing-info"></span>
+
 <!--                </div>-->
                 <!--suppress HtmlUnknownAnchorTarget -->
                 <a href="#popupUpload" id="translate-button">
                     Upload
                     <span id="upload-plus"></span>
                 </a>&nbsp;
+                <span id="timing-info"></span>
                 <!--suppress HtmlUnknownAnchorTarget -->
                 <a href="#popupSettings" id="settings-button">Settings</a>&nbsp;
 <!--                |-->
@@ -70,17 +65,9 @@
 
 
     </div>
-</div>
+{% endblock content %}
+
 
 {% include 'common/popups/help.html' %}
 {% include 'common/popups/settings.html' %}
 {% include 'common/popups/upload.html' %}
-<!--{% include 'common/popups/code.html' %}-->
-<!--{% include 'common/popups/sql.html' %}-->
-
-
-<dialog id="wait"></dialog>
-
-
-</body>
-</html>
