@@ -1,3 +1,6 @@
+:root {
+  --sidebar-width: 240px;
+}
 
 * {
     box-sizing: border-box;
@@ -29,7 +32,7 @@ body {
 
 .inner-message {
     margin: auto;
-    width: 80vw;
+    width: 80%;
     white-space: pre-wrap;
     min-height: 12px;
 }
@@ -108,7 +111,7 @@ pre code {
     line-height: 48px;
     display: flex;
     margin: auto;
-    width: 80vw;
+    width: 80%;
     background-color: white;
 }
 #logo {
@@ -145,12 +148,12 @@ pre code {
     position: absolute;
     bottom: 0;
     margin-bottom: 48px;
-    width: 100%;
+    width: calc(100% - var(--sidebar-width));
     background-color: white;
 }
 
 #extra-content {
-    width: 80vw;
+    width: 80%;
     margin: auto;
 }
 
@@ -159,8 +162,9 @@ pre code {
     bottom: 96px;
     font-size: 0.8rem;
     color: rgb(52, 53, 65);
-    width: 80%;
-    margin-left: 10%;
+    width: calc(100% - var(--sidebar-width));
+    margin-left: 24px;
+    /*margin: auto;*/
 }
 
 
@@ -176,7 +180,7 @@ input, textarea, select {
 
 .input-box {
     margin: auto;
-    width: 80vw;
+    width: 80%;
     min-height: 32px;
     line-height: 32px !important;
     /*height: 42px !important;*/
@@ -252,7 +256,7 @@ button:disabled {
     overflow: hidden;
     white-space: nowrap;
     text-overflow: ellipsis;
-    width: calc(100% - 200px)
+    width: calc(100% - var(--sidebar-width))
 }
 
 .loading {
@@ -319,7 +323,7 @@ a:visited {
 }
 .footer-buttons {
     margin: auto;
-    width: 80vw;
+    width: 80%;
     display: flex;
     /*justify-content: space-between;*/
     align-items: flex-start;
@@ -327,6 +331,64 @@ a:visited {
 
 #settings-button {
     margin-left: auto;
+}
+
+.sidebar {
+    padding: 10px;
+    background-color: rgb(32, 33, 35);
+    color: rgb(183, 183, 193);
+    width: var(--sidebar-width);
+    height: 100vh;
+    position: fixed;
+    overflow-y: scroll;
+    z-index: 2;
+    display: flex;
+    flex-direction: column;
+    /*opacity: 0.5;*/
+}
+.sidebar div {
+    margin: 8px;
+}
+.sidebar-button {
+    border: 1px solid rgb(183, 183, 193);
+    border-radius: 5px;
+    background-color: unset;
+    color: rgb(183, 183, 193);
+    padding: 8px;
+    font-size: 1rem;
+    cursor: pointer;
+}
+#reset-button{
+    width: 80%;
+    margin: auto;
+}
+
+#sidebar-username {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#logout-button {
+    margin-left: auto !important;
+    margin-right: 0 !important;
+}
+#logout-button:visited {
+    color: unset;
+}
+
+.sidebar-footer {
+    margin-top: auto !important;
+    display: flex;
+}
+.container {
+  margin-left: auto;  /* Default margin */
+}
+
+.sidebar + .container {
+    margin-left: var(--sidebar-width);  /* Margin when sidebar is present */
+    margin-right: 0;
+    /*width: calc(80% - 200px);*/
 }
 
 

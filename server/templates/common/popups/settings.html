@@ -94,7 +94,21 @@
 <!--                <div class="param-help">-->
 <!--                    Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled);-->
 <!--                </div>-->
-                 <div>
+                <div>
+                    <label for="assistant_name">Assistant name:</label>
+                    <input type="text" id="assistant_name" name="assistant_name" value="Llama"><br>
+                </div>
+                <div class="param-help">
+                    The bot's name is necessary for each customer to generate the prompt
+                </div>
+                <div>
+                    <label for="anti_prompt">User name (Anti prompt):</label>
+                    <input type="text" id="anti_prompt" name="anti_prompt" value="User"><br>
+                </div>
+                <div class="param-help">
+                    Specify the word you want to use to instruct the model to stop
+                </div>
+                <div>
                     <label for="system_prompt">System prompt:</label>
                     <textarea id="system_prompt" name="system_prompt" rows="8">{{system_prompt}}</textarea>
                 </div>

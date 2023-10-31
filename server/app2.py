@@ -86,6 +86,7 @@ def index():
     return render_template('index.html',
                            system_prompt=INSTRUCTION,
                            grammar='',
+                           username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
                            )
@@ -193,8 +194,11 @@ def get_input():
         system_prompt = INSTRUCTION
     _grammar = data.pop('grammar')  # todo: not ready yet
 
-    assistant = 'Llama'
-    user = 'User'
+    assistant = data.pop('assistant_name', 'Llama')
+    user = data.pop('anti_prompt', 'User')
+    # if True:
+    #     assistant = '### Response'
+    #     user = '### Instruction'
 
     context = ADDITIONAL_CONTEXT.get(token)
     if context:
@@ -204,7 +208,11 @@ def get_input():
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
 
     history = '\n'.join(HISTORY[token])
-    prompt = f'{system_prompt}\n\n{history}\nUser: {text}\n{assistant}:'
+
+    # "### Instruction:" + prompt + "\n\n### Response:"
+    prompt = f'{system_prompt}\n\n{history}\n{user}: {text}\n{assistant}:'  # for the wizardLM OK, but not for Zephyr
+
+    # prompt = f'{system_prompt}\n\n{history}\n###Instruction: {text}\n\n### Response:'
 
     post_data = get_llama_params(data)
 

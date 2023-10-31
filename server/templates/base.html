@@ -8,20 +8,17 @@
 </head>
 <body>
 
-<div id="header">
-    <div class="header-inner"><a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a></div>
-    <div class="header-inner">
-        {% block control_top_right %}
-        {% endblock control_top_right %}
-    </div>
-</div>
+
 
 <div class="page">
-<!--    <div class="sidebar">-->
-<!--        {% block sidebar %}-->
-<!--        {% endblock sidebar %}-->
-<!--    </div>-->
+
+    {% block sidebar %}
+    {% endblock sidebar %}
+
     <div class="container">
+        <div id="header">
+            <div class="header-inner"><a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a></div>
+        </div>
 
         {% block content %}
         {% endblock content %}

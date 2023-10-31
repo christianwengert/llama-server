@@ -49949,71 +49949,75 @@
         inner.innerHTML = '<div class="loading"></div>';
         scrollToBottom();
         xhr.open("POST", "/");
-        let seenBytes = 0;
+        let buffer = "";
+        let openBraces = 0;
+        let lastProcessedIndex = 0;
         xhr.onreadystatechange = function() {
-          if (xhr.readyState == 3) {
-            const packages = xhr.response.substring(seenBytes).split("}{");
-            for (let p of packages) {
-              if (!p.startsWith("{")) {
-                p = "{" + p + "}";
+          if (xhr.readyState == 3 || xhr.readyState == 4) {
+            const newResponseText = xhr.responseText.substring(lastProcessedIndex);
+            lastProcessedIndex = xhr.responseText.length;
+            buffer += newResponseText;
+            let startPos = 0;
+            for (let i = 0; i < buffer.length; i++) {
+              if (buffer[i] === "{")
+                openBraces++;
+              if (buffer[i] === "}")
+                openBraces--;
+              if (openBraces === 0) {
+                const jsonStr = buffer.substring(startPos, i + 1);
+                const jsonObj = JSON.parse(jsonStr);
+                if (jsonObj.stop) {
+                  const timings = jsonObj.timings;
+                  let model = jsonObj.model;
+                  if (model) {
+                    model = model.split("/").slice(-1);
+                  }
+                  const timing = document.getElementById("timing-info");
+                  timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `;
+                  textInput.contentEditable = "true";
+                  stopButton.disabled = true;
+                  const pattern = /```([a-z]+)? ?([^`]*)```/g;
+                  const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
+                  const intermediate = inner.innerText.replace(pattern, rep);
+                  const pattern2 = /`([^`]*)`/g;
+                  const rep2 = `<code class="inline">$1</code>`;
+                  inner.innerHTML = intermediate.replace(pattern2, rep2);
+                  scrollToBottom();
+                  inner.querySelectorAll("pre code").forEach((block) => {
+                    es_default.highlightElement(block);
+                  });
+                  inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
+                    copyElem.addEventListener("click", (copyEvent) => {
+                      copyEvent.preventDefault();
+                      const target = copyEvent.target;
+                      const t = target.parentElement.nextElementSibling.innerText;
+                      navigator.clipboard.writeText(t).then(() => {
+                      });
+                      target.innerText = "Copied";
+                      target.style.cursor = "auto";
+                      setInterval(() => {
+                        target.innerText = "Copy";
+                        target.style.cursor = "pointer";
+                      }, 3e3);
+                    });
+                  });
+                  textInput.focus();
+                }
+                if (elem && jsonObj.content) {
+                  if (inner.innerText === "") {
+                    jsonObj.content = jsonObj.content.trimStart();
+                  }
+                  inner.innerText += jsonObj.content;
+                }
+                if (inner.querySelector(".loading")) {
+                  inner.innerHTML = "";
+                }
+                buffer = buffer.substring(i + 1);
+                i = -1;
+                startPos = 0;
+                openBraces = 0;
               }
-              let newData;
-              try {
-                newData = JSON.parse(p);
-              } catch (e2) {
-                console.log(e2, p);
-              }
-              if (inner.querySelector(".loading")) {
-                inner.innerHTML = "";
-              }
-              if (seenBytes == 0) {
-                newData.content = newData.content.trimStart();
-              }
-              inner.innerHTML += newData.content;
             }
-            seenBytes = xhr.responseText.length;
-          }
-          if (xhr.readyState == 4) {
-            const a = xhr.response.substring(seenBytes).indexOf("}{");
-            if (a >= 0) {
-              seenBytes += a + 1;
-            }
-            const data = xhr.response.substring(seenBytes);
-            const timings = JSON.parse(data).timings;
-            let model = JSON.parse(data).model;
-            if (model) {
-              model = model.split("/").slice(-1);
-            }
-            const timing = document.getElementById("timing-info");
-            timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `;
-            textInput.contentEditable = "true";
-            stopButton.disabled = true;
-            const pattern = /```([a-z]+)? ?([^`]*)```/g;
-            const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
-            const intermediate = inner.innerText.replace(pattern, rep);
-            const pattern2 = /`([^`]*)`/g;
-            const rep2 = `<code class="inline">$1</code>`;
-            inner.innerHTML = intermediate.replace(pattern2, rep2);
-            scrollToBottom();
-            inner.querySelectorAll("pre code").forEach((block) => {
-              es_default.highlightElement(block);
-            });
-            inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
-              copyElem.addEventListener("click", (copyEvent) => {
-                copyEvent.preventDefault();
-                const target = copyEvent.target;
-                const t = target.parentElement.nextElementSibling.innerText;
-                navigator.clipboard.writeText(t).then(() => {
-                });
-                target.innerText = "Copied";
-                target.style.cursor = "auto";
-                setInterval(() => {
-                  target.innerText = "Copy";
-                  target.style.cursor = "pointer";
-                }, 3e3);
-              });
-            });
-            textInput.focus();
           }
         };
         xhr.addEventListener("error", function(e2) {

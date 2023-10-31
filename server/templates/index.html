@@ -1,16 +1,24 @@
 {% extends "base.html" %}
 
-{% block control_top_right %}
-    <a class="header-button" href="#" id="reset-button">Reset Model <img
-            src="data:image/svg+xml;base64,PD94bWwgdmVyc2lvbj0iMS4wIiA/PjwhRE9DVFlQRSBzdmcgIFBVQkxJQyAnLS8vVzNDLy9EVEQgU1ZHIDEuMS8vRU4nICAnaHR0cDovL3d3dy53My5vcmcvR3JhcGhpY3MvU1ZHLzEuMS9EVEQvc3ZnMTEuZHRkJz48c3ZnIGVuYWJsZS1iYWNrZ3JvdW5kPSJuZXcgMCAwIDQxIDM0IiBoZWlnaHQ9IjM0cHgiIGlkPSJMYXllcl8xIiB2ZXJzaW9uPSIxLjEiIHZpZXdCb3g9IjAgMCA0MSAzNCIgd2lkdGg9IjQxcHgiIHhtbDpzcGFjZT0icHJlc2VydmUiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIgeG1sbnM6eGxpbms9Imh0dHA6Ly93d3cudzMub3JnLzE5OTkveGxpbmsiPjxwYXRoIGQ9Ik0zMy45NDksMTZDMzMuNDI5LDcuMDgsMjYuMDUxLDAsMTcsMEM3LjYxMSwwLDAsNy42MTEsMCwxN3M3LjYxMSwxNywxNywxN3YtNmMtNi4wNzUsMC0xMS00LjkyNS0xMS0xMSAgUzEwLjkyNSw2LDE3LDZjNS43MzcsMCwxMC40NDMsNC4zOTQsMTAuOTQ5LDEwaC02Ljg0OUwzMSwyNS44OTlMNDAuODk5LDE2SDMzLjk0OXoiIGZpbGw9IiMyMzFGMjAiLz48L3N2Zz4="
-            alt="refresh" width="16" height="16"></a>
-    <a class="header-button" href="/logout" id="logout-button">Logout</a>
-{% endblock control_top_right %}
-
-
 {% block sidebar %}
-    <div id="sidebar">
-        hkjsdhjh
+    <div class="sidebar">
+        <div>
+            <button class="sidebar-button" id="reset-button">New Chat</button>
+        </div>
+        <div>
+            More functionality coming here soon
+
+            <ul>
+                <li>History</li>
+                <li>Collections</li>
+            </ul>
+        </div>
+        <div class="sidebar-footer">
+            <div id="sidebar-username">
+                User: {{username}}
+            </div>
+            <a class="sidebar-button" href="/logout" id="logout-button">Logout</a>
+        </div>
     </div>
 {% endblock sidebar %}
 
