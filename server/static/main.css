@@ -162,26 +162,13 @@ pre code {
     bottom: 96px;
     font-size: 0.8rem;
     color: rgb(52, 53, 65);
-    /*width: calc((100vw - var(--sidebar-width)) * 0.8);*/
-    width: 100vw;
-    background-color: rgba(100, 0, 0 ,0.3);
+    width: calc(100% - var(--sidebar-width));
     z-index: 88;
-    left: 0;
-    /*margin-left: var(--sidebar-width);*/
-
-    /*left: calc(var(--sidebar-width));*/
-    /*margin-left: calc();*/
-    /* The width is given w = 100% - sbw */
-    /* the inner width is suppoeszed to be 80% */
-    /* so the margin is half of the difference */
-    /*left: var(--sidebar-width);*/
-    /*margin-left: 0;*/
-    /*margin-left: calc((100vw - ((100vw - var(--sidebar-width)) * 0.8))/2);*/
-    /*margin: auto;*/
 }
 .chat-instruction > div {
-    width: calc(100% - var(--sidebar-width));
+    width: 80%;
     margin: auto;
+    padding-left: 2px;
 }
 
 
@@ -190,9 +177,7 @@ input, textarea, select {
     line-height: 24px;
     border: 1px solid rgb(222, 222, 223);
     border-radius: 4px;
-    /*padding: 4px 8px;*/
     text-align: right;
-    /*box-shadow: 5px 5px 15px 5px rgb(247, 247, 248);;*/
 }
 
 .input-box {
