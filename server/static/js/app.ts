@@ -131,7 +131,6 @@ const run = () => {
                     buffer += newText;
                     lastBufferLength = xhr.responseText.length; // Update our progress
 
-
                     let start = 0, end = 0;
                     let separator = "~~~~";
                     while ((end = buffer.indexOf(separator, start)) !== -1) {
@@ -189,7 +188,10 @@ const run = () => {
                             })
                             textInput.focus()
                             break;
-                        } else if (jsonMessage.content !== undefined) {
+                        } else {
+                            if(inner.innerText === "") {
+                                jsonMessage.content = jsonMessage.content.trim();
+                            }
                             inner.innerText += jsonMessage.content;
                         }
 

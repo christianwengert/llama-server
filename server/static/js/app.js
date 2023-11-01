@@ -49941,8 +49941,6 @@
         scrollToBottom();
         xhr.open("POST", "/");
         let buffer = "";
-        let openBraces = 0;
-        let lastProcessedIndex = 0;
         let lastBufferLength = 0;
         xhr.onprogress = function() {
           const newText = xhr.responseText.substring(lastBufferLength);
@@ -49992,7 +49990,10 @@
               });
               textInput.focus();
               break;
-            } else if (jsonMessage.content !== void 0) {
+            } else {
+              if (inner.innerText === "") {
+                jsonMessage.content = jsonMessage.content.trim();
+              }
               inner.innerText += jsonMessage.content;
             }
           }
