@@ -49914,15 +49914,6 @@
     if (stopButton) {
       stopButton.disabled = true;
     }
-    const resetButton = document.getElementById("reset-button");
-    if (resetButton) {
-      resetButton.addEventListener("click", (e) => {
-        e.preventDefault();
-        fetch("/reset").then(() => {
-          document.location.reload();
-        });
-      });
-    }
     setupUploadButton();
     const textInput = document.getElementById("input-box");
     if (textInput) {
@@ -49952,73 +49943,60 @@
         let buffer = "";
         let openBraces = 0;
         let lastProcessedIndex = 0;
-        xhr.onreadystatechange = function() {
-          if (xhr.readyState == 3 || xhr.readyState == 4) {
-            const newResponseText = xhr.responseText.substring(lastProcessedIndex);
-            lastProcessedIndex = xhr.responseText.length;
-            buffer += newResponseText;
-            let startPos = 0;
-            for (let i = 0; i < buffer.length; i++) {
-              if (buffer[i] === "{")
-                openBraces++;
-              if (buffer[i] === "}")
-                openBraces--;
-              if (openBraces === 0) {
-                const jsonStr = buffer.substring(startPos, i + 1);
-                const jsonObj = JSON.parse(jsonStr);
-                if (jsonObj.stop) {
-                  const timings = jsonObj.timings;
-                  let model = jsonObj.model;
-                  if (model) {
-                    model = model.split("/").slice(-1);
-                  }
-                  const timing = document.getElementById("timing-info");
-                  timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `;
-                  textInput.contentEditable = "true";
-                  stopButton.disabled = true;
-                  const pattern = /```([a-z]+)? ?([^`]*)```/g;
-                  const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
-                  const intermediate = inner.innerText.replace(pattern, rep);
-                  const pattern2 = /`([^`]*)`/g;
-                  const rep2 = `<code class="inline">$1</code>`;
-                  inner.innerHTML = intermediate.replace(pattern2, rep2);
-                  scrollToBottom();
-                  inner.querySelectorAll("pre code").forEach((block) => {
-                    es_default.highlightElement(block);
-                  });
-                  inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
-                    copyElem.addEventListener("click", (copyEvent) => {
-                      copyEvent.preventDefault();
-                      const target = copyEvent.target;
-                      const t = target.parentElement.nextElementSibling.innerText;
-                      navigator.clipboard.writeText(t).then(() => {
-                      });
-                      target.innerText = "Copied";
-                      target.style.cursor = "auto";
-                      setInterval(() => {
-                        target.innerText = "Copy";
-                        target.style.cursor = "pointer";
-                      }, 3e3);
-                    });
-                  });
-                  textInput.focus();
-                }
-                if (elem && jsonObj.content) {
-                  if (inner.innerText === "") {
-                    jsonObj.content = jsonObj.content.trimStart();
-                  }
-                  inner.innerText += jsonObj.content;
-                }
-                if (inner.querySelector(".loading")) {
-                  inner.innerHTML = "";
-                }
-                buffer = buffer.substring(i + 1);
-                i = -1;
-                startPos = 0;
-                openBraces = 0;
+        let lastBufferLength = 0;
+        xhr.onprogress = function() {
+          const newText = xhr.responseText.substring(lastBufferLength);
+          buffer += newText;
+          lastBufferLength = xhr.responseText.length;
+          let start = 0, end = 0;
+          let separator = "~~~~";
+          while ((end = buffer.indexOf(separator, start)) !== -1) {
+            let message = buffer.substring(start, end);
+            start = end + separator.length;
+            let jsonMessage;
+            jsonMessage = JSON.parse(message);
+            if (jsonMessage.stop === true) {
+              const timings = jsonMessage.timings;
+              let model = jsonMessage.model;
+              if (model) {
+                model = model.split("/").slice(-1);
               }
+              const timing = document.getElementById("timing-info");
+              timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `;
+              textInput.contentEditable = "true";
+              stopButton.disabled = true;
+              const pattern = /```([a-z]+)? ?([^`]*)```/g;
+              const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
+              const intermediate = inner.innerText.replace(pattern, rep);
+              const pattern2 = /`([^`]*)`/g;
+              const rep2 = `<code class="inline">$1</code>`;
+              inner.innerHTML = intermediate.replace(pattern2, rep2);
+              scrollToBottom();
+              inner.querySelectorAll("pre code").forEach((block) => {
+                es_default.highlightElement(block);
+              });
+              inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
+                copyElem.addEventListener("click", (copyEvent) => {
+                  copyEvent.preventDefault();
+                  const target = copyEvent.target;
+                  const t = target.parentElement.nextElementSibling.innerText;
+                  navigator.clipboard.writeText(t).then(() => {
+                  });
+                  target.innerText = "Copied";
+                  target.style.cursor = "auto";
+                  setInterval(() => {
+                    target.innerText = "Copy";
+                    target.style.cursor = "pointer";
+                  }, 3e3);
+                });
+              });
+              textInput.focus();
+              break;
+            } else if (jsonMessage.content !== void 0) {
+              inner.innerText += jsonMessage.content;
             }
           }
+          buffer = buffer.substring(start);
         };
         xhr.addEventListener("error", function(e2) {
           console.log("error: " + e2);

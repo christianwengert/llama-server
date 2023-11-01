@@ -5,9 +5,11 @@ import secrets
 import tempfile
 import urllib
 from functools import wraps
+from json import JSONDecodeError
 from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for
+from flask_caching.backends import FileSystemCache
 from flask_session import Session
 
 
@@ -25,8 +27,10 @@ app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 Session(app)
 
 
-HISTORY = {}
-ADDITIONAL_CONTEXT = {}
+CACHE_DIR = 'cache'
+
+
+ADDITIONAL_CONTEXT = {}  # this can be done as global variable
 LLAMA_API = 'http://localhost:8080/'
 
 
@@ -76,13 +80,10 @@ def login():
                            )
 
 
-@app.route("/")
-@login_required
-def index():
-    token = session.get('token', None)
-    if token is None:
-        token = secrets.token_hex(32)
-        session['token'] = token
+@app.route("/c/<path:token>")
+def c(token):
+    session['token'] = token
+
     return render_template('index.html',
                            system_prompt=INSTRUCTION,
                            grammar='',
@@ -94,13 +95,12 @@ def index():
                            )
 
 
-@app.route('/reset')
-def reset():
-    token = session.get('token', None)
-    if token is not None:
-        session['token'] = None
-        HISTORY[token] = []
-    return ""
+@app.route("/")
+@login_required
+def index():
+    # Just create a new session
+    new_url = secrets.token_hex(16)
+    return redirect(url_for('c', token=new_url))
 
 
 @app.route('/upload', methods=["POST"])
@@ -185,8 +185,16 @@ def get_embeddings(data):
 @app.route('/', methods=["POST"])
 def get_input():
     token = session.get('token', None)
-    if token not in HISTORY:
-        HISTORY[token] = []
+    username = session.get('username')
+
+    history_key = f'{username}-{token}-history'
+    cache_key = f'{CACHE_DIR}/{history_key}.json'
+    # load cache file
+    try:
+        with open(cache_key, 'r') as f:
+            hist = json.load(f)
+    except (FileNotFoundError, JSONDecodeError):
+        hist = {"items": []}
 
     data = request.get_json()  # todo remove 'model' from data and add other params
     text = data.pop('input')
@@ -205,11 +213,12 @@ def get_input():
     context = ADDITIONAL_CONTEXT.get(token)
     if context:
         context = context.strip()
-        HISTORY[token].append(f'{user}: This is the context: {context}')
-        HISTORY[token].append(f'{assistant}: OK')
+
+        hist['items'].append(f'{user}: This is the context: {context}')
+        hist['items'].append(f'{assistant}: OK')
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
 
-    history = '\n'.join(HISTORY[token])
+    history = '\n'.join(hist['items'])
 
     # "### Instruction:" + prompt + "\n\n### Response:"
     # user = 'USER'
@@ -234,19 +243,22 @@ def get_input():
         for i, line in enumerate(data.iter_lines()):
             if line:
                 decoded_line = line.decode('utf-8')
-                response = json.loads(decoded_line[6:])
+                response = decoded_line[6:]
 
-                if response.get("stop"):
+                # if response.get("stop"):
                     # session['history'].append(responses)
-                    pass
-                else:
-                    responses.append(json.dumps(response))
+                    # pass
+                # else:
+                responses.append(response)
 
-                yield json.dumps(response)
+                yield response + '~~~~'
 
         output = "".join([json.loads(a)['content'] for a in responses if 'embedding' not in a]).strip()
-        HISTORY[token].append(f'User: {text}')
-        HISTORY[token].append(f'Llama: {output}')
+        hist['items'].append(f'User: {text}')
+        hist['items'].append(f'Llama: {output}')
+        # cache.set(history_key, json.dumps(hist))
+        with open(cache_key, 'w') as f:
+            json.dump(hist, f)
 
     return Response(generate(), mimetype='text/event-stream')
 
