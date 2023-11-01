@@ -86,6 +86,8 @@ def index():
     return render_template('index.html',
                            system_prompt=INSTRUCTION,
                            grammar='',
+                           assistant_name='Llama',
+                           anti_prompt='User',
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
@@ -210,7 +212,10 @@ def get_input():
     history = '\n'.join(HISTORY[token])
 
     # "### Instruction:" + prompt + "\n\n### Response:"
-    prompt = f'{system_prompt}\n\n{history}\n{user}: {text}\n{assistant}:'  # for the wizardLM OK, but not for Zephyr
+    # user = 'USER'
+    # assistant = 'ASSISTANT'
+    system = "system_prompt"
+    prompt = f'{system}: {system_prompt}\n\n{history}\n{user}: {text}\n{assistant}:'  # for the wizardLM OK, but not for Zephyr
 
     # prompt = f'{system_prompt}\n\n{history}\n###Instruction: {text}\n\n### Response:'
 
