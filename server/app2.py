@@ -92,7 +92,8 @@ def history():
     for d in os.listdir(CACHE_DIR):
         if d.startswith(username):
             print(d)
-    a = 2
+    _a = 2
+
 
 @app.route("/c/<path:token>")
 def c(token):
