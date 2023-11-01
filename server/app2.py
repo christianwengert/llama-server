@@ -9,8 +9,10 @@ from json import JSONDecodeError
 from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for
-from flask_caching.backends import FileSystemCache
 from flask_session import Session
+
+
+SEPARATOR = '~~~~'
 
 
 app = Flask(__name__)
@@ -79,6 +81,18 @@ def login():
                            name=os.environ.get("CHAT_NAME", "local")
                            )
 
+
+@app.route('/history')
+def history():
+    # token = session.get('token', None)
+    username = session.get('username')
+
+    # history_key = f'{username}-{token}-history'
+    # cache_key = f'{CACHE_DIR}/{history_key}.json'
+    for d in os.listdir(CACHE_DIR):
+        if d.startswith(username):
+            print(d)
+    a = 2
 
 @app.route("/c/<path:token>")
 def c(token):
@@ -244,19 +258,12 @@ def get_input():
             if line:
                 decoded_line = line.decode('utf-8')
                 response = decoded_line[6:]
-
-                # if response.get("stop"):
-                    # session['history'].append(responses)
-                    # pass
-                # else:
                 responses.append(response)
-
-                yield response + '~~~~'
+                yield response + SEPARATOR
 
         output = "".join([json.loads(a)['content'] for a in responses if 'embedding' not in a]).strip()
         hist['items'].append(f'User: {text}')
         hist['items'].append(f'Llama: {output}')
-        # cache.set(history_key, json.dumps(hist))
         with open(cache_key, 'w') as f:
             json.dump(hist, f)
 
