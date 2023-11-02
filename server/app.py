@@ -84,12 +84,11 @@ def login():
 
 
 @login_required
-@app.route("/delete/history/<path:item>")
-def remove(item):
-    token = session.get('token', None)
+@app.route("/delete/history/<path:token>")
+def remove(token):
     username = session.get('username')
     hashed_username = hash_username(username)
-    history_key = f'{hashed_username}-{item}-history'
+    history_key = f'{hashed_username}-{token}-history'
     cache_key = f'{CACHE_DIR}/{history_key}.json'
     try:
         os.remove(cache_key)
