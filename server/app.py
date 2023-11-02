@@ -86,6 +86,9 @@ def login():
 @login_required
 @app.route("/delete/history/<path:token>")
 def remove(token):
+    """
+    Deletes a conversation from the history
+    """
     username = session.get('username')
     hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
@@ -96,10 +99,14 @@ def remove(token):
         abort(400)
     return jsonify({})
 
+
 @login_required
 @app.route('/history')
 @app.route('/history/<path:item>')
 def history(item=None):
+    """
+    Returns a list of conversations from the history
+    """
     username = hash_username(session.get('username'))
 
     history_items = []
@@ -221,6 +228,7 @@ def get_embeddings(data):
                             )
     data_json = data.json()
     return data_json
+
 
 @login_required
 @app.route('/', methods=["POST"])
