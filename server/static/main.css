@@ -407,6 +407,16 @@ a:visited {
 .header-button > img {
  padding-top: 4px;
 }
+#history {
+    padding-left: 8px;
+    list-style-type: none;
+    border-bottom: 1px solid white;
+    padding-top: 32px;
+    padding-bottom: 32px;
+}
+#history a {
+    color: rgb(183, 183, 193);;
+}
 
 .overlay {
   position: fixed;

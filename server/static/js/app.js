@@ -49908,6 +49908,39 @@
       });
     }
   };
+  var loadHistory = () => {
+    const historyDiv = document.getElementById("history");
+    historyDiv.innerHTML = "";
+    const setHistory = (items) => {
+      items.forEach((item) => {
+        const liElement = document.createElement("li");
+        const aElement = document.createElement("a");
+        aElement.href = item.url;
+        aElement.textContent = item.title;
+        liElement.appendChild(aElement);
+        historyDiv.appendChild(liElement);
+        if (document.location.pathname.indexOf(item.url) >= 0) {
+          renderHistoryMessages(item);
+        }
+      });
+    };
+    const chat = document.getElementById("chat");
+    const renderHistoryMessages = (item) => {
+      if (chat.children.length > 0) {
+        return;
+      }
+      item.items.forEach((msg, index2) => {
+        const direction = index2 % 2 === 0 ? "me" : "them";
+        renderMessage(msg.content, direction, chat);
+      });
+    };
+    const index = document.location.pathname.indexOf("/c/");
+    let url = "/history";
+    if (index >= 0) {
+      url += "/" + document.location.pathname.slice(index + 3);
+    }
+    fetch(url).then((r) => r.json()).then(setHistory);
+  };
   var run = () => {
     const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
@@ -50002,6 +50035,9 @@
         xhr.addEventListener("error", function(e2) {
           console.log("error: " + e2);
         });
+        xhr.onload = function() {
+          loadHistory();
+        };
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         const formData = getFormDataAsJSON("settings-form");
         formData.input = m;
@@ -50010,6 +50046,7 @@
       }
     }
     setFocusToInputField(textInput);
+    loadHistory();
   };
   document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {

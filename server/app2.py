@@ -1,4 +1,5 @@
 import argparse
+import hashlib
 import json
 import os
 import secrets
@@ -8,7 +9,7 @@ from functools import wraps
 from json import JSONDecodeError
 from typing import Dict, Any
 import requests
-from flask import Flask, render_template, request, session, Response, abort, redirect, url_for
+from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify
 from flask_session import Session
 
 
@@ -83,16 +84,28 @@ def login():
 
 
 @app.route('/history')
-def history():
+@app.route('/history/<path:item>')
+def history(item=None):
     # token = session.get('token', None)
-    username = session.get('username')
+    username = hash_username(session.get('username'))
 
-    # history_key = f'{username}-{token}-history'
-    # cache_key = f'{CACHE_DIR}/{history_key}.json'
-    for d in os.listdir(CACHE_DIR):
+    history_items = []
+    # path = request.path
+
+    entries = os.listdir(CACHE_DIR)
+    sorted_entries = sorted(entries, key=lambda x: os.stat(os.path.join(CACHE_DIR, x)).st_birthtime, reverse=True)
+
+    for d in sorted_entries:
         if d.startswith(username):
-            print(d)
-    _a = 2
+            with open(f'{CACHE_DIR}/{d}', 'r') as f:
+                json_data = json.load(f)
+            url = d.split('-')[1]
+            history_items.append(dict(
+                title=json_data["title"],
+                url=url,
+                items=json_data["items"] if item == url else []
+            ))
+    return jsonify(history_items)
 
 
 @app.route("/c/<path:token>")
@@ -202,46 +215,47 @@ def get_input():
     token = session.get('token', None)
     username = session.get('username')
 
-    history_key = f'{username}-{token}-history'
+    data = request.get_json()  # todo remove 'model' from data and add other params
+    text = data.pop('input')
+    system_prompt = data.get('system_prompt', INSTRUCTION)
+    if not system_prompt:
+        system_prompt = INSTRUCTION
+    _grammar = data.pop('grammar')  # todo: not ready yet
+    assistant = data.pop('assistant_name', 'Llama')
+    user = data.pop('anti_prompt', 'User')
+    hashed_username = hash_username(username)
+
+    history_key = f'{hashed_username}-{token}-history'
     cache_key = f'{CACHE_DIR}/{history_key}.json'
     # load cache file
     try:
         with open(cache_key, 'r') as f:
             hist = json.load(f)
     except (FileNotFoundError, JSONDecodeError):
-        hist = {"items": []}
-
-    data = request.get_json()  # todo remove 'model' from data and add other params
-    text = data.pop('input')
-
-    system_prompt = data.get('system_prompt', INSTRUCTION)
-    if not system_prompt:
-        system_prompt = INSTRUCTION
-    _grammar = data.pop('grammar')  # todo: not ready yet
-
-    assistant = data.pop('assistant_name', 'Llama')
-    user = data.pop('anti_prompt', 'User')
-    # if True:
-    #     assistant = '### Response'
-    #     user = '### Instruction'
+        hist = {
+            "items": [],
+            "title": text,
+            "grammar": _grammar,
+            "assistant": assistant,
+            "user": user
+        }
 
     context = ADDITIONAL_CONTEXT.get(token)
     if context:
         context = context.strip()
-
-        hist['items'].append(f'{user}: This is the context: {context}')
-        hist['items'].append(f'{assistant}: OK')
+        hist['items'].append(dict(role=user, content=f'This is the context: {context}'))
+        hist['items'].append(dict(role=assistant, content='OK'))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
+    # TODO BROKEN
 
-    history = '\n'.join(hist['items'])
+    def compile_history(hist):
+        lines = [f'{h["role"]}: {h["content"]}' for h in hist["items"]]
+        return '\n'.join(lines)
 
-    # "### Instruction:" + prompt + "\n\n### Response:"
-    # user = 'USER'
-    # assistant = 'ASSISTANT'
+    history = compile_history(hist)
+
     system = "system_prompt"
     prompt = f'{system}: {system_prompt}\n\n{history}\n{user}: {text}\n{assistant}:'  # for the wizardLM OK, but not for Zephyr
-
-    # prompt = f'{system_prompt}\n\n{history}\n###Instruction: {text}\n\n### Response:'
 
     post_data = get_llama_params(data)
 
@@ -263,12 +277,16 @@ def get_input():
                 yield response + SEPARATOR
 
         output = "".join([json.loads(a)['content'] for a in responses if 'embedding' not in a]).strip()
-        hist['items'].append(f'User: {text}')
-        hist['items'].append(f'Llama: {output}')
+        hist['items'].append(dict(role=user, content=text))  # f'User: {text}'
+        hist['items'].append(dict(role=assistant, content=output))  # f'Llama: {output}'
         with open(cache_key, 'w') as f:
             json.dump(hist, f)
 
     return Response(generate(), mimetype='text/event-stream')
+
+
+def hash_username(username):
+    return hashlib.sha256(username.encode()).hexdigest()[0:8]  # 8 character is OK
 
 
 def get_llama_params(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:

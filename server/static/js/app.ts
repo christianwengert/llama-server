@@ -80,6 +80,56 @@ const setupUploadButton = () => {
     }
 };
 
+const loadHistory = () => {
+    type Message = {
+        role: string;
+        content: string;
+    }
+
+    type HistoryItem = {
+        url: string;
+        title: string;
+        items: Array<Message>;
+        assistant: string;
+        user: string;
+    };
+    type HistoryItems = HistoryItem[];
+    const historyDiv = document.getElementById('history') as HTMLUListElement;
+    historyDiv.innerHTML = "";
+    const setHistory = (items: HistoryItems) => {
+
+        items.forEach(item => {
+            const liElement = document.createElement('li');
+            const aElement = document.createElement('a');
+            aElement.href = item.url;
+            aElement.textContent = item.title;
+            liElement.appendChild(aElement);
+            historyDiv.appendChild(liElement);
+            if(document.location.pathname.indexOf(item.url) >= 0) {
+                renderHistoryMessages(item)
+            }
+        });
+    }
+    const chat = document.getElementById('chat')!;
+
+    const renderHistoryMessages = (item: HistoryItem) => {
+
+        if(chat.children.length > 0) {
+            return;  // not necessary to do anything, it is rendered already
+        }
+
+        item.items.forEach((msg, index) => {
+            const direction = index % 2 === 0 ? "me" : "them";
+            renderMessage(msg.content, direction, chat)
+        })
+    }
+    const index = document.location.pathname.indexOf('/c/')
+    let url = '/history'
+    if(index >= 0) {
+        url += '/' + document.location.pathname.slice(index + 3)  // 3 is length of '/c/'
+    }
+    fetch(url).then((r) => r.json()).then(setHistory)
+};
 const run = () => {
 
         const chat = document.getElementById('chat')!;
@@ -202,6 +252,10 @@ const run = () => {
                 xhr.addEventListener("error", function (e) {
                     console.log("error: " + e);
                 });
+
+                xhr.onload = function() {
+                    loadHistory()
+                }
                 xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
                 const formData = getFormDataAsJSON('settings-form')
@@ -210,10 +264,14 @@ const run = () => {
                 formData.stop = formData.stop.split(',')
 
                 xhr.send(JSON.stringify(formData));
+
+
             }
         }
 
         setFocusToInputField(textInput);
+
+        loadHistory()
     }
 ;
 
