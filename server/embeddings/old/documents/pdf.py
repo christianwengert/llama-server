@@ -1,12 +1,12 @@
 import os.path
 from langchain import FAISS
-from langchain.chains import ConversationalRetrievalChain, RetrievalQA
+from langchain.chains import ConversationalRetrievalChain
 from langchain.chains.chat_vector_db.prompts import CONDENSE_QUESTION_PROMPT
-from langchain.chains.conversational_retrieval.base import BaseConversationalRetrievalChain, ChatVectorDBChain
+from langchain.chains.conversational_retrieval.base import BaseConversationalRetrievalChain
 from langchain.embeddings import LlamaCppEmbeddings, HuggingFaceEmbeddings
 from langchain.memory import ConversationTokenBufferMemory
 from embeddings import get_index
-from embeddings.documents import split_pdf
+from embeddings.old.documents import split_pdf
 from models import MODEL_PATH, MODELS
 from models.interruptable_llama import InterruptableLlamaCpp
 

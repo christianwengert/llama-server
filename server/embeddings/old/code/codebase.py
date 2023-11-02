@@ -7,7 +7,7 @@ from langchain.chains.conversational_retrieval.prompts import CONDENSE_QUESTION_
 from langchain.embeddings import HuggingFaceEmbeddings
 from langchain.memory import ConversationTokenBufferMemory
 
-from embeddings.code import split_codebase
+from embeddings.old.code import split_codebase
 from models import MODELS, MODEL_PATH
 from models.interruptable_llama import InterruptableLlamaCpp
 
