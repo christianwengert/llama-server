@@ -112,7 +112,7 @@ def history(item=None):
     history_items = []
 
     entries = os.listdir(CACHE_DIR)
-    sorted_entries = sorted(entries, key=lambda x: os.stat(os.path.join(CACHE_DIR, x)).st_birthtime, reverse=True)
+    sorted_entries = sorted(entries, key=lambda x: os.path.getmtime(os.path.join(CACHE_DIR, x)), reverse=True)
 
     for d in sorted_entries:
         if d.startswith(username):
