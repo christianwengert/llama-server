@@ -49913,12 +49913,28 @@
     historyDiv.innerHTML = "";
     const setHistory = (items) => {
       items.forEach((item) => {
-        const liElement = document.createElement("li");
-        const aElement = document.createElement("a");
-        aElement.href = item.url;
-        aElement.textContent = item.title;
-        liElement.appendChild(aElement);
-        historyDiv.appendChild(liElement);
+        const li = document.createElement("li");
+        const historyLink = document.createElement("a");
+        const deleteButton = document.createElement("button");
+        historyLink.href = item.url;
+        historyLink.textContent = item.title;
+        historyLink.className = "history-item-link";
+        deleteButton.textContent = "\xD7";
+        deleteButton.className = "delete-history-item";
+        deleteButton.addEventListener("click", (e) => {
+          e.preventDefault();
+          const url2 = `/delete/history/${item.url}`;
+          fetch(url2).then((r) => r.json()).then((data) => {
+            if (document.location.pathname.indexOf(item.url) >= 0) {
+              document.location.pathname = "/";
+            } else {
+              loadHistory();
+            }
+          });
+        });
+        li.appendChild(historyLink);
+        li.appendChild(deleteButton);
+        historyDiv.appendChild(li);
         if (document.location.pathname.indexOf(item.url) >= 0) {
           renderHistoryMessages(item);
         }

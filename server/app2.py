@@ -83,14 +83,27 @@ def login():
                            )
 
 
+@login_required
+@app.route("/delete/history/<path:item>")
+def remove(item):
+    token = session.get('token', None)
+    username = session.get('username')
+    hashed_username = hash_username(username)
+    history_key = f'{hashed_username}-{item}-history'
+    cache_key = f'{CACHE_DIR}/{history_key}.json'
+    try:
+        os.remove(cache_key)
+    except FileNotFoundError:
+        abort(400)
+    return jsonify({})
+
+@login_required
 @app.route('/history')
 @app.route('/history/<path:item>')
 def history(item=None):
-    # token = session.get('token', None)
     username = hash_username(session.get('username'))
 
     history_items = []
-    # path = request.path
 
     entries = os.listdir(CACHE_DIR)
     sorted_entries = sorted(entries, key=lambda x: os.stat(os.path.join(CACHE_DIR, x)).st_birthtime, reverse=True)
@@ -108,6 +121,7 @@ def history(item=None):
     return jsonify(history_items)
 
 
+@login_required
 @app.route("/c/<path:token>")
 def c(token):
     session['token'] = token
@@ -131,6 +145,7 @@ def index():
     return redirect(url_for('c', token=new_url))
 
 
+@login_required
 @app.route('/upload', methods=["POST"])
 def upload():
     if not request.files:
@@ -139,8 +154,6 @@ def upload():
     files = request.files.getlist('file')
     if len(files) != 1:
         abort(400)
-
-    # file = files[0]
 
     # dest = None
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
@@ -191,6 +204,7 @@ def upload():
     return "OK"  # redirect done in JS
 
 
+@login_required
 @app.route('/embeddings', methods=["POST"])
 def embeddings():
     data = request.get_json()
@@ -209,7 +223,7 @@ def get_embeddings(data):
     data_json = data.json()
     return data_json
 
-
+@login_required
 @app.route('/', methods=["POST"])
 def get_input():
     token = session.get('token', None)

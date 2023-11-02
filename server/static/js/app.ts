@@ -99,12 +99,31 @@ const loadHistory = () => {
     const setHistory = (items: HistoryItems) => {
 
         items.forEach(item => {
-            const liElement = document.createElement('li');
-            const aElement = document.createElement('a');
-            aElement.href = item.url;
-            aElement.textContent = item.title;
-            liElement.appendChild(aElement);
-            historyDiv.appendChild(liElement);
+            const li = document.createElement('li');
+            const historyLink = document.createElement('a');
+            const deleteButton = document.createElement('button');
+            historyLink.href = item.url;
+            historyLink.textContent = item.title;
+            historyLink.className = "history-item-link";
+
+            deleteButton.textContent = "×";
+            deleteButton.className = "delete-history-item";
+            deleteButton.addEventListener('click', (e) => {
+                e.preventDefault()
+                const url = `/delete/history/${item.url}`;
+                fetch(url).then((r) => r.json()).then((data) => {
+                    if (document.location.pathname.indexOf(item.url) >= 0) {
+                        // i deleted the current
+                        document.location.pathname = '/';  // new session
+                    } else {
+                        loadHistory()
+                    }
+                })
+            })
+
+            li.appendChild(historyLink);
+            li.appendChild(deleteButton);
+            historyDiv.appendChild(li);
             if(document.location.pathname.indexOf(item.url) >= 0) {
                 renderHistoryMessages(item)
             }
