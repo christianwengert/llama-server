@@ -35,13 +35,57 @@ const round = (originalNumber: number, digits: number) => {
     return Math.round(originalNumber * t) / t;
 }
 
+
+const handleEditAction = (e: MouseEvent) => {
+    e.preventDefault()
+    const target = e.target! as HTMLElement;
+    const message = target.closest('.message')!;
+    const inner = message.getElementsByClassName('inner-message')![0] as HTMLDivElement;
+    const messages = Array.from(target.closest('#chat')!.children)
+    const index = messages.indexOf(message);
+    inner.contentEditable = "true";
+    inner.focus()
+    // Create a range
+    const range = document.createRange();
+    range.selectNodeContents(inner);
+
+    // Get the selection object
+    const selection = window.getSelection()!;
+
+    // Clear all ranges
+    selection.removeAllRanges();
+
+    // Add the new range
+    selection.addRange(range);
+    console.log('edit', index, inner)
+    inner.addEventListener('keypress', getInputHandler(inner))
+
+}
+
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
-    const m = `
-    <div class="message from-${direction}" id="${ident}">
-        <div class="inner-message">${message}</div>
-    </div>`
-    chat.insertAdjacentHTML('beforeend', m);
+
+    const messageDiv = document.createElement('div');
+    messageDiv.className = `message from-${direction}`;
+    messageDiv.id = ident;
+
+    const innerMessageDiv = document.createElement('div');
+    innerMessageDiv.className = 'inner-message';
+    innerMessageDiv.textContent = message;
+    messageDiv.appendChild(innerMessageDiv);
+
+    const editButtonDiv = document.createElement('div');
+    editButtonDiv.className = 'edit-button';
+    const editLink = document.createElement('a');
+    editLink.href = '/edit/';
+    editLink.id = `edit-${ident}`;
+    editLink.textContent = 'Edit';
+    editButtonDiv.appendChild(editLink);
+
+    editLink.addEventListener('click', handleEditAction)
+
+    messageDiv.appendChild(editButtonDiv);
+    chat.appendChild(messageDiv);
     return ident;
 };
 
@@ -111,7 +155,7 @@ const loadHistory = () => {
             deleteButton.addEventListener('click', (e) => {
                 e.preventDefault()
                 const url = `/delete/history/${item.url}`;
-                fetch(url).then((r) => r.json()).then((data) => {
+                fetch(url).then(() => {
                     if (document.location.pathname.indexOf(item.url) >= 0) {
                         // i deleted the current
                         document.location.pathname = '/';  // new session
@@ -124,7 +168,7 @@ const loadHistory = () => {
             li.appendChild(historyLink);
             li.appendChild(deleteButton);
             historyDiv.appendChild(li);
-            if(document.location.pathname.indexOf(item.url) >= 0) {
+            if (document.location.pathname.indexOf(item.url) >= 0) {
                 renderHistoryMessages(item)
             }
         });
@@ -133,7 +177,7 @@ const loadHistory = () => {
 
     const renderHistoryMessages = (item: HistoryItem) => {
 
-        if(chat.children.length > 0) {
+        if (chat.children.length > 0) {
             return;  // not necessary to do anything, it is rendered already
         }
 
@@ -144,148 +188,181 @@ const loadHistory = () => {
     }
     const index = document.location.pathname.indexOf('/c/')
     let url = '/history'
-    if(index >= 0) {
+    if (index >= 0) {
         url += '/' + document.location.pathname.slice(index + 3)  // 3 is length of '/c/'
     }
     fetch(url).then((r) => r.json()).then(setHistory)
 };
-const run = () => {
 
-        const chat = document.getElementById('chat')!;
-        const stopButton = document.getElementById('stop-generating')! as HTMLButtonElement;
-        if (stopButton) {
-            stopButton.disabled = true;
+const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) => {
+  // Assuming `parentElement` is the DOM element and `index` is the given index
+  while (parentElement.children.length > index + 1) {
+    parentElement.removeChild(parentElement.lastChild!);
+  }
+};
+function getInputHandler(inputElement: HTMLElement) {
+
+    const mainInput = document.getElementById('input-box')! as HTMLDivElement;
+    let isMainInput = inputElement === mainInput;
+
+    const chat = document.getElementById('chat')!;
+    const stopButton = document.getElementById('stop-generating')! as HTMLButtonElement;
+    if (stopButton) {
+        stopButton.disabled = true;
+    }
+
+    let pruneHistoryIndex = -1;
+    if(!isMainInput) {
+        // a message has been edited, now remove the old ones
+        const message = inputElement.closest('.message')!;
+        const messages = Array.from(chat.children)
+        pruneHistoryIndex = messages.indexOf(message);
+        removeAllChildrenAfterIndex(chat, pruneHistoryIndex)
+    }
+
+
+
+    function handleInput(e: KeyboardEvent) {
+        if (e.key === 'Enter' && e.shiftKey === false) {
+            e.preventDefault();
+            const xhr = new XMLHttpRequest();
+            const m = inputElement.innerText;
+            if(isMainInput) {
+                renderMessage(inputElement.innerText, 'me', chat);
+                inputElement.innerText = '';
+            }
+            inputElement.contentEditable = "false";
+            inputElement.blur();
+
+            if (stopButton) {
+                stopButton.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    xhr.abort();
+                    stopButton.disabled = true;
+                })
+            }
+
+            stopButton.disabled = false;
+
+            const ident = renderMessage('', 'them', chat)
+            const elem = document.getElementById(ident)!;
+            const inner = elem.querySelector('.inner-message')! as HTMLElement;
+            inner.innerHTML = '<div class="loading"></div>'
+
+            scrollToBottom()
+
+            xhr.open('POST', '/');
+
+            let buffer = '';
+            let lastBufferLength = 0; // Keep track of how much we've read
+
+            xhr.onprogress = function () {
+                const newText = xhr.responseText.substring(lastBufferLength);
+                buffer += newText;
+                lastBufferLength = xhr.responseText.length; // Update our progress
+
+                let start = 0, end = 0;
+                let separator = "~~~~";
+                while ((end = buffer.indexOf(separator, start)) !== -1) {
+                    let message = buffer.substring(start, end);
+                    start = end + separator.length; // skip past the delimiter
+
+                    const jsonMessage = JSON.parse(message);
+
+                    if (jsonMessage.stop === true) {
+                        const timings = jsonMessage.timings
+                        let model = jsonMessage.model
+                        if (model) {
+                            model = model.split('/').slice(-1);
+                        }
+
+                        const timing = document.getElementById('timing-info')! as HTMLSpanElement;
+                        timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `
+
+                        // adapt markdown for ```
+                        const pattern = /```([a-z]+)? ?([^`]*)```/g
+                        const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`
+                        const intermediate = inner.innerText.replace(pattern, rep)
+                        // adapt markdown for `
+                        const pattern2 = /`([^`]*)`/g
+                        const rep2 = `<code class="inline">$1</code>`
+                        inner.innerHTML = intermediate.replace(pattern2, rep2)
+
+                        scrollToBottom()
+                        // highlight code
+                        inner.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightElement(<HTMLElement>block);
+                        });
+                        // set up copy to clipboard buttons
+                        inner.querySelectorAll('.code-header >.copy').forEach((copyElem) => {
+                            copyElem.addEventListener('click', (copyEvent) => {
+                                copyEvent.preventDefault();
+                                const target = copyEvent.target! as HTMLElement;
+
+                                const t = (target.parentElement!.nextElementSibling! as HTMLElement).innerText;
+                                // Copy the text inside the text field
+                                navigator.clipboard.writeText(t).then(() => {
+                                });
+                                target.innerText = 'Copied'
+                                target.style.cursor = 'auto'
+
+                                setInterval(() => {
+                                    target.innerText = 'Copy'
+                                    target.style.cursor = 'pointer'
+                                }, 3000)
+                            })
+                        })
+                        inputElement.focus()
+                        break;
+                    } else {
+                        if (inner.innerText === "") {
+                            jsonMessage.content = jsonMessage.content.trim();
+                        }
+                        inner.innerText += jsonMessage.content;
+                    }
+
+                }
+                buffer = buffer.substring(start); // Remove parsed messages from the buffer
+            };
+
+            xhr.addEventListener("error", function (e) {
+                console.log("error: " + e);
+            });
+
+            xhr.onload = function () {
+                if(isMainInput) {
+                    inputElement.contentEditable = "true";
+                }
+                setFocusToInputField(mainInput);
+                stopButton.disabled = true;
+                loadHistory()
+            }
+            xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
+
+            const formData = getFormDataAsJSON('settings-form')
+            formData.input = m
+
+            // @ts-ignore
+            formData.stop = formData.stop.split(',')
+            formData.pruneHistoryIndex = pruneHistoryIndex
+            console.log('prune ' + pruneHistoryIndex)
+
+            xhr.send(JSON.stringify(formData));
+
+
         }
+    }
+    return handleInput
+}
+
+
+const run = () => {
 
         setupUploadButton()
 
         const textInput = document.getElementById('input-box')! as HTMLDivElement;
         if (textInput) {
-            textInput.addEventListener('keypress', handleInput)
-        }
-
-        function handleInput(e: KeyboardEvent) {
-            if (e.key === 'Enter' && e.shiftKey === false) {
-                e.preventDefault();
-                const xhr = new XMLHttpRequest();
-                const m = textInput.innerText;
-                renderMessage(textInput.innerText, 'me', chat);
-                textInput.innerText = '';
-                // textInput.contentEditable = "false";
-
-                if (stopButton) {
-                    stopButton.addEventListener('click', (e) => {
-                        e.preventDefault();
-                        xhr.abort();
-                        stopButton.disabled = true;
-                    })
-                }
-
-                stopButton.disabled = false;
-
-                const ident = renderMessage('', 'them', chat)
-                const elem = document.getElementById(ident)!;
-                const inner = elem.querySelector('.inner-message')! as HTMLElement;
-                inner.innerHTML = '<div class="loading"></div>'
-
-                scrollToBottom()
-
-                xhr.open('POST', '/');
-
-                let buffer = '';
-                let lastBufferLength = 0; // Keep track of how much we've read
-
-                xhr.onprogress = function () {
-                    const newText = xhr.responseText.substring(lastBufferLength);
-                    buffer += newText;
-                    lastBufferLength = xhr.responseText.length; // Update our progress
-
-                    let start = 0, end = 0;
-                    let separator = "~~~~";
-                    while ((end = buffer.indexOf(separator, start)) !== -1) {
-                        let message = buffer.substring(start, end);
-                        start = end + separator.length; // skip past the delimiter
-
-                        let jsonMessage;
-
-                        jsonMessage = JSON.parse(message);
-
-                        if (jsonMessage.stop === true) {
-                            const timings = jsonMessage.timings
-                            let model = jsonMessage.model
-                            if (model) {
-                                model = model.split('/').slice(-1);
-                            }
-
-                            const timing = document.getElementById('timing-info')! as HTMLSpanElement;
-                            timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `
-
-                            textInput.contentEditable = "true";
-                            stopButton.disabled = true;
-                            // adapt markdown for ```
-                            const pattern = /```([a-z]+)? ?([^`]*)```/g
-                            const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`
-                            const intermediate = inner.innerText.replace(pattern, rep)
-                            // adapt markdown for `
-                            const pattern2 = /`([^`]*)`/g
-                            const rep2 = `<code class="inline">$1</code>`
-                            inner.innerHTML = intermediate.replace(pattern2, rep2)
-
-                            scrollToBottom()
-                            // highlight code
-                            inner.querySelectorAll('pre code').forEach((block) => {
-                                hljs.highlightElement(<HTMLElement>block);
-                            });
-                            // set up copy to clipboard buttons
-                            inner.querySelectorAll('.code-header >.copy').forEach((copyElem) => {
-                                copyElem.addEventListener('click', (copyEvent) => {
-                                    copyEvent.preventDefault();
-                                    const target = copyEvent.target! as HTMLElement;
-
-                                    const t = (target.parentElement!.nextElementSibling! as HTMLElement).innerText;
-                                    // Copy the text inside the text field
-                                    navigator.clipboard.writeText(t).then(() => {
-                                    });
-                                    target.innerText = 'Copied'
-                                    target.style.cursor = 'auto'
-
-                                    setInterval(() => {
-                                        target.innerText = 'Copy'
-                                        target.style.cursor = 'pointer'
-                                    }, 3000)
-                                })
-                            })
-                            textInput.focus()
-                            break;
-                        } else {
-                            if(inner.innerText === "") {
-                                jsonMessage.content = jsonMessage.content.trim();
-                            }
-                            inner.innerText += jsonMessage.content;
-                        }
-
-                    }
-                    buffer = buffer.substring(start); // Remove parsed messages from the buffer
-                };
-
-                xhr.addEventListener("error", function (e) {
-                    console.log("error: " + e);
-                });
-
-                xhr.onload = function() {
-                    loadHistory()
-                }
-                xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
-
-                const formData = getFormDataAsJSON('settings-form')
-                formData.input = m
-                // @ts-ignore
-                formData.stop = formData.stop.split(',')
-
-                xhr.send(JSON.stringify(formData));
-
-
-            }
+            textInput.addEventListener('keypress', getInputHandler(textInput))
         }
 
         setFocusToInputField(textInput);

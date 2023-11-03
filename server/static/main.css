@@ -36,6 +36,9 @@ body {
     white-space: pre-wrap;
     min-height: 12px;
 }
+.inner-message[contenteditable] {
+    /*border: 1px solid rebeccapurple;*/
+}
 
 
 /*.message:before {*/
@@ -419,6 +422,7 @@ a:visited {
     /*border: 1px solid rebeccapurple;*/
     overflow-y: auto;
 }
+
 #history a {
     color: rgb(183, 183, 193);
 }
@@ -432,6 +436,17 @@ a:visited {
 
 #history-div, #todos-div {
     margin-top: 48px;
+}
+
+.edit-button {
+    width: 80%;
+    margin: 16px auto auto;
+    font-size: 0.8rem;
+    text-align: right;
+}
+
+.from-them .edit-button {
+    display: none;
 }
 .delete-history-item {
     margin-left: auto;

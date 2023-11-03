@@ -49872,13 +49872,42 @@
     const t = 10 ** digits;
     return Math.round(originalNumber * t) / t;
   };
+  var handleEditAction = (e) => {
+    e.preventDefault();
+    const target = e.target;
+    const message = target.closest(".message");
+    const inner = message.getElementsByClassName("inner-message")[0];
+    const messages = Array.from(target.closest("#chat").children);
+    const index = messages.indexOf(message);
+    inner.contentEditable = "true";
+    inner.focus();
+    const range = document.createRange();
+    range.selectNodeContents(inner);
+    const selection = window.getSelection();
+    selection.removeAllRanges();
+    selection.addRange(range);
+    console.log("edit", index, inner);
+    inner.addEventListener("keypress", getInputHandler(inner));
+  };
   var renderMessage = (message, direction, chat) => {
     const ident = (Math.random() + 1).toString(36).substring(2);
-    const m = `
-    <div class="message from-${direction}" id="${ident}">
-        <div class="inner-message">${message}</div>
-    </div>`;
-    chat.insertAdjacentHTML("beforeend", m);
+    const messageDiv = document.createElement("div");
+    messageDiv.className = `message from-${direction}`;
+    messageDiv.id = ident;
+    const innerMessageDiv = document.createElement("div");
+    innerMessageDiv.className = "inner-message";
+    innerMessageDiv.textContent = message;
+    messageDiv.appendChild(innerMessageDiv);
+    const editButtonDiv = document.createElement("div");
+    editButtonDiv.className = "edit-button";
+    const editLink = document.createElement("a");
+    editLink.href = "/edit/";
+    editLink.id = `edit-${ident}`;
+    editLink.textContent = "Edit";
+    editButtonDiv.appendChild(editLink);
+    editLink.addEventListener("click", handleEditAction);
+    messageDiv.appendChild(editButtonDiv);
+    chat.appendChild(messageDiv);
     return ident;
   };
   var setFocusToInputField = (textInput) => {
@@ -49924,7 +49953,7 @@
         deleteButton.addEventListener("click", (e) => {
           e.preventDefault();
           const url2 = `/delete/history/${item.url}`;
-          fetch(url2).then((r) => r.json()).then((data) => {
+          fetch(url2).then(() => {
             if (document.location.pathname.indexOf(item.url) >= 0) {
               document.location.pathname = "/";
             } else {
@@ -49957,24 +49986,37 @@
     }
     fetch(url).then((r) => r.json()).then(setHistory);
   };
-  var run = () => {
+  var removeAllChildrenAfterIndex = (parentElement, index) => {
+    while (parentElement.children.length > index + 1) {
+      parentElement.removeChild(parentElement.lastChild);
+    }
+  };
+  function getInputHandler(inputElement) {
+    const mainInput = document.getElementById("input-box");
+    let isMainInput = inputElement === mainInput;
     const chat = document.getElementById("chat");
     const stopButton = document.getElementById("stop-generating");
     if (stopButton) {
       stopButton.disabled = true;
     }
-    setupUploadButton();
-    const textInput = document.getElementById("input-box");
-    if (textInput) {
-      textInput.addEventListener("keypress", handleInput);
+    let pruneHistoryIndex = -1;
+    if (!isMainInput) {
+      const message = inputElement.closest(".message");
+      const messages = Array.from(chat.children);
+      pruneHistoryIndex = messages.indexOf(message);
+      removeAllChildrenAfterIndex(chat, pruneHistoryIndex);
     }
     function handleInput(e) {
       if (e.key === "Enter" && e.shiftKey === false) {
         e.preventDefault();
         const xhr = new XMLHttpRequest();
-        const m = textInput.innerText;
-        renderMessage(textInput.innerText, "me", chat);
-        textInput.innerText = "";
+        const m = inputElement.innerText;
+        if (isMainInput) {
+          renderMessage(inputElement.innerText, "me", chat);
+          inputElement.innerText = "";
+        }
+        inputElement.contentEditable = "false";
+        inputElement.blur();
         if (stopButton) {
           stopButton.addEventListener("click", (e2) => {
             e2.preventDefault();
@@ -50000,8 +50042,7 @@
           while ((end = buffer.indexOf(separator, start)) !== -1) {
             let message = buffer.substring(start, end);
             start = end + separator.length;
-            let jsonMessage;
-            jsonMessage = JSON.parse(message);
+            const jsonMessage = JSON.parse(message);
             if (jsonMessage.stop === true) {
               const timings = jsonMessage.timings;
               let model = jsonMessage.model;
@@ -50010,8 +50051,6 @@
               }
               const timing = document.getElementById("timing-info");
               timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `;
-              textInput.contentEditable = "true";
-              stopButton.disabled = true;
               const pattern = /```([a-z]+)? ?([^`]*)```/g;
               const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
               const intermediate = inner.innerText.replace(pattern, rep);
@@ -50037,7 +50076,7 @@
                   }, 3e3);
                 });
               });
-              textInput.focus();
+              inputElement.focus();
               break;
             } else {
               if (inner.innerText === "") {
@@ -50052,14 +50091,29 @@
           console.log("error: " + e2);
         });
         xhr.onload = function() {
+          if (isMainInput) {
+            inputElement.contentEditable = "true";
+          }
+          setFocusToInputField(mainInput);
+          stopButton.disabled = true;
           loadHistory();
         };
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         const formData = getFormDataAsJSON("settings-form");
         formData.input = m;
         formData.stop = formData.stop.split(",");
+        formData.pruneHistoryIndex = pruneHistoryIndex;
+        console.log("prune " + pruneHistoryIndex);
         xhr.send(JSON.stringify(formData));
       }
+    }
+    return handleInput;
+  }
+  var run = () => {
+    setupUploadButton();
+    const textInput = document.getElementById("input-box");
+    if (textInput) {
+      textInput.addEventListener("keypress", getInputHandler(textInput));
     }
     setFocusToInputField(textInput);
     loadHistory();

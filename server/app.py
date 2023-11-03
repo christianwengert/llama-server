@@ -168,11 +168,6 @@ def upload():
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         file.save(dest)
 
-
-
-
-
-
         # const splitter = RecursiveCharacterTextSplitter.fromLanguage("js", {
         #   chunkSize: 32,
         #   chunkOverlap: 0,
@@ -244,6 +239,7 @@ def get_input():
 
     data = request.get_json()  # todo remove 'model' from data and add other params
     text = data.pop('input')
+    prune_history_index = data.pop('pruneHistoryIndex')
     system_prompt = data.get('system_prompt', INSTRUCTION)
     if not system_prompt:
         system_prompt = INSTRUCTION
@@ -278,6 +274,9 @@ def get_input():
     def compile_history(hist):
         lines = [f'{h["role"]}: {h["content"]}' for h in hist["items"]]
         return '\n'.join(lines)
+
+    if prune_history_index >= 0:  # remove items if required
+        hist["items"] = hist["items"][:prune_history_index]
 
     history = compile_history(hist)
 
