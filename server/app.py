@@ -167,6 +167,12 @@ def upload():
         dest = os.path.join(base_folder, file.filename)
         os.makedirs(os.path.dirname(dest), exist_ok=True)
         file.save(dest)
+
+
+
+
+
+
         # const splitter = RecursiveCharacterTextSplitter.fromLanguage("js", {
         #   chunkSize: 32,
         #   chunkOverlap: 0,
