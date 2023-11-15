@@ -12,6 +12,9 @@ import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify
 from flask_session import Session
 
+SYSTEM_PROMPT_PREFIX = '### System Prompt'
+ASSISTANT_NAME = '### Assistant'
+USER = '### User Message'
 
 SEPARATOR = '~~~~'
 
@@ -31,6 +34,8 @@ Session(app)
 
 
 CACHE_DIR = 'cache'
+if not os.path.exists(CACHE_DIR):
+    os.mkdir(CACHE_DIR)
 
 
 ADDITIONAL_CONTEXT = {}  # this can be done as global variable
@@ -135,8 +140,9 @@ def c(token):
     return render_template('index.html',
                            system_prompt=INSTRUCTION,
                            grammar='',
-                           assistant_name='Llama',
-                           anti_prompt='User',
+                           assistant_name=ASSISTANT_NAME,
+                           anti_prompt=USER,
+                           system_prompt_prefix=SYSTEM_PROMPT_PREFIX,
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
@@ -240,14 +246,16 @@ def get_input():
     data = request.get_json()  # todo remove 'model' from data and add other params
     text = data.pop('input')
     prune_history_index = data.pop('pruneHistoryIndex')
-    system_prompt = data.get('system_prompt', INSTRUCTION)
+    system_prompt = data.pop('system_prompt', INSTRUCTION)
     if not system_prompt:
         system_prompt = INSTRUCTION
     _grammar = data.pop('grammar')  # todo: not ready yet
-    assistant = data.pop('assistant_name', 'Llama')
-    user = data.pop('anti_prompt', 'User')
-    hashed_username = hash_username(username)
+    assistant = data.pop('assistant_name', ASSISTANT_NAME)
 
+    user = data.pop('anti_prompt', USER)
+    system_prompt_prefix = data.pop('system_prompt_prefix', SYSTEM_PROMPT_PREFIX)
+
+    hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
     cache_key = f'{CACHE_DIR}/{history_key}.json'
     # load cache file
@@ -265,6 +273,7 @@ def get_input():
 
     context = ADDITIONAL_CONTEXT.get(token)
     if context:
+        # todo: Add n_keep correctly
         context = context.strip()
         hist['items'].append(dict(role=user, content=f'This is the context: {context}'))
         hist['items'].append(dict(role=assistant, content='OK'))  # f'{assistant}: OK'
@@ -280,13 +289,12 @@ def get_input():
 
     history = compile_history(hist)
 
-    system = "system_prompt"
-    prompt = f'{system}: {system_prompt}\n\n{history}\n{user}: {text}\n{assistant}:'  # for the wizardLM OK, but not for Zephyr
+    # system = "### System prompt\n"
+    prompt = f'{system_prompt_prefix}\n{system_prompt}\n\n{history}\n{user}\n{text}\n{assistant}\n'  # for the wizardLM OK, but not for Zephyr
 
     post_data = get_llama_params(data)
 
     post_data['prompt'] = prompt
-    post_data.pop('system_prompt')
 
     def generate():
         data = requests.request(method="POST",

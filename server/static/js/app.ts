@@ -41,8 +41,8 @@ const handleEditAction = (e: MouseEvent) => {
     const target = e.target! as HTMLElement;
     const message = target.closest('.message')!;
     const inner = message.getElementsByClassName('inner-message')![0] as HTMLDivElement;
-    const messages = Array.from(target.closest('#chat')!.children)
-    const index = messages.indexOf(message);
+    // const messages = Array.from(target.closest('#chat')!.children)
+    // const index = messages.indexOf(message);
     inner.contentEditable = "true";
     inner.focus()
     // Create a range
@@ -57,10 +57,24 @@ const handleEditAction = (e: MouseEvent) => {
 
     // Add the new range
     selection.addRange(range);
-    console.log('edit', index, inner)
     inner.addEventListener('keypress', getInputHandler(inner))
 
 }
+//
+// const handleVoteAction = (e: MouseEvent, index: 'up' | 'down') => {
+//     e.preventDefault();
+//     const target = e.target;
+//     console.log(index, target)
+// }
+//
+// const handleUpvoteAction = (e: MouseEvent) => {
+//     handleVoteAction(e, 'up')
+//
+// };
+// const handleDownvoteAction = (e: MouseEvent) => {
+//     e.preventDefault();
+//     handleVoteAction(e, 'down')
+// };
 
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
@@ -74,17 +88,51 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     innerMessageDiv.textContent = message;
     messageDiv.appendChild(innerMessageDiv);
 
-    const editButtonDiv = document.createElement('div');
-    editButtonDiv.className = 'edit-button';
-    const editLink = document.createElement('a');
-    editLink.href = '/edit/';
-    editLink.id = `edit-${ident}`;
-    editLink.textContent = 'Edit';
-    editButtonDiv.appendChild(editLink);
+    if(direction === 'me') {
+        const editButtonDiv = document.createElement('div');
+        editButtonDiv.className = 'edit-button';
+        const editLink = document.createElement('a');
+        editLink.href = '/edit/';
+        editLink.id = `edit-${ident}`;
+        editLink.textContent = 'Edit';
+        editButtonDiv.appendChild(editLink);
 
-    editLink.addEventListener('click', handleEditAction)
+        editLink.addEventListener('click', handleEditAction)
 
-    messageDiv.appendChild(editButtonDiv);
+        messageDiv.appendChild(editButtonDiv);
+    } else {
+        // highlight code
+
+
+        // adapt markdown for ```
+
+
+
+
+
+
+        // const voteButtonDiv = document.createElement('div');
+        // voteButtonDiv.className = 'edit-button';
+        // const upvoteLink = document.createElement('a');
+        // upvoteLink.href = '/upvote/';
+        // upvoteLink.id = `upvote-${ident}`;
+        // upvoteLink.textContent = '➞';
+        // voteButtonDiv.appendChild(upvoteLink);
+        //
+        //
+        // const downvoteLink = document.createElement('a');
+        // downvoteLink.href = '/downvote/';
+        // downvoteLink.id = `downvote-${ident}`;
+        // downvoteLink.textContent = '➞';
+        // voteButtonDiv.appendChild(downvoteLink);
+        //
+        // messageDiv.appendChild(voteButtonDiv);
+        //
+        // upvoteLink.addEventListener('click', handleUpvoteAction);
+        // downvoteLink.addEventListener('click', handleDownvoteAction);
+        //
+        //
+    }
     chat.appendChild(messageDiv);
     return ident;
 };
@@ -183,7 +231,14 @@ const loadHistory = () => {
 
         item.items.forEach((msg, index) => {
             const direction = index % 2 === 0 ? "me" : "them";
-            renderMessage(msg.content, direction, chat)
+            const ident = renderMessage(msg.content, direction, chat)
+
+            const msgDiv = document.getElementById(ident)
+            const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
+
+            if (direction === 'them') {
+                highlightCode(inner);
+            }
         })
     }
     const index = document.location.pathname.indexOf('/c/')
@@ -200,6 +255,23 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
     parentElement.removeChild(parentElement.lastChild!);
   }
 };
+
+function highlightCode(inner: HTMLElement) {
+    const pattern = /```([a-z]+)? ?([^`]*)```/g
+    const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`
+    const intermediate = inner.innerText.replace(pattern, rep)
+    // adapt markdown for `
+    const pattern2 = /`([^`]*)`/g
+    const rep2 = `<code class="inline">$1</code>`
+    inner.innerHTML = intermediate.replace(pattern2, rep2)
+
+    scrollToBottom()
+    // highlight code
+    inner.querySelectorAll('pre code').forEach((block) => {
+        hljs.highlightElement(<HTMLElement>block);
+    });
+}
+
 function getInputHandler(inputElement: HTMLElement) {
 
     const mainInput = document.getElementById('input-box')! as HTMLDivElement;
@@ -277,22 +349,10 @@ function getInputHandler(inputElement: HTMLElement) {
                         }
 
                         const timing = document.getElementById('timing-info')! as HTMLSpanElement;
-                        timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `
+                        timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `
 
                         // adapt markdown for ```
-                        const pattern = /```([a-z]+)? ?([^`]*)```/g
-                        const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`
-                        const intermediate = inner.innerText.replace(pattern, rep)
-                        // adapt markdown for `
-                        const pattern2 = /`([^`]*)`/g
-                        const rep2 = `<code class="inline">$1</code>`
-                        inner.innerHTML = intermediate.replace(pattern2, rep2)
-
-                        scrollToBottom()
-                        // highlight code
-                        inner.querySelectorAll('pre code').forEach((block) => {
-                            hljs.highlightElement(<HTMLElement>block);
-                        });
+                        highlightCode(inner);
                         // set up copy to clipboard buttons
                         inner.querySelectorAll('.code-header >.copy').forEach((copyElem) => {
                             copyElem.addEventListener('click', (copyEvent) => {
@@ -312,7 +372,7 @@ function getInputHandler(inputElement: HTMLElement) {
                                 }, 3000)
                             })
                         })
-                        inputElement.focus()
+                        inputElement.focus();
                         break;
                     } else {
                         if (inner.innerText === "") {

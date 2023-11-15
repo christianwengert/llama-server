@@ -15,19 +15,26 @@
                 <div class="param-help">
                     Set the number of tokens to predict when generating text. Note: May exceed the set limit slightly if the last token is a partial multibyte character. When 0, no tokens will be generated but the prompt is evaluated into the cache. (default: 1024, -1 = infinity).
                 </div>
-                 <div>
-                    <label for="n_keep">n_keep:</label>
-                    <input type="number" id="n_keep" name="n_keep" value="-1" step="1"><br>
-                </div>
-                <div class="param-help">
-                    Specify the number of tokens from the initial prompt to retain when the model resets its internal context. By default, this value is set to 0 (meaning no tokens are kept). Use -1 to retain all tokens from the initial prompt.
-                </div>
+<!--                 <div>-->
+<!--                    <label for="n_keep">n_keep:</label>-->
+<!--                    <input type="number" id="n_keep" name="n_keep" value="-1" step="1"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Specify the number of tokens from the initial prompt to retain when the model resets its internal context. By default, this value is set to 0 (meaning no tokens are kept). Use -1 to retain all tokens from the initial prompt.-->
+<!--                </div>-->
                 <div>
                     <label for="temperature">Temperature:</label>
                     <input type="number" id="temperature" name="temperature" step="0.01" value="0.7"><br>
                 </div>
                 <div class="param-help">
                     Adjust the randomness of the generated text
+                </div>
+                <div>
+                    <label for="min_p">Min p:</label>
+                    <input type="number" id="min_p" name="min_p" step="0.05" value="0.1"><br>
+                </div>
+                <div class="param-help">
+                    The minimum probability for a token to be considered, relative to the probability of the most likely token
                 </div>
                 <!-- Array of Strings -->
                 <div>
@@ -107,6 +114,13 @@
                 </div>
                 <div class="param-help">
                     Specify the word you want to use to instruct the model to stop
+                </div>
+                <div>
+                    <label for="system_prompt_prefix">System Prompt Prefix:</label>
+                    <input type="text" id="system_prompt_prefix" name="system_prompt_prefix" value="{{system_prompt_prefix}}"><br>
+                </div>
+                <div class="param-help">
+                    Todo
                 </div>
                 <div>
                     <label for="system_prompt">System prompt:</label>

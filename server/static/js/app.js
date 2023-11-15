@@ -49877,8 +49877,6 @@
     const target = e.target;
     const message = target.closest(".message");
     const inner = message.getElementsByClassName("inner-message")[0];
-    const messages = Array.from(target.closest("#chat").children);
-    const index = messages.indexOf(message);
     inner.contentEditable = "true";
     inner.focus();
     const range = document.createRange();
@@ -49886,7 +49884,6 @@
     const selection = window.getSelection();
     selection.removeAllRanges();
     selection.addRange(range);
-    console.log("edit", index, inner);
     inner.addEventListener("keypress", getInputHandler(inner));
   };
   var renderMessage = (message, direction, chat) => {
@@ -49898,15 +49895,18 @@
     innerMessageDiv.className = "inner-message";
     innerMessageDiv.textContent = message;
     messageDiv.appendChild(innerMessageDiv);
-    const editButtonDiv = document.createElement("div");
-    editButtonDiv.className = "edit-button";
-    const editLink = document.createElement("a");
-    editLink.href = "/edit/";
-    editLink.id = `edit-${ident}`;
-    editLink.textContent = "Edit";
-    editButtonDiv.appendChild(editLink);
-    editLink.addEventListener("click", handleEditAction);
-    messageDiv.appendChild(editButtonDiv);
+    if (direction === "me") {
+      const editButtonDiv = document.createElement("div");
+      editButtonDiv.className = "edit-button";
+      const editLink = document.createElement("a");
+      editLink.href = "/edit/";
+      editLink.id = `edit-${ident}`;
+      editLink.textContent = "Edit";
+      editButtonDiv.appendChild(editLink);
+      editLink.addEventListener("click", handleEditAction);
+      messageDiv.appendChild(editButtonDiv);
+    } else {
+    }
     chat.appendChild(messageDiv);
     return ident;
   };
@@ -49976,7 +49976,12 @@
       }
       item.items.forEach((msg, index2) => {
         const direction = index2 % 2 === 0 ? "me" : "them";
-        renderMessage(msg.content, direction, chat);
+        const ident = renderMessage(msg.content, direction, chat);
+        const msgDiv = document.getElementById(ident);
+        const inner = msgDiv.getElementsByClassName("inner-message")[0];
+        if (direction === "them") {
+          highlightCode(inner);
+        }
       });
     };
     const index = document.location.pathname.indexOf("/c/");
@@ -49991,6 +49996,18 @@
       parentElement.removeChild(parentElement.lastChild);
     }
   };
+  function highlightCode(inner) {
+    const pattern = /```([a-z]+)? ?([^`]*)```/g;
+    const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
+    const intermediate = inner.innerText.replace(pattern, rep);
+    const pattern2 = /`([^`]*)`/g;
+    const rep2 = `<code class="inline">$1</code>`;
+    inner.innerHTML = intermediate.replace(pattern2, rep2);
+    scrollToBottom();
+    inner.querySelectorAll("pre code").forEach((block) => {
+      es_default.highlightElement(block);
+    });
+  }
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
     let isMainInput = inputElement === mainInput;
@@ -50050,17 +50067,8 @@
                 model = model.split("/").slice(-1);
               }
               const timing = document.getElementById("timing-info");
-              timing.innerText = `${round(timings.predicted_per_second, 1)} Tokens per second (${round(timings.predicted_per_token_ms, 1)}ms per token (${model})) `;
-              const pattern = /```([a-z]+)? ?([^`]*)```/g;
-              const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
-              const intermediate = inner.innerText.replace(pattern, rep);
-              const pattern2 = /`([^`]*)`/g;
-              const rep2 = `<code class="inline">$1</code>`;
-              inner.innerHTML = intermediate.replace(pattern2, rep2);
-              scrollToBottom();
-              inner.querySelectorAll("pre code").forEach((block) => {
-                es_default.highlightElement(block);
-              });
+              timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
+              highlightCode(inner);
               inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
                 copyElem.addEventListener("click", (copyEvent) => {
                   copyEvent.preventDefault();

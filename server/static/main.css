@@ -41,6 +41,7 @@ body {
 }
 
 
+
 /*.message:before {*/
 /*    content: "X";*/
 /*    position: absolute;*/
@@ -186,13 +187,17 @@ input, textarea, select {
 .input-box {
     margin: auto;
     width: 80%;
-    min-height: 32px;
+    /*min-height: 32px;*/
     line-height: 32px !important;
-    /*height: 42px !important;*/
+    height: 42px !important;
     border: 1px solid rgb(222, 222, 223);
     border-radius: 4px;
     padding: 4px 8px;
     box-shadow: 5px 5px 15px 5px rgb(247, 247, 248);;
+}
+
+li.strike {
+    text-decoration: line-through;
 }
 /*#upload-plus {*/
 /*    !*border-radius: 10px;*!*/
@@ -443,11 +448,16 @@ a:visited {
     margin: 16px auto auto;
     font-size: 0.8rem;
     text-align: right;
+    display: flex;
+    justify-content: flex-end;
+
+}
+.edit-button a {
+    margin-left: 16px;
 }
 
-.from-them .edit-button {
-    display: none;
-}
+
+
 .delete-history-item {
     margin-left: auto;
     border: none;
@@ -456,6 +466,18 @@ a:visited {
     cursor: pointer;
     font-size:1.2rem;
 }
+
+
+/*.vote-buttons-div {*/
+/*    display: flex;*/
+/*    justify-content: flex-end;*/
+/*    font-size: 0.8rem;*/
+/*    width: 80%;*/
+/*}*/
+
+
+
+
 .history-item-link {
     overflow: hidden;
     text-overflow: ellipsis;
