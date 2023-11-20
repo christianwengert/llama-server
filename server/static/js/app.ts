@@ -88,7 +88,7 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     innerMessageDiv.textContent = message;
     messageDiv.appendChild(innerMessageDiv);
 
-    if(direction === 'me') {
+    if (direction === 'me') {
         const editButtonDiv = document.createElement('div');
         editButtonDiv.className = 'edit-button';
         const editLink = document.createElement('a');
@@ -101,16 +101,6 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
 
         messageDiv.appendChild(editButtonDiv);
     } else {
-        // highlight code
-
-
-        // adapt markdown for ```
-
-
-
-
-
-
         // const voteButtonDiv = document.createElement('div');
         // voteButtonDiv.className = 'edit-button';
         // const upvoteLink = document.createElement('a');
@@ -251,31 +241,31 @@ const loadHistory = () => {
 };
 
 const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) => {
-  // Assuming `parentElement` is the DOM element and `index` is the given index
-  while (parentElement.children.length > index + 1) {
-    parentElement.removeChild(parentElement.lastChild!);
-  }
+    // Assuming `parentElement` is the DOM element and `index` is the given index
+    while (parentElement.children.length > index + 1) {
+        parentElement.removeChild(parentElement.lastChild!);
+    }
 };
 
 function highlightCode(inner: HTMLElement) {
 
     function convertMarkdownToHTML(mdString: string) {
-      // Replace triple backtick code blocks
-      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
-        const language = lang || 'bash';
-        return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
-      });
+        // Replace triple backtick code blocks
+        const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+        mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+            const language = lang || 'bash';
+            return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
+        });
 
-      // Replace inline code
-      const inlineCodeRegex = /`([^`]+)`/g;
-      mdString = mdString.replace(inlineCodeRegex, '<code class="inline">$1</code>');
+        // Replace inline code
+        const inlineCodeRegex = /`([^`]+)`/g;
+        mdString = mdString.replace(inlineCodeRegex, '<code class="inline">$1</code>');
 
-      return mdString;
+        return mdString;
     }
 
     function escapeHTML(str: string) {
-      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
     }
 
     const codeString = inner.innerText;
@@ -322,7 +312,7 @@ function getInputHandler(inputElement: HTMLElement) {
     }
 
     let pruneHistoryIndex = -1;
-    if(!isMainInput) {
+    if (!isMainInput) {
         // a message has been edited, now remove the old ones
         const message = inputElement.closest('.message')!;
         const messages = Array.from(chat.children)
@@ -331,13 +321,12 @@ function getInputHandler(inputElement: HTMLElement) {
     }
 
 
-
     function handleInput(e: KeyboardEvent) {
         if (e.key === 'Enter' && e.shiftKey === false) {
             e.preventDefault();
             const xhr = new XMLHttpRequest();
             const m = inputElement.innerText;
-            if(isMainInput) {
+            if (isMainInput) {
                 renderMessage(inputElement.innerText, 'me', chat);
                 inputElement.innerText = '';
             }
@@ -411,7 +400,7 @@ function getInputHandler(inputElement: HTMLElement) {
             });
 
             xhr.onload = function () {
-                if(isMainInput) {
+                if (isMainInput) {
                     inputElement.contentEditable = "true";
                 }
                 setFocusToInputField(mainInput);
