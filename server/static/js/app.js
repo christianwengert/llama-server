@@ -49981,6 +49981,7 @@
         const inner = msgDiv.getElementsByClassName("inner-message")[0];
         if (direction === "them") {
           highlightCode(inner);
+          setClipboardHandler(inner);
         }
       });
     };
@@ -49997,15 +49998,41 @@
     }
   };
   function highlightCode(inner) {
-    const pattern = /```([a-z]+)? ?([^`]*)```/g;
-    const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`;
-    const intermediate = inner.innerText.replace(pattern, rep);
-    const pattern2 = /`([^`]*)`/g;
-    const rep2 = `<code class="inline">$1</code>`;
-    inner.innerHTML = intermediate.replace(pattern2, rep2);
+    function convertMarkdownToHTML(mdString) {
+      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+        const language = lang || "bash";
+        return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
+      });
+      const inlineCodeRegex = /`([^`]+)`/g;
+      mdString = mdString.replace(inlineCodeRegex, '<code class="inline">$1</code>');
+      return mdString;
+    }
+    function escapeHTML(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    const codeString = inner.innerText;
+    inner.innerHTML = convertMarkdownToHTML(codeString);
     scrollToBottom();
     inner.querySelectorAll("pre code").forEach((block) => {
       es_default.highlightElement(block);
+    });
+  }
+  function setClipboardHandler(inner) {
+    inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
+      copyElem.addEventListener("click", (copyEvent) => {
+        copyEvent.preventDefault();
+        const target = copyEvent.target;
+        const t = target.parentElement.nextElementSibling.innerText;
+        navigator.clipboard.writeText(t).then(() => {
+        });
+        target.innerText = "Copied";
+        target.style.cursor = "auto";
+        setInterval(() => {
+          target.innerText = "Copy";
+          target.style.cursor = "pointer";
+        }, 3e3);
+      });
     });
   }
   function getInputHandler(inputElement) {
@@ -50069,21 +50096,7 @@
               const timing = document.getElementById("timing-info");
               timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
               highlightCode(inner);
-              inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
-                copyElem.addEventListener("click", (copyEvent) => {
-                  copyEvent.preventDefault();
-                  const target = copyEvent.target;
-                  const t = target.parentElement.nextElementSibling.innerText;
-                  navigator.clipboard.writeText(t).then(() => {
-                  });
-                  target.innerText = "Copied";
-                  target.style.cursor = "auto";
-                  setInterval(() => {
-                    target.innerText = "Copy";
-                    target.style.cursor = "pointer";
-                  }, 3e3);
-                });
-              });
+              setClipboardHandler(inner);
               inputElement.focus();
               break;
             } else {

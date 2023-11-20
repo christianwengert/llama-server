@@ -238,6 +238,7 @@ const loadHistory = () => {
 
             if (direction === 'them') {
                 highlightCode(inner);
+                setClipboardHandler(inner);
             }
         })
     }
@@ -257,19 +258,56 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
 };
 
 function highlightCode(inner: HTMLElement) {
-    const pattern = /```([a-z]+)? ?([^`]*)```/g
-    const rep = `<div class="code-header"><div class="language">$1</div><div class="copy">Copy</div></div><pre><code class="language-$1">$2</code></pre>`
-    const intermediate = inner.innerText.replace(pattern, rep)
-    // adapt markdown for `
-    const pattern2 = /`([^`]*)`/g
-    const rep2 = `<code class="inline">$1</code>`
-    inner.innerHTML = intermediate.replace(pattern2, rep2)
+
+    function convertMarkdownToHTML(mdString: string) {
+      // Replace triple backtick code blocks
+      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+        const language = lang || 'bash';
+        return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
+      });
+
+      // Replace inline code
+      const inlineCodeRegex = /`([^`]+)`/g;
+      mdString = mdString.replace(inlineCodeRegex, '<code class="inline">$1</code>');
+
+      return mdString;
+    }
+
+    function escapeHTML(str: string) {
+      return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    const codeString = inner.innerText;
+
+    inner.innerHTML = convertMarkdownToHTML(codeString);
 
     scrollToBottom()
     // highlight code
-    inner.querySelectorAll('pre code').forEach((block) => {
-        hljs.highlightElement(<HTMLElement>block);
+    inner.querySelectorAll('pre code').forEach((block: Element) => {
+        hljs.highlightElement(block as HTMLElement);
     });
+}
+
+function setClipboardHandler(inner: HTMLElement) {
+    inner.querySelectorAll('.code-header >.copy').forEach((copyElem) => {
+        copyElem.addEventListener('click', (copyEvent) => {
+            copyEvent.preventDefault();
+            const target = copyEvent.target! as HTMLElement;
+
+            const t = (target.parentElement!.nextElementSibling! as HTMLElement).innerText;
+            // Copy the text inside the text field
+            navigator.clipboard.writeText(t).then(() => {
+            });
+            target.innerText = 'Copied'
+            target.style.cursor = 'auto'
+
+            setInterval(() => {
+                target.innerText = 'Copy'
+                target.style.cursor = 'pointer'
+            }, 3000)
+        })
+    })
 }
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -354,24 +392,7 @@ function getInputHandler(inputElement: HTMLElement) {
                         // adapt markdown for ```
                         highlightCode(inner);
                         // set up copy to clipboard buttons
-                        inner.querySelectorAll('.code-header >.copy').forEach((copyElem) => {
-                            copyElem.addEventListener('click', (copyEvent) => {
-                                copyEvent.preventDefault();
-                                const target = copyEvent.target! as HTMLElement;
-
-                                const t = (target.parentElement!.nextElementSibling! as HTMLElement).innerText;
-                                // Copy the text inside the text field
-                                navigator.clipboard.writeText(t).then(() => {
-                                });
-                                target.innerText = 'Copied'
-                                target.style.cursor = 'auto'
-
-                                setInterval(() => {
-                                    target.innerText = 'Copy'
-                                    target.style.cursor = 'pointer'
-                                }, 3000)
-                            })
-                        })
+                        setClipboardHandler(inner);
                         inputElement.focus();
                         break;
                     } else {
