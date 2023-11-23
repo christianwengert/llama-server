@@ -447,7 +447,7 @@ a:visited {
 
 .edit-button {
     width: 80%;
-    margin: 16px auto auto;
+    margin: 8px auto auto;
     font-size: 0.8rem;
     text-align: right;
     display: flex;
@@ -456,8 +456,11 @@ a:visited {
 }
 .edit-button a {
     margin-left: 16px;
+    opacity: 0.5;
 }
-
+.edit-button a:hover {
+    opacity: 1.0;
+}
 
 
 .delete-history-item {
