@@ -49966,6 +49966,7 @@
         historyDiv.appendChild(li);
         if (document.location.pathname.indexOf(item.url) >= 0) {
           renderHistoryMessages(item);
+          scrollToBottom();
         }
       });
     };

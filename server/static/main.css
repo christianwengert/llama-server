@@ -366,8 +366,7 @@ a:visited {
     border-radius: 5px;
     background-color: unset;
     color: rgb(183, 183, 193);
-    padding: 8px;
-    padding-top: 10px;
+    padding: 10px 8px 8px;
     font-size: 1rem;
     cursor: pointer;
 }
@@ -394,6 +393,7 @@ a:visited {
 .sidebar-footer {
     margin-top: auto !important;
     display: flex;
+    /*font-size: 0.8rem;*/
 }
 .container {
   margin-left: auto;  /* Default margin */

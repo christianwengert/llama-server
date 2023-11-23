@@ -207,7 +207,8 @@ const loadHistory = () => {
             li.appendChild(deleteButton);
             historyDiv.appendChild(li);
             if (document.location.pathname.indexOf(item.url) >= 0) {
-                renderHistoryMessages(item)
+                renderHistoryMessages(item);
+                scrollToBottom();
             }
         });
     }
