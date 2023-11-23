@@ -50107,6 +50107,7 @@
             }
           }
           buffer = buffer.substring(start);
+          updateScrollButton();
         };
         xhr.addEventListener("error", function(e2) {
           console.log("error: " + e2);
@@ -50130,7 +50131,47 @@
     }
     return handleInput;
   }
+  function setupResetSettingsButton() {
+    const link = document.getElementById("reset-settings");
+    if (!link) {
+      return;
+    }
+    link.addEventListener("click", (e) => {
+      e.preventDefault();
+      fetch("/settings/default").then((r) => r.json()).then((data) => {
+        let form = document.getElementById("settings-form");
+        for (let key in data) {
+          if (data.hasOwnProperty(key)) {
+            let input = form.elements[key];
+            if (input) {
+              input.value = data[key];
+            }
+          }
+        }
+      });
+    });
+  }
+  function updateScrollButton() {
+    const div = document.getElementById("chat");
+    const scrollButton = document.getElementById("scrolldown-button");
+    if (div.offsetHeight + div.scrollTop >= div.scrollHeight) {
+      scrollButton.style.display = "none";
+    } else {
+      scrollButton.style.display = "block";
+    }
+  }
+  function setupScrollButton() {
+    const div = document.getElementById("chat");
+    const scrollButton = document.getElementById("scrolldown-button");
+    scrollButton.addEventListener("click", () => {
+      div.scrollTop = div.scrollHeight;
+    });
+    updateScrollButton();
+    div.addEventListener("scroll", updateScrollButton);
+  }
   var run = () => {
+    setupResetSettingsButton();
+    setupScrollButton();
     setupUploadButton();
     const textInput = document.getElementById("input-box");
     if (textInput) {

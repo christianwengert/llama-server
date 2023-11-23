@@ -393,6 +393,7 @@ function getInputHandler(inputElement: HTMLElement) {
 
                 }
                 buffer = buffer.substring(start); // Remove parsed messages from the buffer
+                updateScrollButton();
             };
 
             xhr.addEventListener("error", function (e) {
@@ -422,11 +423,67 @@ function getInputHandler(inputElement: HTMLElement) {
 
         }
     }
+
     return handleInput
 }
 
 
+function setupResetSettingsButton() {
+    const link = document.getElementById('reset-settings') as HTMLElement;
+    if (!link) {
+        return;
+    }
+    link.addEventListener('click', (e) => {
+        e.preventDefault();
+        fetch('/settings/default').then(r => r.json()).then(data => {
+            // Select the form
+            let form = document.getElementById('settings-form')! as HTMLFormElement;
+            // Iterate over the keys in the JSON object
+            for (let key in data) {
+                if (data.hasOwnProperty(key)) {
+                    // Find the form element that matches the key
+                    // @ts-ignore
+                    let input = form.elements[key];
+                    if (input) {
+                        // Update the value of the form element
+                        input.value = data[key];
+                    }
+                }
+            }
+        })
+    })
+}
+
+
+function updateScrollButton() {
+    const div = document.getElementById('chat')! as HTMLDivElement;
+    const scrollButton = document.getElementById('scrolldown-button')! as HTMLButtonElement;
+    if ((div.offsetHeight + div.scrollTop) >= div.scrollHeight) {
+        // The div is scrolled to the bottom, so hide the button
+        scrollButton.style.display = 'none';
+    } else {
+        // The div is not scrolled to the bottom, so show the button
+        scrollButton.style.display = 'block';
+    }
+}
+
+function setupScrollButton() {
+    const div = document.getElementById('chat')! as HTMLDivElement;
+    const scrollButton = document.getElementById('scrolldown-button')! as HTMLButtonElement;
+
+    scrollButton.addEventListener('click', () => {
+        div.scrollTop = div.scrollHeight; // Scroll to bottom
+    });
+
+    // Call the function initially and whenever the user scrolls within the div
+    updateScrollButton();
+    div.addEventListener('scroll', updateScrollButton);
+}
+
 const run = () => {
+
+        setupResetSettingsButton();
+        setupScrollButton();
 
         setupUploadButton()
 

@@ -54,7 +54,7 @@
                 </div>
                 <div>
                     <label for="repeat_penalty">Repeat Penalty:</label>
-                    <input type="number" id="repeat_penalty" name="repeat_penalty" step="0.01" value="1.18"><br>
+                    <input type="number" id="repeat_penalty" name="repeat_penalty" step="0.01" value="1.1"><br>
                 </div>
                 <div class="param-help">
                     Control the repetition of token sequences in the generated text (default: 1.1)
@@ -116,11 +116,25 @@
                     Specify the word you want to use to instruct the model to stop
                 </div>
                 <div>
+                    <label for="user_prompt_suffix">User Prompt Suffix:</label>
+                    <input type="text" id="user_prompt_suffix" name="user_prompt_suffix" value="{{user_prompt_suffix}}"><br>
+                </div>
+                <div class="param-help">
+                    Suffix for system prompt
+                </div>
+                <div>
                     <label for="system_prompt_prefix">System Prompt Prefix:</label>
                     <input type="text" id="system_prompt_prefix" name="system_prompt_prefix" value="{{system_prompt_prefix}}"><br>
                 </div>
                 <div class="param-help">
-                    Todo
+                    Prefix for system prompt
+                </div>
+                <div>
+                    <label for="system_prompt_suffix">System Prompt Suffix:</label>
+                    <input type="text" id="system_prompt_suffix" name="system_prompt_suffix" value="{{system_prompt_suffix}}"><br>
+                </div>
+                <div class="param-help">
+                    Suffix for system prompt
                 </div>
                 <div>
                     <label for="system_prompt">System prompt:</label>
@@ -175,7 +189,9 @@
 <!--                    &lt;!&ndash; Submit Button &ndash;&gt;-->
 <!--                    <input type="submit" value="Submit">-->
 <!--                </div>-->
-
+                <div class="param-help">
+                    <a href="#" id="reset-settings">Reset Settings</a>
+                </div>
             </form>
 
 

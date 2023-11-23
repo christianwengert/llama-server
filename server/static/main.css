@@ -367,12 +367,14 @@ a:visited {
     background-color: unset;
     color: rgb(183, 183, 193);
     padding: 8px;
+    padding-top: 10px;
     font-size: 1rem;
     cursor: pointer;
 }
 #reset-button{
     width: 80%;
     margin: auto;
+    /*padding-top: 10px;*/
 }
 
 #sidebar-username {
@@ -647,4 +649,27 @@ input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
     -webkit-appearance: none;
     margin: 0;
+}
+#scrolldown-button-div {
+    position: absolute;
+    bottom: 200px;
+    /*right: 10px;*/
+    text-align: center;
+    /*width: 100%;*/
+    display: flex; /* Make the div a flex container */
+    justify-content: center; /* Center child elements horizontally */
+    align-items: center;
+    width: calc(100% - var(--sidebar-width));
+}
+#scrolldown-button {
+    display: none;
+    height: 32px;
+    width: 32px;
+    font-weight: bold;
+    font-size: 1.1rem;
+    cursor: pointer;
+    border-radius: 16px;
+    background-color: white;
+    /*border: none;*/
+    border: 1px solid lightgray !important;
 }
