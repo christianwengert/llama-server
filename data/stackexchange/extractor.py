@@ -1,11 +1,11 @@
 import os
+# noinspection PyPep8Naming
 import xml.etree.ElementTree as ET
 import json
 
 from bs4 import BeautifulSoup
 
 # Parse the XML file
-
 
 
 def strip_html(html_content):

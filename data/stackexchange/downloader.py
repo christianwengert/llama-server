@@ -1,18 +1,18 @@
 import os
-
 import requests
 from bs4 import BeautifulSoup
-
+# noinspection PyUnresolvedReferences
 import py7zr
 
 
-class Stack_Exchange_Downloader():
+class StackExchangeDownloader:
 
     def __init__(self, name):
         """
         :param name: name of stackexchange site to download. If all, will download all stackexchanges & metas.
         """
         sitesmap = requests.get("https://ia600107.us.archive.org/27/items/stackexchange/Sites.xml").content
+        # noinspection HttpUrlsUsage
         self.name = name.replace("http://", "").replace("https://", "").replace(".com", "").replace(".net", "")
         self.sites = {}
         self.parse_sitesmap(sitesmap)
@@ -25,7 +25,7 @@ class Stack_Exchange_Downloader():
             download_link = "https://archive.org/download/stackexchange/" + url + ".7z"
             if url == "stackoverflow.com":
                 download_link = "https://archive.org/download/stackexchange/stackoverflow.com-Posts.7z"
-            self.sites[site_name] = {"url" : url, "download" : download_link}
+            self.sites[site_name] = {"url": url, "download": download_link}
 
     def download(self):
         if self.name == "all":
@@ -47,8 +47,7 @@ class Stack_Exchange_Downloader():
                 #                                                , mode='r'))
                 # archive.extractall()
                 # archive.close()
-                command = "py7zr x dumps/{} dumps/{}".format(self.sites[k]["download"].replace("https://archive.org/download/stackexchange/", ""),
-                                                       k)
+                command = "py7zr x dumps/{} dumps/{}".format(self.sites[k]["download"].replace("https://archive.org/download/stackexchange/", ""), k)
                 print(command)
                 if os.system(command):
                     print('Extraction for {} failed!'.format(k))
@@ -58,8 +57,7 @@ class Stack_Exchange_Downloader():
             #                       , mode='r'))
             # archive.extractall()
             # archive.close()
-            command = "py7zr x dumps/{} dumps/{}".format(self.sites[self.name]["download"].replace("https://archive.org/download/stackexchange/", ""),
-                                                      self.name)
+            command = "py7zr x dumps/{} dumps/{}".format(self.sites[self.name]["download"].replace("https://archive.org/download/stackexchange/", ""), self.name)
             print(command)
             if os.system(command):
                 print('Extraction for {} failed!'.format(self.name))

@@ -1,19 +1,18 @@
 import argparse, traceback
 from multiprocessing import Pool, cpu_count
 
-from data.stackexchange.downloader import Stack_Exchange_Downloader
+from data.stackexchange.downloader import StackExchangeDownloader
 from extractor import extract
 import os
 from itertools import repeat
 
 
-
-
 def download_and_process_single(name, out_format, min_score, max_responses):
+    # noinspection PyBroadException
     try:
         name = name.strip().lower()
         os.makedirs("dumps", exist_ok=True)
-        s = Stack_Exchange_Downloader(name)
+        s = StackExchangeDownloader(name)
         path_to_xml = "dumps/{}/Posts.xml".format(name)
         if name != "stackoverflow":
             path_to_7z = "dumps/{}.7z".format(s.sites[name]["url"])
@@ -59,7 +58,7 @@ def download_and_process_single(name, out_format, min_score, max_responses):
 def main(args):
     names = args.names.split(',')
     if names[0].strip().lower() == "all":
-        s = Stack_Exchange_Downloader("all")
+        s = StackExchangeDownloader("all")
         names = []
         for k in s.sites:
             names.append(k)
@@ -92,5 +91,3 @@ if __name__ == "__main__":
                                                 'Default 3.', type=int, default=3)
     args = parser.parse_args()
     main(args)
-
-
