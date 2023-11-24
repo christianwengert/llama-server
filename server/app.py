@@ -11,14 +11,14 @@ from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify
 from flask_session import Session
+import datetime
+
 
 SYSTEM_PROMPT_PREFIX = '### System Prompt'
 ASSISTANT_NAME = '### Assistant'
 USER = '### User Message'
 
 SEPARATOR = '~~~~'
-
-import datetime
 
 
 def categorize_timestamp(timestamp: float):
@@ -37,7 +37,6 @@ def categorize_timestamp(timestamp: float):
         return "Last month"
     else:
         return "Older"
-
 
 
 app = Flask(__name__)
@@ -231,6 +230,9 @@ def upload():
         token = session.get('token')
         ADDITIONAL_CONTEXT[token] = contents
 
+        tokens = get_tokens(contents)
+        _n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
+
     # collection = request.form['collection-selector']  # todo
 
     # extract text fro document
@@ -283,13 +285,22 @@ def get_embeddings(data):
     return data_json
 
 
+def get_tokens(text):
+    data = requests.request(method="POST",
+                            url=urllib.parse.urljoin(args.llama_api, "/tokenize"),
+                            data=json.dumps(dict(content=text)),
+                            )
+    data_json = data.json()
+    return data_json
+
+
 @login_required
 @app.route('/', methods=["POST"])
 def get_input():
     token = session.get('token', None)
     username = session.get('username')
 
-    data = request.get_json()  # todo remove 'model' from data and add other params
+    data = request.get_json()
     text = data.pop('input')
     prune_history_index = data.pop('pruneHistoryIndex')
 
@@ -298,7 +309,7 @@ def get_input():
     system_prompt = data.pop('system_prompt', INSTRUCTION)
     if not system_prompt:
         system_prompt = INSTRUCTION
-    # _grammar = data.pop('grammar')  # todo: not ready yet
+
     assistant = data.pop('assistant_name', ASSISTANT_NAME)
 
     user = data.pop('anti_prompt', USER)
@@ -329,8 +340,6 @@ def get_input():
         hist['items'].append(dict(role=user, content=f'This is the context: {context}'))
         hist['items'].append(dict(role=assistant, content='OK'))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
-
-    # TODO BROKEN
 
     def compile_history(hist):
         lines = [f'{h["role"]}: {h["content"]}' for h in hist["items"]]
