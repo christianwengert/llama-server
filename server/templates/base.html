@@ -7,8 +7,6 @@
 </head>
 <body>
 
-
-
 <div class="page">
 
     {% block sidebar %}
@@ -16,7 +14,12 @@
 
     <div class="container">
         <div id="header">
-            <div class="header-inner"><a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a></div>
+<!--            <img src="/static/logo.png" height="24" width="24">-->
+            {% block extra_header %}
+            {% endblock extra_header %}
+            <div class="header-inner">
+                <a href="/" id="logo-link"><strong>{{name}}</strong>GPT</a>
+            </div>
         </div>
 
         {% block content %}

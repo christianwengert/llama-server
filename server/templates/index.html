@@ -1,9 +1,29 @@
 {% extends "base.html" %}
 
+
+{% block extra_header %}
+<div class="header-inner">
+    <!-- Trigger link -->
+    <a href="#" id="menuLink">Chat <span class="chevron-down"></span></a>
+
+    <!-- Hidden menu -->
+    <div id="menu" class="hidden">
+        More modes are coming.<br>
+        Please stay patient.
+<!--      <a href="#" disabled="true">Chat</a>-->
+<!--      <a href="#" disabled="true">Collection A</a>-->
+<!--      <a href="#" disabled="true">Collection B</a>-->
+    </div>
+
+</div>
+{% endblock extra_header %}
+
 {% block sidebar %}
     <div class="sidebar">
-        <div>
-            <a class="sidebar-button" href="/" id="reset-button">New Chat</a>
+        <div class="sidebar-header">
+            <a class="sidebar-button" href="/" id="reset-button">
+                <i class="gg-math-plus"></i>
+            </a>
         </div>
 
         <div id="history-div">
@@ -24,9 +44,10 @@
         </div>
         <div class="sidebar-footer">
             <div id="sidebar-username">
-                User: {{username}}
+                <i class="gg-profile"></i>&nbsp;{{username}}
             </div>
-            <a class="sidebar-button" href="/logout" id="logout-button">Logout</a>
+
+            <a class="sidebar-button" href="/logout" id="logout-button"><i class="gg-log-out"></i></a>
         </div>
     </div>
 {% endblock sidebar %}

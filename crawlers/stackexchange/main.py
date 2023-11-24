@@ -1,7 +1,7 @@
 import argparse, traceback
 from multiprocessing import Pool, cpu_count
 
-from data.stackexchange.downloader import StackExchangeDownloader
+from crawlers.stackexchange.downloader import StackExchangeDownloader
 from extractor import extract
 import os
 from itertools import repeat

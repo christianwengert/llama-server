@@ -83,6 +83,12 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     messageDiv.className = `message from-${direction}`;
     messageDiv.id = ident;
 
+
+    const messageExtra = document.createElement('div')
+    messageExtra.className = 'message-header'
+    messageDiv.appendChild(messageExtra);
+    messageExtra.innerText = direction === 'me' ? 'You' : 'Assistant';
+
     const innerMessageDiv = document.createElement('div');
     innerMessageDiv.className = 'inner-message';
     innerMessageDiv.textContent = message;
@@ -366,8 +372,12 @@ function getInputHandler(inputElement: HTMLElement) {
                 while ((end = buffer.indexOf(separator, start)) !== -1) {
                     let message = buffer.substring(start, end);
                     start = end + separator.length; // skip past the delimiter
-
-                    const jsonMessage = JSON.parse(message);
+                    let jsonMessage;
+                    try {
+                        jsonMessage = JSON.parse(message);
+                    } catch (e) {
+                        console.log(e)
+                    }
 
                     if (jsonMessage.stop === true) {
                         const timings = jsonMessage.timings
@@ -481,8 +491,28 @@ function setupScrollButton() {
     div.addEventListener('scroll', updateScrollButton);
 }
 
+function setupMenu() {
+    document.addEventListener('DOMContentLoaded', function () {
+        const menu = document.getElementById('menu')!;
+        const menuLink = document.getElementById('menuLink')!;
+
+        menuLink.addEventListener('click', function (event) {
+            menu.classList.toggle('hidden');
+            event.preventDefault();
+        });
+
+        window.addEventListener('click', function (event) {
+            let target = event.target! as HTMLElement;
+            if (!menu.contains(target) && target !== menuLink) {
+                menu.classList.add('hidden');
+            }
+        });
+    });
+}
+
 const run = () => {
 
+        setupMenu();
         setupResetSettingsButton();
         setupScrollButton();
 
