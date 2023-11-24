@@ -688,16 +688,18 @@ li:hover .delete-history-item {
 .popup .close {
     position: absolute;
     top: 20px;
-    right: 30px;
-    transition: all 200ms;
+    right: 10px;
+    /*transition: all 200ms;*/
     font-size: 30px;
     font-weight: bold;
     text-decoration: none;
-    color: #333;
+
+    color: #669;
+    padding: 8px;
 }
 
 .popup .close:hover {
-    color: #06D85F;
+    color: #333;
 }
 
 .popup .content {
@@ -959,3 +961,6 @@ input[type="number"]::-webkit-outer-spin-button {
     left: 7px
 }
 
+.rotate45 {
+    transform: rotate(45deg);
+}

@@ -159,11 +159,8 @@ const setupUploadButton = () => {
                     body: formData,
                     method: "post"
                 }).then(() => {
-                // window.location.href = '/embeddings/' + name;
-                console.log('upload done')
                 document.location.hash = ''
             });
-
         })
     }
 };
@@ -519,6 +516,8 @@ function setupMenu() {
         if (!menu.contains(target) && target !== menuLink) {
             menu.classList.add('hidden');
         }
+        // todo: close popup when out of reach
+        // const targetElement = document.getElementById('element');
     });
 
 
