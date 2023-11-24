@@ -50188,20 +50188,34 @@
     div.addEventListener("scroll", updateScrollButton);
   }
   function setupMenu() {
-    document.addEventListener("DOMContentLoaded", function() {
-      const menu = document.getElementById("menu");
-      const menuLink = document.getElementById("menuLink");
-      menuLink.addEventListener("click", function(event) {
+    const menuLink = document.getElementById("menuLink");
+    const textNode = menuLink.firstChild;
+    const menu = document.getElementById("menu");
+    menuLink.addEventListener("click", function(event) {
+      menu.classList.toggle("hidden");
+      event.preventDefault();
+    });
+    window.addEventListener("click", function(event) {
+      let target = event.target;
+      if (!menu.contains(target) && target !== menuLink) {
+        menu.classList.add("hidden");
+      }
+    });
+    for (let elem of document.getElementsByClassName("mode-button")) {
+      elem.addEventListener("click", (e) => {
+        e.preventDefault();
+        const target = e.target;
         menu.classList.toggle("hidden");
-        event.preventDefault();
-      });
-      window.addEventListener("click", function(event) {
-        let target = event.target;
-        if (!menu.contains(target) && target !== menuLink) {
-          menu.classList.add("hidden");
+        if (target.id === "mode-chat") {
+          textNode.textContent = "Chat";
+          return;
+        }
+        if (target.id === "mode-stackexchange") {
+          textNode.textContent = "Stackexchange";
+          return;
         }
       });
-    });
+    }
   }
   var run = () => {
     setupMenu();

@@ -502,22 +502,43 @@ function setupScrollButton() {
 }
 
 function setupMenu() {
-    document.addEventListener('DOMContentLoaded', function () {
-        const menu = document.getElementById('menu')!;
-        const menuLink = document.getElementById('menuLink')!;
 
-        menuLink.addEventListener('click', function (event) {
-            menu.classList.toggle('hidden');
-            event.preventDefault();
-        });
+    const menuLink = document.getElementById('menuLink')!;
+    const textNode = menuLink.firstChild! as HTMLElement;
 
-        window.addEventListener('click', function (event) {
-            let target = event.target! as HTMLElement;
-            if (!menu.contains(target) && target !== menuLink) {
-                menu.classList.add('hidden');
-            }
-        });
+    const menu = document.getElementById('menu')!;
+
+
+    menuLink.addEventListener('click', function (event) {
+        menu.classList.toggle('hidden');
+        event.preventDefault();
     });
+
+    window.addEventListener('click', function (event) {
+        let target = event.target! as HTMLElement;
+        if (!menu.contains(target) && target !== menuLink) {
+            menu.classList.add('hidden');
+        }
+    });
+
+
+
+    for (let elem of document.getElementsByClassName('mode-button')) {
+        elem.addEventListener('click', (e) => {
+            e.preventDefault()
+            const target  = e.target! as HTMLElement;
+            menu.classList.toggle('hidden');
+            if(target.id === 'mode-chat') {
+                textNode.textContent = 'Chat';
+                return
+            }
+            if (target.id === 'mode-stackexchange') {
+                textNode.textContent = 'Stackexchange';
+                return
+            }
+
+        })
+    }
 }
 
 const run = () => {
@@ -525,7 +546,6 @@ const run = () => {
         setupMenu();
         setupResetSettingsButton();
         setupScrollButton();
-
         setupUploadButton()
 
         const textInput = document.getElementById('input-box')! as HTMLDivElement;
