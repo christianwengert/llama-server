@@ -18,6 +18,28 @@ USER = '### User Message'
 
 SEPARATOR = '~~~~'
 
+import datetime
+
+
+def categorize_timestamp(timestamp: float):
+    now = datetime.datetime.now()
+
+    # for timestamp in timestamps:
+    item_date = datetime.datetime.fromtimestamp(timestamp)
+
+    if (now - item_date).days == 0:
+        return "Today"
+    elif (now - item_date).days == 1:
+        return "Yesterday"
+    elif (now - item_date).days <= 7:
+        return "Last week"
+    elif (now - item_date).days <= 30:
+        return "Last month"
+    else:
+        return "Older"
+
+
+
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
 app.config.update(
@@ -132,7 +154,8 @@ def history(item=None):
             history_items.append(dict(
                 title=json_data["title"],
                 url=url,
-                items=json_data["items"] if item == url else []
+                items=json_data["items"] if item == url else [],
+                age=categorize_timestamp(os.path.getmtime(os.path.join(CACHE_DIR, d)))
             ))
     return jsonify(history_items)
 

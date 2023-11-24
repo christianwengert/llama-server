@@ -253,6 +253,12 @@ li.strike {
     text-decoration: line-through;
 }
 
+.history-age-title {
+    font-size: 0.8rem;
+    opacity: 0.6;
+    margin-top: 16px;
+}
+
 /*#upload-plus {*/
 /*    !*border-radius: 10px;*!*/
 /*    !*background-color: #b4f1b4;*!*/
@@ -517,7 +523,7 @@ a:visited {
 }
 
 
-#history-div, #todos-div {
+#todos-div {
     margin-top: 24px;
 }
 

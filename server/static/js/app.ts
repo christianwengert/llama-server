@@ -180,13 +180,23 @@ const loadHistory = () => {
         items: Array<Message>;
         assistant: string;
         user: string;
+        age: string
     };
     type HistoryItems = HistoryItem[];
     const historyDiv = document.getElementById('history') as HTMLUListElement;
     historyDiv.innerHTML = "";
     const setHistory = (items: HistoryItems) => {
-
+        let lastAge = '';
         items.forEach(item => {
+
+            if(lastAge !== item.age) {
+                const age = document.createElement('li');
+                age.innerText = item.age;
+                age.className = 'history-age-title';
+                historyDiv.appendChild(age);
+            }
+            lastAge = item.age;
+
             const li = document.createElement('li');
             const historyLink = document.createElement('a');
             const deleteButton = document.createElement('button');
