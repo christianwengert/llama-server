@@ -13,6 +13,7 @@ from flask import Flask, render_template, request, session, Response, abort, red
 from flask_session import Session
 import datetime
 
+MAX_TITLE_LENGTH = 48
 
 SYSTEM_PROMPT_PREFIX = '### System Prompt'
 ASSISTANT_NAME = '### Assistant'
@@ -293,6 +294,43 @@ def get_tokens(text):
     data_json = data.json()
     return data_json
 
+#
+# @login_required
+# @app.route('/update/history/<path:item>')
+# def update_history_title(item):
+#     title_prompt = 'given the conversation below, create a short but descriptive title for the conversation. Do not preceed with Title:'
+#
+#     username = session.get('username')
+#
+#     hashed_username = hash_username(username)
+#     history_key = f'{hashed_username}-{item}-history'
+#     cache_key = f'{CACHE_DIR}/{history_key}.json'
+#     try:
+#         with open(cache_key) as f:
+#             hist = json.load(f)
+#     except (FileNotFoundError, JSONDecodeError):
+#         abort(400)
+#
+#     history = compile_history(hist)
+#
+#     prompt = title_prompt + 'Convesation:\n' + history
+#
+#     data = requests.request(method="POST",
+#                             url=urllib.parse.urljoin(args.llama_api, "/completion"),
+#                             data=json.dumps(dict(prompt=prompt)),
+#                             stream=True)
+
+
+def compile_history(hist):
+    lines = []
+    for h in hist["items"]:
+        suffix = h.get("suffix", "")
+        if suffix:
+            lines.append(f'{h["role"]}:\n{h["content"]}\n{suffix}\n')
+        else:
+            lines.append(f'{h["role"]}:\n{h["content"]}\n')
+    return '\n'.join(lines)
+
 
 @login_required
 @app.route('/', methods=["POST"])
@@ -337,13 +375,9 @@ def get_input():
     if context:
         # todo: Add n_keep correctly
         context = context.strip()
-        hist['items'].append(dict(role=user, content=f'This is the context: {context}'))
-        hist['items'].append(dict(role=assistant, content='OK'))  # f'{assistant}: OK'
+        hist['items'].append(dict(role=user, content=f'This is the context: {context}', suffix=user_suffix))
+        hist['items'].append(dict(role=assistant, content='OK', suffix=""))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
-
-    def compile_history(hist):
-        lines = [f'{h["role"]}: {h["content"]}' for h in hist["items"]]
-        return '\n'.join(lines)
 
     if prune_history_index >= 0:  # remove items if required
         hist["items"] = hist["items"][:prune_history_index]
@@ -351,7 +385,17 @@ def get_input():
     history = compile_history(hist)
 
     # system = "### System prompt\n"
-    prompt = f'{system_prompt_prefix}\n{system_prompt}{system_prompt_suffix}\n\n{history}\n{user}\n{text}\n{user_suffix}\n{assistant}\n'  # for the wizardLM OK, but not for Zephyr
+    prompt = f'''{system_prompt_prefix}
+{system_prompt}{system_prompt_suffix}
+    
+{history}
+    
+{user}
+{text}
+{user_suffix}
+    
+{assistant}
+    '''
 
     post_data = get_llama_params(data)
 
@@ -372,8 +416,8 @@ def get_input():
                 yield response + SEPARATOR
 
         output = "".join([json.loads(a)['content'] for a in responses if 'embedding' not in a]).strip()
-        hist['items'].append(dict(role=user, content=text))  # f'User: {text}'
-        hist['items'].append(dict(role=assistant, content=output))  # f'Llama: {output}'
+        hist['items'].append(dict(role=user, content=text, suffix=user_suffix))  # f'User: {text}'
+        hist['items'].append(dict(role=assistant, content=output, suffix=""))  # f'Llama: {output}'
         with open(cache_key, 'w') as f:
             json.dump(hist, f)
 
