@@ -240,10 +240,10 @@ const loadHistory = () => {
             const msgDiv = document.getElementById(ident)
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
-            if (direction === 'them') {
+            // if (direction === 'them') {
                 highlightCode(inner);
-                setClipboardHandler(inner);
-            }
+                // setClipboardHandler(inner);
+            // }
         })
     }
     const index = document.location.pathname.indexOf('/c/')
@@ -295,26 +295,33 @@ function highlightCode(inner: HTMLElement) {
     });
 }
 
-function setClipboardHandler(inner: HTMLElement) {
-    inner.querySelectorAll('.code-header >.copy').forEach((copyElem) => {
-        copyElem.addEventListener('click', (copyEvent) => {
-            copyEvent.preventDefault();
-            const target = copyEvent.target! as HTMLElement;
+function setClipboardHandler() {
+    document.addEventListener('click', (event) => {
+        const target = event.target as HTMLElement;
 
-            const t = (target.parentElement!.nextElementSibling! as HTMLElement).innerText;
-            // Copy the text inside the text field
-            navigator.clipboard.writeText(t).then(() => {
+        // Check if the clicked element is a copy button inside a .code-header
+        if (target.matches('.code-header > .copy')) {
+            event.preventDefault();
+
+            // Find the associated code text to be copied
+            const codeText = (target.parentElement!.nextElementSibling! as HTMLElement).innerText;
+
+            // Copy the text to clipboard
+            navigator.clipboard.writeText(codeText).then(() => {
+                target.innerText = 'Copied';
+                target.style.cursor = 'auto';
+
+                setTimeout(() => {
+                    target.innerText = 'Copy';
+                    target.style.cursor = 'pointer';
+                }, 3000);
             });
-            target.innerText = 'Copied'
-            target.style.cursor = 'auto'
-
-            setInterval(() => {
-                target.innerText = 'Copy'
-                target.style.cursor = 'pointer'
-            }, 3000)
-        })
-    })
+        }
+    });
 }
+
+
+
 
 function getInputHandler(inputElement: HTMLElement) {
 
@@ -343,7 +350,16 @@ function getInputHandler(inputElement: HTMLElement) {
             const xhr = new XMLHttpRequest();
             const m = inputElement.innerText;
             if (isMainInput) {
-                renderMessage(inputElement.innerText, 'me', chat);
+                const ident = renderMessage(inputElement.innerText, 'me', chat);
+
+
+                // const ident = renderMessage('', 'them', chat)
+                const elem = document.getElementById(ident)!;
+                const inner = elem.querySelector('.inner-message')! as HTMLElement;
+                highlightCode(inner);
+
+
+
                 inputElement.innerText = '';
             }
             inputElement.contentEditable = "false";
@@ -401,7 +417,7 @@ function getInputHandler(inputElement: HTMLElement) {
                         // adapt markdown for ```
                         highlightCode(inner);
                         // set up copy to clipboard buttons
-                        setClipboardHandler(inner);
+                        // setClipboardHandler(inner);
                         inputElement.focus();
                         break;
                     } else {
@@ -556,7 +572,9 @@ const run = () => {
 
         setFocusToInputField(textInput);
 
-        loadHistory()
+        loadHistory();
+
+        setClipboardHandler();
     }
 ;
 

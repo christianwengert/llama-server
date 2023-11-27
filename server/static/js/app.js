@@ -49991,10 +49991,7 @@
         const ident = renderMessage(msg.content, direction, chat);
         const msgDiv = document.getElementById(ident);
         const inner = msgDiv.getElementsByClassName("inner-message")[0];
-        if (direction === "them") {
-          highlightCode(inner);
-          setClipboardHandler(inner);
-        }
+        highlightCode(inner);
       });
     };
     const index = document.location.pathname.indexOf("/c/");
@@ -50032,21 +50029,21 @@
       es_default.highlightElement(block);
     });
   }
-  function setClipboardHandler(inner) {
-    inner.querySelectorAll(".code-header >.copy").forEach((copyElem) => {
-      copyElem.addEventListener("click", (copyEvent) => {
-        copyEvent.preventDefault();
-        const target = copyEvent.target;
-        const t = target.parentElement.nextElementSibling.innerText;
-        navigator.clipboard.writeText(t).then(() => {
+  function setClipboardHandler() {
+    document.addEventListener("click", (event) => {
+      const target = event.target;
+      if (target.matches(".code-header > .copy")) {
+        event.preventDefault();
+        const codeText = target.parentElement.nextElementSibling.innerText;
+        navigator.clipboard.writeText(codeText).then(() => {
+          target.innerText = "Copied";
+          target.style.cursor = "auto";
+          setTimeout(() => {
+            target.innerText = "Copy";
+            target.style.cursor = "pointer";
+          }, 3e3);
         });
-        target.innerText = "Copied";
-        target.style.cursor = "auto";
-        setInterval(() => {
-          target.innerText = "Copy";
-          target.style.cursor = "pointer";
-        }, 3e3);
-      });
+      }
     });
   }
   function getInputHandler(inputElement) {
@@ -50070,7 +50067,10 @@
         const xhr = new XMLHttpRequest();
         const m = inputElement.innerText;
         if (isMainInput) {
-          renderMessage(inputElement.innerText, "me", chat);
+          const ident2 = renderMessage(inputElement.innerText, "me", chat);
+          const elem2 = document.getElementById(ident2);
+          const inner2 = elem2.querySelector(".inner-message");
+          highlightCode(inner2);
           inputElement.innerText = "";
         }
         inputElement.contentEditable = "false";
@@ -50115,7 +50115,6 @@
               const timing = document.getElementById("timing-info");
               timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
               highlightCode(inner);
-              setClipboardHandler(inner);
               inputElement.focus();
               break;
             } else {
@@ -50229,6 +50228,7 @@
     }
     setFocusToInputField(textInput);
     loadHistory();
+    setClipboardHandler();
   };
   document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {
