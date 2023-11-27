@@ -276,6 +276,12 @@ function highlightCode(inner: HTMLElement) {
             return `<code class="inline">${escapeHTML(code)}</code>`;
         });
 
+        // const inlineMarkdownRegex = /\*\*([^*]*)\*\*/g;
+
+        // mdString = mdString.replace(inlineMarkdownRegex, (match, code) => {
+        //     return `<code class="inline">${escapeHTML(code)}</code>`;
+        // });
+
         return mdString;
     }
 
