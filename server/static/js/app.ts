@@ -241,8 +241,7 @@ const loadHistory = () => {
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
             // if (direction === 'them') {
-                highlightCode(inner);
-                // setClipboardHandler(inner);
+            highlightCode(inner);
             // }
         })
     }
@@ -416,8 +415,7 @@ function getInputHandler(inputElement: HTMLElement) {
 
                         // adapt markdown for ```
                         highlightCode(inner);
-                        // set up copy to clipboard buttons
-                        // setClipboardHandler(inner);
+
                         inputElement.focus();
                         break;
                     } else {
@@ -522,7 +520,6 @@ function setupMenu() {
     const textNode = menuLink.firstChild! as HTMLElement;
 
     const menu = document.getElementById('menu')!;
-
 
     menuLink.addEventListener('click', function (event) {
         menu.classList.toggle('hidden');
