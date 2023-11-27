@@ -49935,7 +49935,6 @@
             method: "post"
           }
         ).then(() => {
-          console.log("upload done");
           document.location.hash = "";
         });
       });
@@ -50018,7 +50017,9 @@
         return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
       });
       const inlineCodeRegex = /`([^`]+)`/g;
-      mdString = mdString.replace(inlineCodeRegex, '<code class="inline">$1</code>');
+      mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+        return `<code class="inline">${escapeHTML(code)}</code>`;
+      });
       return mdString;
     }
     function escapeHTML(str) {
