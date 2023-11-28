@@ -186,7 +186,7 @@ const loadHistory = () => {
         let lastAge = '';
         items.forEach(item => {
 
-            if(lastAge !== item.age) {
+            if (lastAge !== item.age) {
                 const age = document.createElement('li');
                 age.innerText = item.age;
                 age.className = 'history-age-title';
@@ -326,8 +326,6 @@ function setClipboardHandler() {
 }
 
 
-
-
 function getInputHandler(inputElement: HTMLElement) {
 
     const mainInput = document.getElementById('input-box')! as HTMLDivElement;
@@ -362,7 +360,6 @@ function getInputHandler(inputElement: HTMLElement) {
                 const elem = document.getElementById(ident)!;
                 const inner = elem.querySelector('.inner-message')! as HTMLElement;
                 highlightCode(inner);
-
 
 
                 inputElement.innerText = '';
@@ -542,13 +539,12 @@ function setupMenu() {
     });
 
 
-
     for (let elem of document.getElementsByClassName('mode-button')) {
         elem.addEventListener('click', (e) => {
             e.preventDefault()
-            const target  = e.target! as HTMLElement;
+            const target = e.target! as HTMLElement;
             menu.classList.toggle('hidden');
-            if(target.id === 'mode-chat') {
+            if (target.id === 'mode-chat') {
                 textNode.textContent = 'Chat';
                 return
             }
@@ -560,6 +556,21 @@ function setupMenu() {
         })
     }
 }
+//
+// function setupAudio() {
+//     navigator.mediaDevices.getUserMedia({audio: true, video: false})
+//         .then(stream => {
+//             const mediaRecorder = new MediaRecorder(stream);
+//             mediaRecorder.start();
+//
+//             mediaRecorder.ondataavailable = function (e) {
+//                 // Send the audio chunks to the server here
+//             }
+//         })
+//         .catch(err => {
+//             console.log('Error accessing microphone:', err);
+//         });
+// }
 
 const run = () => {
 
@@ -578,6 +589,8 @@ const run = () => {
         loadHistory();
 
         setClipboardHandler();
+
+        // setupAudio()
     }
 ;
 
