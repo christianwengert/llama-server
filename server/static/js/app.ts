@@ -572,36 +572,43 @@ function setupMenu() {
 //         });
 // }
 
-const run = () => {
+function setupTextInput() {
+    const textInput = document.getElementById('input-box')! as HTMLDivElement;
+    if (textInput) {
+        textInput.addEventListener('keypress', getInputHandler(textInput))
+    }
 
-        setupMenu();
-        setupResetSettingsButton();
-        setupScrollButton();
-        setupUploadButton()
+    setFocusToInputField(textInput);
+}
 
-        const textInput = document.getElementById('input-box')! as HTMLDivElement;
-        if (textInput) {
-            textInput.addEventListener('keypress', getInputHandler(textInput))
+
+const setupEscapeButtonForPopups = () => {
+    document.addEventListener('keydown', function (event) {
+        // close popups on escape key
+        if (event.key === 'Escape') {
+            // Remove the hash from the URL to close the element opened via CSS anchors
+            window.location.hash = '';
         }
-
-        setFocusToInputField(textInput);
-
-        loadHistory();
-
-        setClipboardHandler();
-
-        // setupAudio()
-    }
-;
+    });
+};
 
 
-document.addEventListener('keydown', function (event) {
-    // close popups on escape key
-    if (event.key === 'Escape') {
-        // Remove the hash from the URL to close the element opened via CSS anchors
-        window.location.hash = '';
-    }
-});
+const main = () => {
 
+    setupMenu(); // Menu on top left
+    setupResetSettingsButton(); // Reset Settings
+    setupScrollButton(); // Scroll Button
+    setupUploadButton() //
 
-run()
+    setupTextInput();
+
+    loadHistory();
+
+    setClipboardHandler();
+
+    setupEscapeButtonForPopups();
+
+    // setupAudio()
+};
+
+main()

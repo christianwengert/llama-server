@@ -50217,16 +50217,6 @@
       });
     }
   }
-  function setupAudio() {
-    navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
-      const mediaRecorder = new MediaRecorder(stream);
-      mediaRecorder.start();
-      mediaRecorder.ondataavailable = function(e) {
-      };
-    }).catch((err) => {
-      console.log("Error accessing microphone:", err);
-    });
-  }
   var run = () => {
     setupMenu();
     setupResetSettingsButton();
@@ -50239,7 +50229,6 @@
     setFocusToInputField(textInput);
     loadHistory();
     setClipboardHandler();
-    setupAudio();
   };
   document.addEventListener("keydown", function(event) {
     if (event.key === "Escape") {
