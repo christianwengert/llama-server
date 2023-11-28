@@ -163,13 +163,7 @@ def history(item=None):
 @login_required
 @app.route("/settings/default")
 def get_default_settings():
-    data = dict(
-        system_prompt=INSTRUCTION,
-        assistant_name=ASSISTANT_NAME,
-        anti_prompt=USER,
-        system_prompt_prefix=SYSTEM_PROMPT_PREFIX
-    )
-    return jsonify(get_llama_params(data))
+    return jsonify(get_llama_parameters())
 
 
 @login_required
@@ -179,13 +173,7 @@ def c(token):
 
     data = session.get('params', None)
     if not data:
-        data = dict(
-            system_prompt=INSTRUCTION,
-            grammar='',
-            assistant_name=ASSISTANT_NAME,
-            anti_prompt=USER,
-            system_prompt_prefix=SYSTEM_PROMPT_PREFIX
-        )
+        data = get_llama_parameters()
 
     return render_template('index.html',
                            username=session.get('username', 'anonymous'),
@@ -193,6 +181,20 @@ def c(token):
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
                            **data
                            )
+
+
+def get_llama_parameters():
+    data = dict(
+        system_prompt=INSTRUCTION,
+        grammar='',
+        assistant_name=ASSISTANT_NAME,
+        anti_prompt=USER,
+        system_prompt_prefix=SYSTEM_PROMPT_PREFIX,
+    )
+    data = _get_llama_default_parameters(data)
+    if type(data['stop']) == list:
+        data['stop'] = ','.join(data['stop'])
+    return data
 
 
 @app.route("/")
@@ -397,7 +399,7 @@ def get_input():
 {assistant}
     '''
 
-    post_data = get_llama_params(data)
+    post_data = _get_llama_default_parameters(data)
 
     post_data['prompt'] = prompt
 
@@ -428,7 +430,7 @@ def hash_username(username):
     return hashlib.sha256(username.encode()).hexdigest()[0:8]  # 8 character is OK
 
 
-def get_llama_params(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
+def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
     default_params = {
         'cache_prompt': True,
         'frequency_penalty': 0,
@@ -442,7 +444,7 @@ def get_llama_params(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
         'presence_penalty': 0,
         'repeat_last_n': 256,
         'repeat_penalty': 1.1,
-        'stop': ['</s>', 'Llama:', 'User:', '<|endoftext|>'],
+        'stop': ['</s>', 'Llama:', 'User:', '<|endoftext|>', '<|im_end|>'],
         'stream': True,
         'temperature': 0.7,
         'tfs_z': 1,
