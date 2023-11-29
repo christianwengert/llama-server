@@ -34,7 +34,7 @@
                     <input type="number" id="min_p" name="min_p" step="0.05" value="{{min_p}}"><br>
                 </div>
                 <div class="param-help">
-                    The minimum probability for a token to be considered, relative to the probability of the most likely token
+                    The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
                 </div>
                 <!-- Array of Strings -->
                 <div>
@@ -57,21 +57,21 @@
                     <input type="number" id="repeat_penalty" name="repeat_penalty" step="0.01" value="{{repeat_penalty}}"><br>
                 </div>
                 <div class="param-help">
-                    Control the repetition of token sequences in the generated text (default: 1.1)
+                    Control the repetition of token sequences in the generated text (default: 1.1, 1.0 = disabled)
                 </div>
                 <div>
                     <label for="top_k">Top K:</label>
                     <input type="number" id="top_k" name="top_k" value="{{top_k}}"><br>
                 </div>
                 <div class="param-help">
-                    Limit the next token selection to the K most probable tokens (default: 40).
+                    Limit the next token selection to the K most probable tokens (default: 40, 0 = disabled).
                 </div>
                 <div>
                     <label for="top_p">Top P:</label>
                     <input type="number" id="top_p" name="top_p" step="0.01" value="{{top_p}}"><br>
                 </div>
                 <div class="param-help">
-                    Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9).
+                    Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
                 </div>
 <!--                <div>-->
 <!--                    <label for="tfs_z">TFS Z:</label>-->

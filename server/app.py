@@ -188,6 +188,9 @@ def c(token):
     if not data:
         data = get_llama_parameters()
 
+    if type(data['stop']) == list:
+        data['stop'] = ','.join(data['stop'])
+
     return render_template('index.html',
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
@@ -464,6 +467,7 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
         'top_k': 40,
         'top_p': 0.5,
         'typical_p': 1,
+        'min_p': 0.1
     }
 
     # 'slot_id': 0 or 1
@@ -473,4 +477,4 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
 
 if __name__ == '__main__':
     # app.run()
-    socketio.run(app, debug=True)
+    socketio.run(app)
