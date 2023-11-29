@@ -105,27 +105,27 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         messageDiv.appendChild(editButtonDiv);
     }
     // else {
-        // const voteButtonDiv = document.createElement('div');
-        // voteButtonDiv.className = 'edit-button';
-        // const upvoteLink = document.createElement('a');
-        // upvoteLink.href = '/upvote/';
-        // upvoteLink.id = `upvote-${ident}`;
-        // upvoteLink.textContent = '➞';
-        // voteButtonDiv.appendChild(upvoteLink);
-        //
-        //
-        // const downvoteLink = document.createElement('a');
-        // downvoteLink.href = '/downvote/';
-        // downvoteLink.id = `downvote-${ident}`;
-        // downvoteLink.textContent = '➞';
-        // voteButtonDiv.appendChild(downvoteLink);
-        //
-        // messageDiv.appendChild(voteButtonDiv);
-        //
-        // upvoteLink.addEventListener('click', handleUpvoteAction);
-        // downvoteLink.addEventListener('click', handleDownvoteAction);
-        //
-        //
+    // const voteButtonDiv = document.createElement('div');
+    // voteButtonDiv.className = 'edit-button';
+    // const upvoteLink = document.createElement('a');
+    // upvoteLink.href = '/upvote/';
+    // upvoteLink.id = `upvote-${ident}`;
+    // upvoteLink.textContent = '➞';
+    // voteButtonDiv.appendChild(upvoteLink);
+    //
+    //
+    // const downvoteLink = document.createElement('a');
+    // downvoteLink.href = '/downvote/';
+    // downvoteLink.id = `downvote-${ident}`;
+    // downvoteLink.textContent = '➞';
+    // voteButtonDiv.appendChild(downvoteLink);
+    //
+    // messageDiv.appendChild(voteButtonDiv);
+    //
+    // upvoteLink.addEventListener('click', handleUpvoteAction);
+    // downvoteLink.addEventListener('click', handleDownvoteAction);
+    //
+    //
     // }
     chat.appendChild(messageDiv);
     return ident;
@@ -157,7 +157,7 @@ const setupUploadButton = () => {
                     body: formData,
                     method: "post"
                 }).then(() => {
-                    document.location.hash = ''
+                document.location.hash = ''
             });
         })
     }
@@ -353,12 +353,9 @@ function getInputHandler(inputElement: HTMLElement) {
             if (isMainInput) {
                 const ident = renderMessage(inputElement.innerText, 'me', chat);
 
-
-                // const ident = renderMessage('', 'them', chat)
                 const elem = document.getElementById(ident)!;
                 const inner = elem.querySelector('.inner-message')! as HTMLElement;
                 highlightCode(inner);
-
 
                 inputElement.innerText = '';
             }
@@ -454,8 +451,6 @@ function getInputHandler(inputElement: HTMLElement) {
             console.log('prune ' + pruneHistoryIndex)
 
             xhr.send(JSON.stringify(formData));
-
-
         }
     }
 
@@ -557,7 +552,7 @@ function setupMenu() {
 
 function setupAudio() {
     let recordButton = document.getElementById('record') as HTMLButtonElement;
-    if(!recordButton) {
+    if (!recordButton) {
         console.log('No record button')
         return
     }
@@ -570,11 +565,11 @@ function setupAudio() {
     }
 
     const socket = io('ws://localhost:5000');
-    let mediaRecorder: MediaRecorder|undefined;
+    let mediaRecorder: MediaRecorder | undefined;
     let isRecording = false;
 
     recordButton.addEventListener('click', (e) => {
-        if(recordButton.disabled) {
+        if (recordButton.disabled) {
             e.preventDefault();
             return
         }
@@ -590,10 +585,10 @@ function setupAudio() {
 
 
     const startRecording = () => {
-        navigator.mediaDevices.getUserMedia({ audio: true })
+        navigator.mediaDevices.getUserMedia({audio: true})
             .then(stream => {
                 mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = function(e) {
+                mediaRecorder.ondataavailable = function (e) {
                     if (e.data.size > 0) {
                         socket.emit('audio_stream', e.data);
                     }
