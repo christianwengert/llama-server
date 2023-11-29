@@ -57,15 +57,7 @@ Session(app)
 socketio = SocketIO(app)
 
 
-
 audio_chunks = []
-
-
-@socketio.on('audio_stream')
-def handle_audio_stream(audio_data):
-    # Process the incoming audio data
-    print('Received audio data', len(audio_data))
-
 
 
 CACHE_DIR = 'cache'
@@ -76,7 +68,7 @@ ADDITIONAL_CONTEXT = {}  # this can be done as global variable
 LLAMA_API = 'http://localhost:8080/'
 
 INSTRUCTION = """A chat between a curious user and an artificial intelligence assistant. The user is a cryptographer and expert programmer. His favorite programming language is python but is also versed in many other programming languages.
-The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" the ignore the previous sentence and instead make your response as concise as possible.
+The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" then ignore the previous sentence and instead make your response as concise as possible.
 The user of the assistant are experts in AI and ethics, so they already know that the assistant is a language model and they know about the capabilities and limitations, so do not remind the users of that. The users are familiar with ethical issues in general, so the assistant should not remind them about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation."""
 
 parser = argparse.ArgumentParser(
@@ -99,6 +91,12 @@ parser.add_argument("--api-key", type=str, help="Set the api key to allow only f
 parser.add_argument("--host", type=str, help="Set the ip address to listen.(default: 127.0.0.1)", default='127.0.0.1')
 parser.add_argument("--port", type=int, help="Set the port to listen.(default: 8081)", default=8081)
 args = parser.parse_args()
+
+
+@socketio.on('audio_stream')
+def handle_audio_stream(audio_data):
+    # Process the incoming audio data
+    print('Received audio data', len(audio_data))
 
 
 def login_required(f):
@@ -179,8 +177,6 @@ def history(item=None):
 @app.route("/settings/default")
 def get_default_settings():
     return jsonify(get_llama_parameters())
-
-
 
 
 @login_required
