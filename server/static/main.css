@@ -607,7 +607,7 @@ li:hover .delete-history-item {
     z-index: 998;
 }
 
-.popup-form > div {
+.popup-form div {
     width: 100%;
     display: flex;
     margin-bottom: 0.2rem;
@@ -621,12 +621,12 @@ li:hover .delete-history-item {
     font-size: smaller;
 }
 
-.popup-form > div > label {
+.popup-form div > label {
     display: inline-block;
     width: 200px;
 }
 
-.popup-form > div > input, textarea, select {
+.popup-form div > input, textarea, select {
     margin-left: auto;
     min-width: 200px;
     width: 40vw;
@@ -636,7 +636,7 @@ li:hover .delete-history-item {
     background-color: white;
 }
 
-.popup-form > div > select {
+.popup-form div > select {
     height: 32px;
 
 }
@@ -645,7 +645,7 @@ li:hover .delete-history-item {
     margin-left: auto;
 }
 
-.popup-form > div > input[type=text], textarea, input[type=file] {
+.popup-form div > input[type=text], textarea, input[type=file] {
     text-align: left;
 }
 
@@ -1028,4 +1028,13 @@ input[type="number"]::-webkit-outer-spin-button {
 
 #record > i {
     margin: auto;
+}
+
+details {
+    margin-top: 8px;
+    margin-bottom: 24px;
+}
+summary {
+    cursor: pointer;
+    margin-bottom: 8px;
 }
