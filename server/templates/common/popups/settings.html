@@ -34,7 +34,7 @@
                     <input type="number" id="min_p" name="min_p" step="0.05" value="{{min_p}}"><br>
                 </div>
                 <div class="param-help">
-                    The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
+                    The minimum probability for a token to be considered, relative to the probability of the most likely token (default: {{min_p}}, 0.0 = disabled)
                 </div>
                 <!-- Array of Strings -->
                 <div>
@@ -50,21 +50,21 @@
                     <input type="number" id="repeat_last_n" name="repeat_last_n" value="{{repeat_last_n}}"><br>
                 </div>
                 <div class="param-help">
-                    Last n tokens to consider for penalizing repetition (default: 64, 0 = disabled, -1 = ctx-size)
+                    Last n tokens to consider for penalizing repetition (default: {{repeat_last_n}}, 0 = disabled, -1 = ctx-size)
                 </div>
                 <div>
                     <label for="repeat_penalty">Repeat Penalty:</label>
                     <input type="number" id="repeat_penalty" name="repeat_penalty" step="0.01" value="{{repeat_penalty}}"><br>
                 </div>
                 <div class="param-help">
-                    Control the repetition of token sequences in the generated text (default: 1.1, 1.0 = disabled)
+                    Control the repetition of token sequences in the generated text (default: {{repeat_penalty}}, 1.0 = disabled)
                 </div>
                 <div>
                     <label for="top_k">Top K:</label>
                     <input type="number" id="top_k" name="top_k" value="{{top_k}}"><br>
                 </div>
                 <div class="param-help">
-                    Limit the next token selection to the K most probable tokens (default: 40, 0 = disabled).
+                    Limit the next token selection to the K most probable tokens (default: {{top_k}}, 0 = disabled).
                 </div>
                 <div>
                     <label for="top_p">Top P:</label>
@@ -148,21 +148,21 @@
                     <input type="number" id="mirostat" name="mirostat" value="{{mirostat}}"><br>
                 </div>
                 <div class="param-help">
-                    Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
+                    Enable Mirostat sampling, controlling perplexity during text generation (default: {{mirostat}}, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
                 </div>
                 <div>
                     <label for="mirostat_tau">Mirostat Tau:</label>
                     <input type="number" id="mirostat_tau" name="mirostat_tau" step="0.01" value="{{mirostat_tau}}"><br>
                 </div>
                 <div class="param-help">
-                    Set the Mirostat target entropy, parameter tau (default: 5.0).
+                    Set the Mirostat target entropy, parameter tau (default: {{mirostat_tau}}).
                 </div>
                 <div>
                     <label for="mirostat_eta">Mirostat Eta:</label>
                     <input type="number" id="mirostat_eta" name="mirostat_eta" step="0.01" value="{{mirostat_eta}}"><br>
                 </div>
                 <div class="param-help">
-                    Set the Mirostat learning rate, parameter eta (default: 0.1).
+                    Set the Mirostat learning rate, parameter eta (default: {{mirostat_eta}}).
                 </div>
                 <div>
                     <label for="grammar">Grammar:</label>

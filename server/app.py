@@ -176,7 +176,9 @@ def history(item=None):
 @login_required
 @app.route("/settings/default")
 def get_default_settings():
-    return jsonify(get_llama_parameters())
+    data = get_llama_parameters()
+    session['params'] = data
+    return jsonify(data)
 
 
 @login_required
