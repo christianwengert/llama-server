@@ -57,19 +57,15 @@ Session(app)
 socketio = SocketIO(app)
 
 
+
 audio_chunks = []
 
-@socketio.on('audio_chunk')
-def handle_audio_chunk(audio_data):
-    global audio_chunks
-    audio_chunks.append(audio_data)
-    print('Received audio chunk')
 
-@socketio.on('disconnect')
-def handle_disconnect():
-    global audio_chunks
-    # Process the audio_chunks list here if needed
-    audio_chunks = []  # Reset the list on disconnect
+@socketio.on('audio_stream')
+def handle_audio_stream(audio_data):
+    # Process the incoming audio data
+    print('Received audio data', len(audio_data))
+
 
 
 CACHE_DIR = 'cache'
@@ -480,4 +476,5 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
 
 
 if __name__ == '__main__':
-    app.run()
+    # app.run()
+    socketio.run(app, debug=True)

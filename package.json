@@ -7,7 +7,9 @@
     "esbuild": "^0.17.17",
     "highlight.js": "^11.7.0",
     "markdown-it": "^13.0.1",
-    "markdown-it-highlightjs": "^4.0.1"
+    "markdown-it-highlightjs": "^4.0.1",
+    "socket.io-client": "^4.7.2"
+
   },
   "devDependencies": {
     "@types/markdown-it": "^12.2.3"

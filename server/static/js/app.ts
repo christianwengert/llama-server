@@ -1,4 +1,5 @@
 import hljs from "highlight.js";
+import io from 'socket.io-client';
 import 'highlight.js/styles/github-dark.css';
 
 
@@ -558,60 +559,60 @@ function setupMenu() {
 }
 
 function setupAudio() {
-    const recordButton = document.getElementById('record');
-    const stopButton = document.getElementById('stop');
-
-
-
-    const ws = new WebSocket('ws://localhost:5000'); // Adjust the URL to your server
-
-    ws.onopen = function(event) {
-        console.log('Connection opened');
-    };
-
-    ws.onmessage = function(event) {
-        console.log('Message received:', event.data);
-    };
-
-    ws.onerror = function(event) {
-        console.log('Error:', event);
-    };
-
-    ws.onclose = function(event) {
-        console.log('Connection closed');
-    };
-
-    function sendAudioChunk(audioChunk) {
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(audioChunk);
-        }
+    let recordButton = document.getElementById('record') as HTMLButtonElement;
+    if(!recordButton) {
+        console.log('No record button')
+        return
     }
 
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        console.log('Media Devices API or getUserMedia is not supported in this browser.');
+        // Handle the lack of support here
+        recordButton.disabled = true;
+        return
+    }
 
-    let mediaRecorder;
+    const socket = io('ws://localhost:5000');
+    let mediaRecorder: MediaRecorder|undefined;
+    let isRecording = false;
 
-    recordButton.addEventListener('click', () => {
-        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
-            .then(stream => {
-                mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.start();
+    recordButton.addEventListener('click', (e) => {
+        if(recordButton.disabled) {
+            e.preventDefault();
+            return
+        }
 
-                mediaRecorder.ondataavailable = e => {
-                    // socket.emit('audio_chunk', e.data);
-                    sendAudioChunk(e.data)
-                };
-            })
-            .catch(err => {
-                console.log('Error accessing microphone:', err);
-                recordButton.disabled = true; // Disable the record button on error
-            });
+        recordButton!.classList.toggle('recording')
+        if (!isRecording) {
+            startRecording();
+        } else {
+            stopRecording();
+        }
+        isRecording = !isRecording;
     });
 
-    stopButton.addEventListener('click', () => {
+
+    const startRecording = () => {
+        navigator.mediaDevices.getUserMedia({ audio: true })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = function(e) {
+                    if (e.data.size > 0) {
+                        socket.emit('audio_stream', e.data);
+                    }
+                };
+                mediaRecorder.start(5000);
+            })
+            .catch(error => {
+                console.error('Error accessing the microphone', error);
+            });
+    };
+
+    const stopRecording = () => {
         if (mediaRecorder) {
             mediaRecorder.stop();
         }
-    });
+    };
 }
 
 function setupTextInput() {
