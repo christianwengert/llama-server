@@ -276,7 +276,7 @@ function highlightCode(inner: HTMLElement) {
         mdString = mdString.replace(inlineCodeRegex, (match, code) => {
             return `<code class="inline">${escapeHTML(code)}</code>`;
         });
-
+        // highlight inline **Title**
         // const inlineMarkdownRegex = /\*\*([^*]*)\*\*/g;
 
         // mdString = mdString.replace(inlineMarkdownRegex, (match, code) => {
