@@ -1,4 +1,4 @@
-import hljs from "highlight.js";
+import hljs from 'highlight.js';
 import io from 'socket.io-client';
 import 'highlight.js/styles/github-dark.css';
 
