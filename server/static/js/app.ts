@@ -26,7 +26,6 @@ const getFormDataAsJSON = (formId: string): Record<string, string | number | boo
             }
         }
     }
-
     return formData;
 };
 
@@ -42,8 +41,6 @@ const handleEditAction = (e: MouseEvent) => {
     const target = e.target! as HTMLElement;
     const message = target.closest('.message')!;
     const inner = message.getElementsByClassName('inner-message')![0] as HTMLDivElement;
-    // const messages = Array.from(target.closest('#chat')!.children)
-    // const index = messages.indexOf(message);
     inner.contentEditable = "true";
     inner.focus()
     // Create a range
@@ -59,9 +56,8 @@ const handleEditAction = (e: MouseEvent) => {
     // Add the new range
     selection.addRange(range);
     inner.addEventListener('keypress', getInputHandler(inner))
-
 }
-//
+// Votint actions
 // const handleVoteAction = (e: MouseEvent, index: 'up' | 'down') => {
 //     e.preventDefault();
 //     const target = e.target;
@@ -107,7 +103,8 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         editLink.addEventListener('click', handleEditAction)
 
         messageDiv.appendChild(editButtonDiv);
-    } else {
+    }
+    // else {
         // const voteButtonDiv = document.createElement('div');
         // voteButtonDiv.className = 'edit-button';
         // const upvoteLink = document.createElement('a');
@@ -129,7 +126,7 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         // downvoteLink.addEventListener('click', handleDownvoteAction);
         //
         //
-    }
+    // }
     chat.appendChild(messageDiv);
     return ident;
 };
@@ -160,7 +157,7 @@ const setupUploadButton = () => {
                     body: formData,
                     method: "post"
                 }).then(() => {
-                document.location.hash = ''
+                    document.location.hash = ''
             });
         })
     }
@@ -242,7 +239,7 @@ const loadHistory = () => {
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
             // if (direction === 'them') {
-            highlightCode(inner);
+            highlightCode(inner);  // highlight both directions
             // }
         })
     }
