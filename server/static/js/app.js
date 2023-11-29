@@ -50217,24 +50217,71 @@
       });
     }
   }
-  var run = () => {
-    setupMenu();
-    setupResetSettingsButton();
-    setupScrollButton();
-    setupUploadButton();
+  function setupAudio() {
+    const recordButton = document.getElementById("record");
+    const stopButton = document.getElementById("stop");
+    const ws = new WebSocket("ws://localhost:5000");
+    ws.onopen = function(event) {
+      console.log("Connection opened");
+    };
+    ws.onmessage = function(event) {
+      console.log("Message received:", event.data);
+    };
+    ws.onerror = function(event) {
+      console.log("Error:", event);
+    };
+    ws.onclose = function(event) {
+      console.log("Connection closed");
+    };
+    function sendAudioChunk(audioChunk) {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(audioChunk);
+      }
+    }
+    let mediaRecorder;
+    recordButton.addEventListener("click", () => {
+      navigator.mediaDevices.getUserMedia({ audio: true, video: false }).then((stream) => {
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.start();
+        mediaRecorder.ondataavailable = (e) => {
+          sendAudioChunk(e.data);
+        };
+      }).catch((err) => {
+        console.log("Error accessing microphone:", err);
+        recordButton.disabled = true;
+      });
+    });
+    stopButton.addEventListener("click", () => {
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+      }
+    });
+  }
+  function setupTextInput() {
     const textInput = document.getElementById("input-box");
     if (textInput) {
       textInput.addEventListener("keypress", getInputHandler(textInput));
     }
     setFocusToInputField(textInput);
+  }
+  var setupEscapeButtonForPopups = () => {
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "Escape") {
+        window.location.hash = "";
+      }
+    });
+  };
+  var main = () => {
+    setupMenu();
+    setupResetSettingsButton();
+    setupScrollButton();
+    setupUploadButton();
+    setupTextInput();
     loadHistory();
     setClipboardHandler();
+    setupEscapeButtonForPopups();
+    setupAudio();
   };
-  document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape") {
-      window.location.hash = "";
-    }
-  });
-  run();
+  main();
 })();
 //# sourceMappingURL=app.js.map

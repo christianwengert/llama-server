@@ -556,21 +556,63 @@ function setupMenu() {
         })
     }
 }
-//
-// function setupAudio() {
-//     navigator.mediaDevices.getUserMedia({audio: true, video: false})
-//         .then(stream => {
-//             const mediaRecorder = new MediaRecorder(stream);
-//             mediaRecorder.start();
-//
-//             mediaRecorder.ondataavailable = function (e) {
-//                 // Send the audio chunks to the server here
-//             }
-//         })
-//         .catch(err => {
-//             console.log('Error accessing microphone:', err);
-//         });
-// }
+
+function setupAudio() {
+    const recordButton = document.getElementById('record');
+    const stopButton = document.getElementById('stop');
+
+
+
+    const ws = new WebSocket('ws://localhost:5000'); // Adjust the URL to your server
+
+    ws.onopen = function(event) {
+        console.log('Connection opened');
+    };
+
+    ws.onmessage = function(event) {
+        console.log('Message received:', event.data);
+    };
+
+    ws.onerror = function(event) {
+        console.log('Error:', event);
+    };
+
+    ws.onclose = function(event) {
+        console.log('Connection closed');
+    };
+
+    function sendAudioChunk(audioChunk) {
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(audioChunk);
+        }
+    }
+
+
+    let mediaRecorder;
+
+    recordButton.addEventListener('click', () => {
+        navigator.mediaDevices.getUserMedia({ audio: true, video: false })
+            .then(stream => {
+                mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.start();
+
+                mediaRecorder.ondataavailable = e => {
+                    // socket.emit('audio_chunk', e.data);
+                    sendAudioChunk(e.data)
+                };
+            })
+            .catch(err => {
+                console.log('Error accessing microphone:', err);
+                recordButton.disabled = true; // Disable the record button on error
+            });
+    });
+
+    stopButton.addEventListener('click', () => {
+        if (mediaRecorder) {
+            mediaRecorder.stop();
+        }
+    });
+}
 
 function setupTextInput() {
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
@@ -608,7 +650,7 @@ const main = () => {
 
     setupEscapeButtonForPopups();
 
-    // setupAudio()
+    setupAudio()
 };
 
 main()

@@ -11,6 +11,8 @@ from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify
 from flask_session import Session
+from flask_socketio import SocketIO
+
 import datetime
 
 MAX_TITLE_LENGTH = 48
@@ -52,6 +54,23 @@ app.config['SESSION_PERMANENT'] = True  # Persist sessions across restarts
 app.config["PERMANENT_SESSION_LIFETIME"] = 30 * 24 * 60 * 60  # 30 days
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 Session(app)
+socketio = SocketIO(app)
+
+
+audio_chunks = []
+
+@socketio.on('audio_chunk')
+def handle_audio_chunk(audio_data):
+    global audio_chunks
+    audio_chunks.append(audio_data)
+    print('Received audio chunk')
+
+@socketio.on('disconnect')
+def handle_disconnect():
+    global audio_chunks
+    # Process the audio_chunks list here if needed
+    audio_chunks = []  # Reset the list on disconnect
+
 
 CACHE_DIR = 'cache'
 if not os.path.exists(CACHE_DIR):
@@ -164,6 +183,8 @@ def history(item=None):
 @app.route("/settings/default")
 def get_default_settings():
     return jsonify(get_llama_parameters())
+
+
 
 
 @login_required
