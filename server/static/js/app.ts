@@ -564,11 +564,13 @@ function setupAudio() {
         return
     }
 
+
     const socket = io('ws://localhost:5000');
     let mediaRecorder: MediaRecorder | undefined;
     let isRecording = false;
 
     recordButton.addEventListener('click', (e) => {
+        console.log('xxxxxxxxx')
         if (recordButton.disabled) {
             e.preventDefault();
             return
@@ -585,14 +587,24 @@ function setupAudio() {
 
 
     const startRecording = () => {
+        console.log('start')
+
+        // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
         navigator.mediaDevices.getUserMedia({audio: true})
             .then(stream => {
+                socket.emit('audio_stream', "<|START|>");
                 mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = function (e) {
+                // socket.emit('audio_stream', "<START>");
+                // mediaRecorder = new MediaRecorder(stream);
+                mediaRecorder.ondataavailable = e => {
                     if (e.data.size > 0) {
                         socket.emit('audio_stream', e.data);
                     }
                 };
+                mediaRecorder.onstop = () => {
+                    socket.emit('audio_stream', "<|STOP|>");
+                }
                 mediaRecorder.start(5000);
             })
             .catch(error => {
@@ -602,9 +614,12 @@ function setupAudio() {
 
     const stopRecording = () => {
         if (mediaRecorder) {
+            console.log('stopping')
             mediaRecorder.stop();
+
         }
     };
+    // })
 }
 
 function setupTextInput() {

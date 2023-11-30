@@ -53227,7 +53227,6 @@
       editButtonDiv.appendChild(editLink);
       editLink.addEventListener("click", handleEditAction);
       messageDiv.appendChild(editButtonDiv);
-    } else {
     }
     chat.appendChild(messageDiv);
     return ident;
@@ -53550,6 +53549,7 @@
     let mediaRecorder;
     let isRecording = false;
     recordButton.addEventListener("click", (e) => {
+      console.log("xxxxxxxxx");
       if (recordButton.disabled) {
         e.preventDefault();
         return;
@@ -53563,12 +53563,17 @@
       isRecording = !isRecording;
     });
     const startRecording = () => {
+      console.log("start");
       navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+        socket.emit("audio_stream", "<|START|>");
         mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = function(e) {
+        mediaRecorder.ondataavailable = (e) => {
           if (e.data.size > 0) {
             socket.emit("audio_stream", e.data);
           }
+        };
+        mediaRecorder.onstop = () => {
+          socket.emit("audio_stream", "<|STOP|>");
         };
         mediaRecorder.start(5e3);
       }).catch((error) => {
@@ -53577,6 +53582,7 @@
     };
     const stopRecording = () => {
       if (mediaRecorder) {
+        console.log("stopping");
         mediaRecorder.stop();
       }
     };

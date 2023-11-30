@@ -6,14 +6,37 @@ import secrets
 import tempfile
 import urllib
 from functools import wraps
+from io import BytesIO
 from json import JSONDecodeError
 from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify
+from pydub import AudioSegment
+
 from flask_session import Session
 from flask_socketio import SocketIO
-
+# from pydub import AudioSegment
+# from io import BytesIO
 import datetime
+import pyaudio
+import wave
+#
+#
+# import typing as t
+#
+#
+# iterator: t.Iterator[str] | None = None
+# try:
+#     iterator = w.Whisper.from_pretrained('/Users/christianwengert/src/whisper.cpp/models/ggml-large-v2.bin').stream_transcribe(**kwargs)
+# finally:
+#     assert iterator is not None, "Something went wrong!"
+#     sys.stderr.writelines(
+#         ["\nTranscription (line by line):\n"] + [f"{it}\n" for it in iterator]
+#     )
+#     sys.stderr.flush()
+#
+#
+# w.utils.
 
 MAX_TITLE_LENGTH = 48
 
@@ -92,11 +115,112 @@ parser.add_argument("--host", type=str, help="Set the ip address to listen.(defa
 parser.add_argument("--port", type=int, help="Set the port to listen.(default: 8081)", default=8081)
 args = parser.parse_args()
 
+tmpfile = None
+
+FORMAT = pyaudio.paInt16  # Audio format (16-bit PCM)
+CHANNELS = 1              # Mono audio
+RATE = 16000              # Sample rate in Hz
+CHUNK = 1024              # Size of each audio chunk
+
+
+def convert_ogg_to_wav(ogg_data: bytes) -> bytes:
+
+    # Load the OGG data
+    ogg_audio = AudioSegment.from_file(BytesIO(ogg_data), format='ogg')
+
+    # Set frame rate to 16 kHz and 16bits
+    ogg_audio = ogg_audio.set_frame_rate(16000).set_sample_width(2)
+
+    # Prepare a buffer to store the converted WAV data
+    buffer = BytesIO()
+
+    # Export as WAV
+    ogg_audio.export(buffer, format='wav')
+
+    # Get the WAV data
+    wav_data = buffer.getvalue()
+
+    return wav_data
+
+
+import subprocess
+
+def run_executable_and_stream_output(executable_path, args=None):
+    # Start the process
+    if args is None:
+        args = []
+    process = subprocess.Popen([executable_path] + args,
+                               stdout=subprocess.PIPE,
+                               stderr=subprocess.DEVNULL,
+                               text=True)
+
+    # Stream the output
+    for line in iter(process.stdout.readline, ''):
+        print(line, end='')
+
+    # Wait for the process to finish and get the exit code
+    exit_code = process.wait()
+    return exit_code
+
+
+def convert_and_append_chunk(chunk, output_file):
+    process = subprocess.Popen(
+        ['ffmpeg', '-i', '-', '-ar', '16000', '-ac', '1', '-f', 'wav', '-'],
+        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    wav_chunk, err = process.communicate(input=chunk)
+
+    if process.returncode != 0:
+        raise Exception(f'ffmpeg error: {err}')
+
+    with wave.open(output_file, 'ab') as wav_file:
+        wav_file.writeframes(wav_chunk)
+
+
+
+
 
 @socketio.on('audio_stream')
-def handle_audio_stream(audio_data):
+def handle_audio_stream(ogg_chunk: bytes):
+
+    # just save the file
+    if ogg_chunk == '<|START|>':
+        os.remove('temp.ogg')
+        print('start')
+
+    file = open('temp.ogg', 'ab')
+    if ogg_chunk == '<|STOP|>':
+
+        if file:
+            file.close()
+        print('stop')
+
+    if not file.closed:
+        file.write(ogg_chunk)
+
+    # convert_and_append_chunk(ogg_chunk, 'bla.wav')
+
+    # server_started = os.path.exists('audio_stream_file.wav')
+    # # if not server_started:
+    # # Assuming ffmpeg_process is a previously started subprocess
+    # # with configured pipes for stdin and stdout
+    # ffmpeg_process.stdin.write(ogg_chunk)
+    # ffmpeg_process.stdin.flush()
+    #
+    # # Read the converted data (this might need to be done in a separate thread or async loop)
+    # wav_chunk = ffmpeg_process.stdout.read()
+    #
+    # with open('audio_stream_file.wav', 'ab') as file:  # 'ab' for appending in binary mode
+    #     # wav_chunk = convert_ogg_to_wav(ogg_chunk)
+    #     file.write(wav_chunk)
+
+    # if not server_started:
+        # feed it into whisoer.cpp
+        # run_executable_and_stream_output('/Users/christianwengert/src/whisper.cpp/main', ['-m', '/Users/christianwengert/src/whisper.cpp/models/ggml-medium.bin', 'audio_stream_file.wav', '-l', 'de', '-t', '8'])
+        # pass
+
     # Process the incoming audio data
-    print('Received audio data', len(audio_data))
+    print('Received audio data', len(ogg_chunk))
 
 
 def login_required(f):
