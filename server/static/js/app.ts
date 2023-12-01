@@ -163,6 +163,47 @@ const setupUploadButton = () => {
     }
 };
 
+
+const highlightCode = (inner: HTMLElement) => {
+
+    const convertMarkdownToHTML = (mdString: string) => {
+        // Replace triple backtick code blocks
+        const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+        mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+            const language = lang || 'bash';
+            return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
+        });
+
+        // Replace inline code
+        const inlineCodeRegex = /`([^`]+)`/g;
+        mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+            return `<code class="inline">${escapeHTML(code)}</code>`;
+        });
+        // highlight inline **Title**
+        // const inlineMarkdownRegex = /\*\*([^*]*)\*\*/g;
+
+        // mdString = mdString.replace(inlineMarkdownRegex, (match, code) => {
+        //     return `<code class="inline">${escapeHTML(code)}</code>`;
+        // });
+
+        return mdString;
+    };
+
+    function escapeHTML(str: string) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    const codeString = inner.innerText;
+
+    inner.innerHTML = convertMarkdownToHTML(codeString);
+
+    scrollToBottom()
+    // highlight code
+    inner.querySelectorAll('pre code').forEach((block: Element) => {
+        hljs.highlightElement(block as HTMLElement);
+    });
+};
+
 const loadHistory = () => {
     type Message = {
         role: string;
@@ -258,45 +299,7 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
     }
 };
 
-function highlightCode(inner: HTMLElement) {
 
-    function convertMarkdownToHTML(mdString: string) {
-        // Replace triple backtick code blocks
-        const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-        mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
-            const language = lang || 'bash';
-            return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
-        });
-
-        // Replace inline code
-        const inlineCodeRegex = /`([^`]+)`/g;
-        mdString = mdString.replace(inlineCodeRegex, (match, code) => {
-            return `<code class="inline">${escapeHTML(code)}</code>`;
-        });
-        // highlight inline **Title**
-        // const inlineMarkdownRegex = /\*\*([^*]*)\*\*/g;
-
-        // mdString = mdString.replace(inlineMarkdownRegex, (match, code) => {
-        //     return `<code class="inline">${escapeHTML(code)}</code>`;
-        // });
-
-        return mdString;
-    }
-
-    function escapeHTML(str: string) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    const codeString = inner.innerText;
-
-    inner.innerHTML = convertMarkdownToHTML(codeString);
-
-    scrollToBottom()
-    // highlight code
-    inner.querySelectorAll('pre code').forEach((block: Element) => {
-        hljs.highlightElement(block as HTMLElement);
-    });
-}
 
 function setClipboardHandler() {
     document.addEventListener('click', (event) => {
@@ -550,30 +553,63 @@ function setupMenu() {
     }
 }
 
-function setupAudio() {
+
+
+const resampleAudioData = (inputBuffer: Float32Array, originalRate: number, targetRate: number) => {
+    // Resample audio
+    // Calculate the resampling factor
+    const resampleRatio = targetRate / originalRate;
+
+    // Calculate the length of the resampled buffer
+    const resampledLength = Math.ceil(inputBuffer.length * resampleRatio);
+    const resampledBuffer = new Float32Array(resampledLength);
+
+    // Iterate through the resampled buffer and calculate interpolated values
+    for (let i = 0; i < resampledLength; i++) {
+        // Calculate the position in the original buffer
+        const originalPosition = i / resampleRatio;
+
+        // Calculate the indices of the two surrounding samples in the original buffer
+        const indexBefore = Math.floor(originalPosition);
+        const indexAfter = Math.min(Math.ceil(originalPosition), inputBuffer.length - 1);
+
+        // Calculate the interpolation weight
+        const weight = originalPosition - indexBefore;
+
+        // Linearly interpolate between the two surrounding samples
+        const interpolatedSample = (1 - weight) * inputBuffer[indexBefore] + weight * inputBuffer[indexAfter];
+        resampledBuffer[i] = interpolatedSample;
+    }
+
+    return resampledBuffer;
+};
+
+
+const setupAudio = () => {
     let recordButton = document.getElementById('record') as HTMLButtonElement;
     if (!recordButton) {
-        console.log('No record button')
-        return
+        console.error('No record button');
+        return;
     }
 
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         console.log('Media Devices API or getUserMedia is not supported in this browser.');
         // Handle the lack of support here
         recordButton.disabled = true;
-        return
+        return;
     }
-
 
     const socket = io('ws://localhost:5000');
     let mediaRecorder: MediaRecorder | undefined;
     let isRecording = false;
-
+    let audioContext: AudioContext;
+    let mediaStreamSource: MediaStreamAudioSourceNode;
+    let processor: ScriptProcessorNode;
+    // this will stream raw audio to the backend, however we do resampling already here
     recordButton.addEventListener('click', (e) => {
-        console.log('xxxxxxxxx')
         if (recordButton.disabled) {
             e.preventDefault();
-            return
+            return;
         }
 
         recordButton!.classList.toggle('recording')
@@ -589,19 +625,44 @@ function setupAudio() {
     const startRecording = () => {
         console.log('start')
 
-        // const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        const bufferSize = 4096; // Adjust as needed
 
         navigator.mediaDevices.getUserMedia({audio: true})
             .then(stream => {
                 socket.emit('audio_stream', "<|START|>");
+
                 mediaRecorder = new MediaRecorder(stream);
-                // socket.emit('audio_stream', "<START>");
-                // mediaRecorder = new MediaRecorder(stream);
-                mediaRecorder.ondataavailable = e => {
-                    if (e.data.size > 0) {
-                        socket.emit('audio_stream', e.data);
-                    }
+
+                audioContext = new AudioContext();
+
+                mediaStreamSource = audioContext.createMediaStreamSource(stream);
+
+                processor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+
+                mediaStreamSource.connect(processor);
+                processor.connect(audioContext.destination);
+
+                processor.onaudioprocess = function(e) {
+                    const chunk = e.inputBuffer.getChannelData(0);
+                    const resampledChunk = resampleAudioData(chunk, audioContext.sampleRate, 16000);
+                    // change to PCM 16 (integer)
+                    // const int16Buffer = new Int16Array(resampledChunk.length);
+                    // for (let i = 0; i < resampledChunk.length; i++) {
+                    //     Scale and convert each sample
+                        // let intSample = Math.floor(resampledChunk[i] * 32767);
+                        // Clamp the values to Int16 range
+                        // int16Buffer[i] = Math.max(-32768, Math.min(32767, intSample));
+                    // }
+
+                    // sendAudioData(resampledChunk);
+                    socket.emit('audio_stream', resampledChunk);  // send raw float values
                 };
+
+                // mediaRecorder.ondataavailable = (e) => {
+                //     if (e.data.size > 0) {
+                //         socket.emit('audio_stream', e.data);
+                //     }
+                // };
                 mediaRecorder.onstop = () => {
                     socket.emit('audio_stream', "<|STOP|>");
                 }
@@ -616,11 +677,12 @@ function setupAudio() {
         if (mediaRecorder) {
             console.log('stopping')
             mediaRecorder.stop();
-
+            mediaStreamSource.disconnect()
+            processor.disconnect()
         }
     };
     // })
-}
+};
 
 function setupTextInput() {
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
@@ -662,3 +724,8 @@ const main = () => {
 };
 
 main()
+
+
+
+
+

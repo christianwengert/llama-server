@@ -53257,6 +53257,29 @@
       });
     }
   };
+  var highlightCode = (inner) => {
+    const convertMarkdownToHTML = (mdString) => {
+      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+        const language = lang || "bash";
+        return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
+      });
+      const inlineCodeRegex = /`([^`]+)`/g;
+      mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+        return `<code class="inline">${escapeHTML(code)}</code>`;
+      });
+      return mdString;
+    };
+    function escapeHTML(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    const codeString = inner.innerText;
+    inner.innerHTML = convertMarkdownToHTML(codeString);
+    scrollToBottom();
+    inner.querySelectorAll("pre code").forEach((block) => {
+      es_default.highlightElement(block);
+    });
+  };
   var loadHistory = () => {
     const historyDiv = document.getElementById("history");
     historyDiv.innerHTML = "";
@@ -53323,29 +53346,6 @@
       parentElement.removeChild(parentElement.lastChild);
     }
   };
-  function highlightCode(inner) {
-    function convertMarkdownToHTML(mdString) {
-      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
-        const language = lang || "bash";
-        return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
-      });
-      const inlineCodeRegex = /`([^`]+)`/g;
-      mdString = mdString.replace(inlineCodeRegex, (match, code) => {
-        return `<code class="inline">${escapeHTML(code)}</code>`;
-      });
-      return mdString;
-    }
-    function escapeHTML(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-    const codeString = inner.innerText;
-    inner.innerHTML = convertMarkdownToHTML(codeString);
-    scrollToBottom();
-    inner.querySelectorAll("pre code").forEach((block) => {
-      es_default.highlightElement(block);
-    });
-  }
   function setClipboardHandler() {
     document.addEventListener("click", (event) => {
       const target = event.target;
@@ -53534,10 +53534,24 @@
       });
     }
   }
-  function setupAudio() {
+  var resampleAudioData = (inputBuffer, originalRate, targetRate) => {
+    const resampleRatio = targetRate / originalRate;
+    const resampledLength = Math.ceil(inputBuffer.length * resampleRatio);
+    const resampledBuffer = new Float32Array(resampledLength);
+    for (let i2 = 0; i2 < resampledLength; i2++) {
+      const originalPosition = i2 / resampleRatio;
+      const indexBefore = Math.floor(originalPosition);
+      const indexAfter = Math.min(Math.ceil(originalPosition), inputBuffer.length - 1);
+      const weight = originalPosition - indexBefore;
+      const interpolatedSample = (1 - weight) * inputBuffer[indexBefore] + weight * inputBuffer[indexAfter];
+      resampledBuffer[i2] = interpolatedSample;
+    }
+    return resampledBuffer;
+  };
+  var setupAudio = () => {
     let recordButton = document.getElementById("record");
     if (!recordButton) {
-      console.log("No record button");
+      console.error("No record button");
       return;
     }
     if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
@@ -53548,8 +53562,10 @@
     const socket = lookup2("ws://localhost:5000");
     let mediaRecorder;
     let isRecording = false;
+    let audioContext;
+    let mediaStreamSource;
+    let processor;
     recordButton.addEventListener("click", (e) => {
-      console.log("xxxxxxxxx");
       if (recordButton.disabled) {
         e.preventDefault();
         return;
@@ -53564,13 +53580,19 @@
     });
     const startRecording = () => {
       console.log("start");
+      const bufferSize = 4096;
       navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
         socket.emit("audio_stream", "<|START|>");
         mediaRecorder = new MediaRecorder(stream);
-        mediaRecorder.ondataavailable = (e) => {
-          if (e.data.size > 0) {
-            socket.emit("audio_stream", e.data);
-          }
+        audioContext = new AudioContext();
+        mediaStreamSource = audioContext.createMediaStreamSource(stream);
+        processor = audioContext.createScriptProcessor(bufferSize, 1, 1);
+        mediaStreamSource.connect(processor);
+        processor.connect(audioContext.destination);
+        processor.onaudioprocess = function(e) {
+          const chunk = e.inputBuffer.getChannelData(0);
+          const resampledChunk = resampleAudioData(chunk, audioContext.sampleRate, 16e3);
+          socket.emit("audio_stream", resampledChunk);
         };
         mediaRecorder.onstop = () => {
           socket.emit("audio_stream", "<|STOP|>");
@@ -53584,9 +53606,11 @@
       if (mediaRecorder) {
         console.log("stopping");
         mediaRecorder.stop();
+        mediaStreamSource.disconnect();
+        processor.disconnect();
       }
     };
-  }
+  };
   function setupTextInput() {
     const textInput = document.getElementById("input-box");
     if (textInput) {
