@@ -175,6 +175,8 @@ def c(token):
     data = session.get('params', None)
     if not data:
         data = get_llama_parameters()
+    if type(data['stop']) == list:
+        data['stop'] = ','.join(data['stop'])
 
     return render_template('index.html',
                            username=session.get('username', 'anonymous'),
@@ -344,6 +346,9 @@ def get_input():
     data = request.get_json()
     text = data.pop('input')
     prune_history_index = data.pop('pruneHistoryIndex')
+
+    # if type(data['stop']) == list:
+    #     data['stop'] = ','.join(data['stop'])
 
     session['params'] = dict(**data)  # must copy
 
