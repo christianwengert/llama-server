@@ -9,7 +9,8 @@ from functools import wraps
 from json import JSONDecodeError
 from typing import Dict, Any
 import requests
-from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify
+from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
+    stream_with_context
 from flask_session import Session
 import datetime
 
@@ -423,7 +424,9 @@ def get_input():
         with open(cache_key, 'w') as f:
             json.dump(hist, f)
 
-    return Response(generate(), mimetype='text/event-stream')
+    return Response(stream_with_context(generate()),
+                    mimetype='text/event-stream',
+                    direct_passthrough=False)
 
 
 def hash_username(username):
