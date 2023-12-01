@@ -154,6 +154,9 @@ def handle_audio_stream(chunk: bytes):
 
         timestamps = audio_processor.get_timestamps(chunk)
 
+        # trim audio and split chunks
+
+
         with open('/Users/christianwengert/src/llama-server/server/temp.raw', 'ab') as file:
         # append_audio_data('temp.wav', chunk)
             file.write(chunk)  # this works
