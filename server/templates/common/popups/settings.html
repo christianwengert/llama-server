@@ -9,7 +9,7 @@
 
             <form id="settings-form" class="popup-form">
                 <div>
-                    <label for="n_predict">n_predict:</label>
+                    <label for="n_predict">Predict:</label>
                     <input type="number" id="n_predict" name="n_predict" value="{{n_predict}}"><br>
                 </div>
                 <div class="param-help">
@@ -34,7 +34,7 @@
                     <input type="number" id="min_p" name="min_p" step="0.05" value="{{min_p}}"><br>
                 </div>
                 <div class="param-help">
-                    The minimum probability for a token to be considered, relative to the probability of the most likely token
+                    The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
                 </div>
                 <!-- Array of Strings -->
                 <div>
@@ -46,84 +46,56 @@
                 </div>
                 <!-- More Numerical Settings -->
                 <div>
-                    <label for="repeat_last_n">Repeat Last N:</label>
+                    <label for="repeat_last_n">Repeat last n:</label>
                     <input type="number" id="repeat_last_n" name="repeat_last_n" value="{{repeat_last_n}}"><br>
                 </div>
                 <div class="param-help">
-                    Last n tokens to consider for penalizing repetition (default: 64, 0 = disabled, -1 = ctx-size)
+                    Last n tokens to consider for penalizing repetition (default: 256, 0 = disabled, -1 = ctx-size)
                 </div>
                 <div>
-                    <label for="repeat_penalty">Repeat Penalty:</label>
+                    <label for="repeat_penalty">Repeat penalty:</label>
                     <input type="number" id="repeat_penalty" name="repeat_penalty" step="0.01" value="{{repeat_penalty}}"><br>
                 </div>
                 <div class="param-help">
-                    Control the repetition of token sequences in the generated text (default: 1.1)
+                    Control the repetition of token sequences in the generated text (default: 1.1, 1.0 = disabled)
                 </div>
                 <div>
-                    <label for="top_k">Top K:</label>
+                    <label for="top_k">Top k:</label>
                     <input type="number" id="top_k" name="top_k" value="{{top_k}}"><br>
                 </div>
                 <div class="param-help">
-                    Limit the next token selection to the K most probable tokens (default: 40).
+                    Limit the next token selection to the K most probable tokens (default: 40, 0 = disabled).
                 </div>
                 <div>
-                    <label for="top_p">Top P:</label>
+                    <label for="top_p">Top p:</label>
                     <input type="number" id="top_p" name="top_p" step="0.01" value="{{top_p}}"><br>
                 </div>
                 <div class="param-help">
-                    Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9).
+                    Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
                 </div>
-<!--                <div>-->
-<!--                    <label for="tfs_z">TFS Z:</label>-->
-<!--                    <input type="number" id="tfs_z" name="tfs_z" value="1"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Enable tail free sampling with parameter z (default: 1.0, 1.0 = disabled).-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    <label for="typical_p">Typical P:</label>-->
-<!--                    <input type="number" id="typical_p" name="typical_p" value="1"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    <label for="presence_penalty">Presence Penalty:</label>-->
-<!--                    <input type="number" id="presence_penalty" name="presence_penalty" value="0"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Repeat alpha presence penalty (default: 0.0, 0.0 = disabled).-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    <label for="frequency_penalty">Frequency Penalty:</label>-->
-<!--                    <input type="number" id="frequency_penalty" name="frequency_penalty" value="0"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled);-->
-<!--                </div>-->
                 <div>
-                    <label for="assistant_name">Assistant name:</label>
+                    <label for="assistant_name">Assistant prompt:</label>
                     <input type="text" id="assistant_name" name="assistant_name" value="{{assistant_name}}"><br>
                 </div>
                 <div class="param-help">
                     The bot's name is necessary for each customer to generate the prompt
                 </div>
                 <div>
-                    <label for="anti_prompt">User name (Anti prompt):</label>
+                    <label for="anti_prompt">User prompt prefix:</label>
                     <input type="text" id="anti_prompt" name="anti_prompt" value="{{anti_prompt}}"><br>
                 </div>
                 <div class="param-help">
                     Specify the word you want to use to instruct the model to stop
                 </div>
                 <div>
-                    <label for="user_prompt_suffix">User Prompt Suffix:</label>
+                    <label for="user_prompt_suffix">User prompt suffix:</label>
                     <input type="text" id="user_prompt_suffix" name="user_prompt_suffix" value="{{user_prompt_suffix}}"><br>
                 </div>
                 <div class="param-help">
                     Suffix for system prompt
                 </div>
                 <div>
-                    <label for="system_prompt_prefix">System Prompt Prefix:</label>
+                    <label for="system_prompt_prefix">System prompt prefix:</label>
                     <input type="text" id="system_prompt_prefix" name="system_prompt_prefix" value="{{system_prompt_prefix}}"><br>
                 </div>
                 <div class="param-help">
@@ -144,33 +116,70 @@
                     Set the system prompt for the conversation
                 </div>
                 <div>
-                    <label for="mirostat">Mirostat:</label>
-                    <input type="number" id="mirostat" name="mirostat" value="{{mirostat}}"><br>
-                </div>
-                <div class="param-help">
-                    Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
-                </div>
-                <div>
-                    <label for="mirostat_tau">Mirostat Tau:</label>
-                    <input type="number" id="mirostat_tau" name="mirostat_tau" step="0.01" value="{{mirostat_tau}}"><br>
-                </div>
-                <div class="param-help">
-                    Set the Mirostat target entropy, parameter tau (default: 5.0).
-                </div>
-                <div>
-                    <label for="mirostat_eta">Mirostat Eta:</label>
-                    <input type="number" id="mirostat_eta" name="mirostat_eta" step="0.01" value="{{mirostat_eta}}"><br>
-                </div>
-                <div class="param-help">
-                    Set the Mirostat learning rate, parameter eta (default: 0.1).
-                </div>
-                <div>
                     <label for="grammar">Grammar:</label>
                     <textarea id="grammar" name="grammar" rows="4" cols="{{grammar}}"></textarea>
                 </div>
                 <div class="param-help">
                     Set grammar for grammar-based sampling (default: no grammar)
                 </div>
+
+                <details>
+                    <summary>
+                        More options
+                    </summary>
+                    <div>
+                    <label for="mirostat">Mirostat:</label>
+                    <input type="number" id="mirostat" name="mirostat" value="{{mirostat}}"><br>
+                    </div>
+                    <div class="param-help">
+                        Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
+                    </div>
+                    <div>
+                        <label for="mirostat_tau">Mirostat Tau:</label>
+                        <input type="number" id="mirostat_tau" name="mirostat_tau" step="0.01" value="{{mirostat_tau}}"><br>
+                    </div>
+                    <div class="param-help">
+                        Set the Mirostat target entropy, parameter tau (default: 5).
+                    </div>
+                    <div>
+                        <label for="mirostat_eta">Mirostat Eta:</label>
+                        <input type="number" id="mirostat_eta" name="mirostat_eta" step="0.01" value="{{mirostat_eta}}"><br>
+                    </div>
+                    <div class="param-help">
+                        Set the Mirostat learning rate, parameter eta (default: 0.1).
+                    </div>
+
+
+<!--                    <div>-->
+<!--                        <label for="tfs_z">TFS Z:</label>-->
+<!--                        <input type="number" id="tfs_z" name="tfs_z" value="1"><br>-->
+<!--                    </div>-->
+<!--                    <div class="param-help">-->
+<!--                        Enable tail free sampling with parameter z (default: 1.0, 1.0 = disabled).-->
+<!--                    </div>-->
+<!--                    <div>-->
+<!--                        <label for="typical_p">Typical P:</label>-->
+<!--                        <input type="number" id="typical_p" name="typical_p" value="1"><br>-->
+<!--                    </div>-->
+<!--                    <div class="param-help">-->
+<!--                        Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).-->
+<!--                    </div>-->
+<!--                    <div>-->
+<!--                        <label for="presence_penalty">Presence Penalty:</label>-->
+<!--                        <input type="number" id="presence_penalty" name="presence_penalty" value="0"><br>-->
+<!--                    </div>-->
+<!--                    <div class="param-help">-->
+<!--                        Repeat alpha presence penalty (default: 0.0, 0.0 = disabled).-->
+<!--                    </div>-->
+<!--                    <div>-->
+<!--                        <label for="frequency_penalty">Frequency Penalty:</label>-->
+<!--                        <input type="number" id="frequency_penalty" name="frequency_penalty" value="0"><br>-->
+<!--                    </div>-->
+<!--                    <div class="param-help">-->
+<!--                        Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled);-->
+<!--                    </div>-->
+                </details>
+
 <!--                <div>-->
 <!--                    <label for="system_prompt2">System prompt:</label>-->
 <!--                    <textarea id="system_prompt2" name="system_prompt2">{{system_prompt}}</textarea>-->

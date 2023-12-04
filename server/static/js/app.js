@@ -49909,7 +49909,6 @@
       editButtonDiv.appendChild(editLink);
       editLink.addEventListener("click", handleEditAction);
       messageDiv.appendChild(editButtonDiv);
-    } else {
     }
     chat.appendChild(messageDiv);
     return ident;
@@ -49939,6 +49938,29 @@
         });
       });
     }
+  };
+  var highlightCode = (inner) => {
+    const convertMarkdownToHTML = (mdString) => {
+      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+        const language = lang || "bash";
+        return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
+      });
+      const inlineCodeRegex = /`([^`]+)`/g;
+      mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+        return `<code class="inline">${escapeHTML(code)}</code>`;
+      });
+      return mdString;
+    };
+    function escapeHTML(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+    const codeString = inner.innerText;
+    inner.innerHTML = convertMarkdownToHTML(codeString);
+    scrollToBottom();
+    inner.querySelectorAll("pre code").forEach((block) => {
+      es_default.highlightElement(block);
+    });
   };
   var loadHistory = () => {
     const historyDiv = document.getElementById("history");
@@ -50006,29 +50028,6 @@
       parentElement.removeChild(parentElement.lastChild);
     }
   };
-  function highlightCode(inner) {
-    function convertMarkdownToHTML(mdString) {
-      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
-        const language = lang || "bash";
-        return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
-      });
-      const inlineCodeRegex = /`([^`]+)`/g;
-      mdString = mdString.replace(inlineCodeRegex, (match, code) => {
-        return `<code class="inline">${escapeHTML(code)}</code>`;
-      });
-      return mdString;
-    }
-    function escapeHTML(str) {
-      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-    }
-    const codeString = inner.innerText;
-    inner.innerHTML = convertMarkdownToHTML(codeString);
-    scrollToBottom();
-    inner.querySelectorAll("pre code").forEach((block) => {
-      es_default.highlightElement(block);
-    });
-  }
   function setClipboardHandler() {
     document.addEventListener("click", (event) => {
       const target = event.target;
@@ -50217,24 +50216,30 @@
       });
     }
   }
-  var run = () => {
-    setupMenu();
-    setupResetSettingsButton();
-    setupScrollButton();
-    setupUploadButton();
+  function setupTextInput() {
     const textInput = document.getElementById("input-box");
     if (textInput) {
       textInput.addEventListener("keypress", getInputHandler(textInput));
     }
     setFocusToInputField(textInput);
+  }
+  var setupEscapeButtonForPopups = () => {
+    document.addEventListener("keydown", function(event) {
+      if (event.key === "Escape") {
+        window.location.hash = "";
+      }
+    });
+  };
+  var main = () => {
+    setupMenu();
+    setupResetSettingsButton();
+    setupScrollButton();
+    setupUploadButton();
+    setupTextInput();
     loadHistory();
     setClipboardHandler();
+    setupEscapeButtonForPopups();
   };
-  document.addEventListener("keydown", function(event) {
-    if (event.key === "Escape") {
-      window.location.hash = "";
-    }
-  });
-  run();
+  main();
 })();
 //# sourceMappingURL=app.js.map

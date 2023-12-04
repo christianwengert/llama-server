@@ -607,7 +607,7 @@ li:hover .delete-history-item {
     z-index: 998;
 }
 
-.popup-form > div {
+.popup-form div {
     width: 100%;
     display: flex;
     margin-bottom: 0.2rem;
@@ -621,12 +621,12 @@ li:hover .delete-history-item {
     font-size: smaller;
 }
 
-.popup-form > div > label {
+.popup-form div > label {
     display: inline-block;
     width: 200px;
 }
 
-.popup-form > div > input, textarea, select {
+.popup-form div > input, textarea, select {
     margin-left: auto;
     min-width: 200px;
     width: 40vw;
@@ -636,7 +636,7 @@ li:hover .delete-history-item {
     background-color: white;
 }
 
-.popup-form > div > select {
+.popup-form div > select {
     height: 32px;
 
 }
@@ -645,7 +645,7 @@ li:hover .delete-history-item {
     margin-left: auto;
 }
 
-.popup-form > div > input[type=text], textarea, input[type=file] {
+.popup-form div > input[type=text], textarea, input[type=file] {
     text-align: left;
 }
 
@@ -963,4 +963,78 @@ input[type="number"]::-webkit-outer-spin-button {
 
 .rotate45 {
     transform: rotate(45deg);
+}
+
+.gg-mic {
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    transform: scale(var(--ggs, 1));
+    width: 16px;
+    height: 12px;
+    border-bottom-left-radius: 120px;
+    border-bottom-right-radius: 120px;
+    border: 2px solid;
+    border-top: 0;
+    margin-top: 3px
+}
+
+.gg-mic::after,
+.gg-mic::before {
+    content: "";
+    display: block;
+    box-sizing: border-box;
+    position: absolute
+}
+
+.gg-mic::after {
+    border: 2px solid;
+    width: 8px;
+    height: 18px;
+    left: 2px;
+    top: -10px;
+    border-radius: 4px
+}
+
+.gg-mic::before {
+    width: 10px;
+    height: 4px;
+    top: 12px;
+    left: 1px;
+    border-right: 4px solid transparent;
+    box-shadow: 0 2px 0,
+    inset -2px 0 0
+}
+
+#record {
+    border: none;
+    background-color: unset;
+    height: 32px;
+    width: 32px;
+    margin: 0;
+    padding: 0;
+    position: absolute;
+    top: 4px;
+    left: calc(10% - 40px);
+}
+#record:disabled {
+    display: block;
+    opacity: 0.5;
+}
+
+.recording {
+    color: red;
+}
+
+#record > i {
+    margin: auto;
+}
+
+details {
+    margin-top: 8px;
+    margin-bottom: 24px;
+}
+summary {
+    cursor: pointer;
+    margin-bottom: 8px;
 }

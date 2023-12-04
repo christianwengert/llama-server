@@ -25,7 +25,6 @@ const getFormDataAsJSON = (formId: string): Record<string, string | number | boo
             }
         }
     }
-
     return formData;
 };
 
@@ -41,8 +40,6 @@ const handleEditAction = (e: MouseEvent) => {
     const target = e.target! as HTMLElement;
     const message = target.closest('.message')!;
     const inner = message.getElementsByClassName('inner-message')![0] as HTMLDivElement;
-    // const messages = Array.from(target.closest('#chat')!.children)
-    // const index = messages.indexOf(message);
     inner.contentEditable = "true";
     inner.focus()
     // Create a range
@@ -58,9 +55,8 @@ const handleEditAction = (e: MouseEvent) => {
     // Add the new range
     selection.addRange(range);
     inner.addEventListener('keypress', getInputHandler(inner))
-
 }
-//
+// Votint actions
 // const handleVoteAction = (e: MouseEvent, index: 'up' | 'down') => {
 //     e.preventDefault();
 //     const target = e.target;
@@ -106,29 +102,30 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         editLink.addEventListener('click', handleEditAction)
 
         messageDiv.appendChild(editButtonDiv);
-    } else {
-        // const voteButtonDiv = document.createElement('div');
-        // voteButtonDiv.className = 'edit-button';
-        // const upvoteLink = document.createElement('a');
-        // upvoteLink.href = '/upvote/';
-        // upvoteLink.id = `upvote-${ident}`;
-        // upvoteLink.textContent = '➞';
-        // voteButtonDiv.appendChild(upvoteLink);
-        //
-        //
-        // const downvoteLink = document.createElement('a');
-        // downvoteLink.href = '/downvote/';
-        // downvoteLink.id = `downvote-${ident}`;
-        // downvoteLink.textContent = '➞';
-        // voteButtonDiv.appendChild(downvoteLink);
-        //
-        // messageDiv.appendChild(voteButtonDiv);
-        //
-        // upvoteLink.addEventListener('click', handleUpvoteAction);
-        // downvoteLink.addEventListener('click', handleDownvoteAction);
-        //
-        //
     }
+    // else {
+    // const voteButtonDiv = document.createElement('div');
+    // voteButtonDiv.className = 'edit-button';
+    // const upvoteLink = document.createElement('a');
+    // upvoteLink.href = '/upvote/';
+    // upvoteLink.id = `upvote-${ident}`;
+    // upvoteLink.textContent = '➞';
+    // voteButtonDiv.appendChild(upvoteLink);
+    //
+    //
+    // const downvoteLink = document.createElement('a');
+    // downvoteLink.href = '/downvote/';
+    // downvoteLink.id = `downvote-${ident}`;
+    // downvoteLink.textContent = '➞';
+    // voteButtonDiv.appendChild(downvoteLink);
+    //
+    // messageDiv.appendChild(voteButtonDiv);
+    //
+    // upvoteLink.addEventListener('click', handleUpvoteAction);
+    // downvoteLink.addEventListener('click', handleDownvoteAction);
+    //
+    //
+    // }
     chat.appendChild(messageDiv);
     return ident;
 };
@@ -163,6 +160,47 @@ const setupUploadButton = () => {
             });
         })
     }
+};
+
+
+const highlightCode = (inner: HTMLElement) => {
+
+    const convertMarkdownToHTML = (mdString: string) => {
+        // Replace triple backtick code blocks
+        const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
+        mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+            const language = lang || 'bash';
+            return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
+        });
+
+        // Replace inline code
+        const inlineCodeRegex = /`([^`]+)`/g;
+        mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+            return `<code class="inline">${escapeHTML(code)}</code>`;
+        });
+        // highlight inline **Title**
+        // const inlineMarkdownRegex = /\*\*([^*]*)\*\*/g;
+
+        // mdString = mdString.replace(inlineMarkdownRegex, (match, code) => {
+        //     return `<code class="inline">${escapeHTML(code)}</code>`;
+        // });
+
+        return mdString;
+    };
+
+    function escapeHTML(str: string) {
+        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    const codeString = inner.innerText;
+
+    inner.innerHTML = convertMarkdownToHTML(codeString);
+
+    scrollToBottom()
+    // highlight code
+    inner.querySelectorAll('pre code').forEach((block: Element) => {
+        hljs.highlightElement(block as HTMLElement);
+    });
 };
 
 const loadHistory = () => {
@@ -241,7 +279,7 @@ const loadHistory = () => {
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
             // if (direction === 'them') {
-            highlightCode(inner);
+            highlightCode(inner);  // highlight both directions
             // }
         })
     }
@@ -260,45 +298,7 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
     }
 };
 
-function highlightCode(inner: HTMLElement) {
 
-    function convertMarkdownToHTML(mdString: string) {
-        // Replace triple backtick code blocks
-        const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-        mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
-            const language = lang || 'bash';
-            return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
-        });
-
-        // Replace inline code
-        const inlineCodeRegex = /`([^`]+)`/g;
-        mdString = mdString.replace(inlineCodeRegex, (match, code) => {
-            return `<code class="inline">${escapeHTML(code)}</code>`;
-        });
-
-        // const inlineMarkdownRegex = /\*\*([^*]*)\*\*/g;
-
-        // mdString = mdString.replace(inlineMarkdownRegex, (match, code) => {
-        //     return `<code class="inline">${escapeHTML(code)}</code>`;
-        // });
-
-        return mdString;
-    }
-
-    function escapeHTML(str: string) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
-
-    const codeString = inner.innerText;
-
-    inner.innerHTML = convertMarkdownToHTML(codeString);
-
-    scrollToBottom()
-    // highlight code
-    inner.querySelectorAll('pre code').forEach((block: Element) => {
-        hljs.highlightElement(block as HTMLElement);
-    });
-}
 
 function setClipboardHandler() {
     document.addEventListener('click', (event) => {
@@ -355,12 +355,9 @@ function getInputHandler(inputElement: HTMLElement) {
             if (isMainInput) {
                 const ident = renderMessage(inputElement.innerText, 'me', chat);
 
-
-                // const ident = renderMessage('', 'them', chat)
                 const elem = document.getElementById(ident)!;
                 const inner = elem.querySelector('.inner-message')! as HTMLElement;
                 highlightCode(inner);
-
 
                 inputElement.innerText = '';
             }
@@ -456,8 +453,6 @@ function getInputHandler(inputElement: HTMLElement) {
             console.log('prune ' + pruneHistoryIndex)
 
             xhr.send(JSON.stringify(formData));
-
-
         }
     }
 
@@ -612,3 +607,8 @@ const main = () => {
 };
 
 main()
+
+
+
+
+
