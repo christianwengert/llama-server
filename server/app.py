@@ -10,7 +10,8 @@ from io import BytesIO
 from json import JSONDecodeError
 from typing import Dict, Any
 import requests
-from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, stream_with_context
+from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
+    stream_with_context, send_from_directory
 from audio import VoiceActivityDetector, convert_float32_to_wave
 from flask_session import Session
 from flask_socketio import SocketIO
@@ -298,6 +299,13 @@ def get_default_settings():
 @login_required
 @app.route("/c/<path:token>")
 def c(token):
+
+    # if token == 'vad.worklet.bundle.min.js':
+    #     return send_from_directory('static', 'vad.worklet.bundle.min.js')
+
+    if token == 'ort-wasm-simd.wasm':
+        return send_from_directory('static', 'silero_vad.onnx')
+
     session['token'] = token
 
     data = session.get('params', None)
@@ -593,6 +601,6 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
 
 
 if __name__ == '__main__':
-    test_audio()
+    # test_audio()
     # app.run()
     socketio.run(app)

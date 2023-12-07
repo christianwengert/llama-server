@@ -1,6 +1,8 @@
 import hljs from 'highlight.js';
-import io from 'socket.io-client';
 import 'highlight.js/styles/github-dark.css';
+import { MicVAD } from "@ricky0123/vad-web"
+import * as ort from 'onnxruntime-web';
+
 
 
 const scrollToBottom = () => {
@@ -553,36 +555,6 @@ function setupMenu() {
 }
 
 
-const resampleAudioData = (inputBuffer: Float32Array, originalRate: number, targetRate: number) => {
-    // Resample audio
-    // Calculate the resampling factor
-    const resampleRatio = targetRate / originalRate;
-
-    // Calculate the length of the resampled buffer
-    const resampledLength = Math.ceil(inputBuffer.length * resampleRatio);
-    const resampledBuffer = new Float32Array(resampledLength);
-
-    // Iterate through the resampled buffer and calculate interpolated values
-    for (let i = 0; i < resampledLength; i++) {
-        // Calculate the position in the original buffer
-        const originalPosition = i / resampleRatio;
-
-        // Calculate the indices of the two surrounding samples in the original buffer
-        const indexBefore = Math.floor(originalPosition);
-        const indexAfter = Math.min(Math.ceil(originalPosition), inputBuffer.length - 1);
-
-        // Calculate the interpolation weight
-        const weight = originalPosition - indexBefore;
-
-        // Linearly interpolate between the two surrounding samples
-        const interpolatedSample = (1 - weight) * inputBuffer[indexBefore] + weight * inputBuffer[indexAfter];
-        resampledBuffer[i] = interpolatedSample;
-    }
-
-    return resampledBuffer;
-};
-
-
 const setupAudio = () => {
     let recordButton = document.getElementById('record') as HTMLButtonElement;
     if (!recordButton) {
@@ -597,84 +569,115 @@ const setupAudio = () => {
         return;
     }
 
-    const socket = io('ws://localhost:5000');
-    let mediaRecorder: MediaRecorder | undefined;
-    let isRecording = false;
-    let audioContext: AudioContext;
-    let mediaStreamSource: MediaStreamAudioSourceNode;
-    let processor: ScriptProcessorNode;
-    // this will stream raw audio to the backend, however we do resampling already here
-    recordButton.addEventListener('click', (e) => {
-        if (recordButton.disabled) {
-            e.preventDefault();
-            return;
+    async function _rec() {
+
+        ort.env.wasm.wasmPaths = '/static/ort/'
+        const myvad = await MicVAD.new({
+            workletURL: "/static/vad.worklet.bundle.min.js",
+            modelURL: "/static/silero_vad.onnx",
+
+            onSpeechStart: () => {
+                console.log('start')
+            },
+            onSpeechEnd: (audio) => {
+                // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
+                console.log('speech', audio.length, audio)
+                let audioContext = new AudioContext();
+                const audioBuffer = audioContext.createBuffer(1, audio.length, 16000);
+                audioBuffer.getChannelData(0).set(audio);
+
+                const blob = audioBufferToWav(audioBuffer)
+                const formData = new FormData();
+                formData.append('file', blob, 'audio.wav');
+
+                fetch('http://127.0.0.1:8092/inference', {
+                    method: 'POST',
+                    body: formData
+                }).then(response => {
+                    console.log('Audio sent successfully', response);
+                    return response.json();
+                }).then(data => {
+                    console.log(data)
+                    const textInput = document.getElementById('input-box')! as HTMLDivElement;
+                    textInput.innerText += data['text']
+
+                }).catch(error => {
+                    console.error('Error sending audio', error);
+                });
+            },
+        })
+
+        let isRecording = false;
+        recordButton.addEventListener('click', (e) => {
+            if (recordButton.disabled) {
+                e.preventDefault();
+                return;
+            }
+
+            recordButton!.classList.toggle('recording')
+            if (!isRecording) {
+                myvad.start()
+            } else {
+                myvad.pause()
+            }
+            isRecording = !isRecording;
+        });
+    }
+    _rec().then(()=>{})
+
+
+    function audioBufferToWav(buffer: AudioBuffer) {
+        const numOfChan = buffer.numberOfChannels;
+        const length = buffer.length * numOfChan * 2 + 44;
+        const bufferArray = new ArrayBuffer(length);
+        const view = new DataView(bufferArray);
+        const channels = [], sampleRate = buffer.sampleRate;
+
+        let pos = 0;
+
+        // Write WAV header
+        setUint32(0x46464952); // "RIFF"
+        setUint32(length - 8); // file length - 8
+        setUint32(0x45564157); // "WAVE"
+
+        setUint32(0x20746d66); // "fmt " chunk
+        setUint32(16); // length = 16
+        setUint16(1); // PCM (uncompressed)
+        setUint16(numOfChan);
+        setUint32(sampleRate);
+        setUint32(sampleRate * 2 * numOfChan); // byte rate
+        setUint16(numOfChan * 2); // block align
+        setUint16(16); // bits per sample
+
+        setUint32(0x61746164); // "data" - chunk
+        setUint32(length - pos - 4); // chunk length
+
+        // Write audio data
+        for (let i = 0; i < buffer.numberOfChannels; i++) {
+            channels.push(buffer.getChannelData(i));
         }
 
-        recordButton!.classList.toggle('recording')
-        if (!isRecording) {
-            startRecording();
-        } else {
-            stopRecording();
+        while (pos < length) {
+            for (let i = 0; i < numOfChan; i++) { // interleave channels
+                let sample = Math.max(-1, Math.min(1, channels[i][pos >>> 1])); // clamp
+                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale to 16-bit
+                view.setInt16(pos, sample, true); // write 16-bit sample
+                pos += 2;
+            }
         }
-        isRecording = !isRecording;
-    });
 
-
-    const startRecording = () => {
-        console.log('start')
-
-        const bufferSize = 16384;
-
-        navigator.mediaDevices.getUserMedia({audio: true})
-            .then(stream => {
-                socket.emit('audio_stream', "<|START|>");
-
-                mediaRecorder = new MediaRecorder(stream);
-
-                audioContext = new AudioContext();
-
-                mediaStreamSource = audioContext.createMediaStreamSource(stream);
-
-                processor = audioContext.createScriptProcessor(bufferSize, 1, 1);
-
-                mediaStreamSource.connect(processor);
-                processor.connect(audioContext.destination);
-
-                // let accumulatedData = [];
-                // let targetPacketSize = 5000; // Target size in bytes
-
-                processor.onaudioprocess = function(e) {
-                    const chunk = e.inputBuffer.getChannelData(0);
-                    const resampledChunk = resampleAudioData(chunk, audioContext.sampleRate, 16000);
-
-                    // accumulatedData.push(resampledChunk);
-                    // Check if accumulated data reaches the target size
-
-                    // if (calculateSize(accumulatedData) >= targetPacketSize) {
-                    //     socket.emit('audio_stream', accumulatedData);
-                    //     accumulatedData = []; // Reset the accumulation
-                    // }
-                    socket.emit('audio_stream', resampledChunk);  // send raw float values
-                };
-
-                mediaRecorder.onstop = () => {
-                    socket.emit('audio_stream', "<|STOP|>");
-                }
-                mediaRecorder.start(5000);
-            })
-            .catch(error => {
-                console.error('Error accessing the microphone', error);
-            });
-    };
-
-    const stopRecording = () => {
-        if (mediaRecorder) {
-            console.log('stopping')
-            mediaRecorder.stop();
-            mediaStreamSource.disconnect()
-            processor.disconnect()
+        function setUint16(data: any) {
+            view.setUint16(pos, data, true);
+            pos += 2;
         }
-    };
+
+        function setUint32(data: any) {
+            view.setUint32(pos, data, true);
+            pos += 4;
+        }
+
+        return new Blob([view], {type: 'audio/wav'});
+    }
 };
 
 function setupTextInput() {
