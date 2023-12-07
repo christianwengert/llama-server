@@ -24,11 +24,11 @@ def convert_float32_to_wave(raw_audio, filename, sample_rate, num_channels):
         wave_file.writeframes(int16_audio.tobytes())
 
 
-class AudioProcessor:
+class VoiceActivityDetector:
     def __init__(self):
         model, utils = torch.hub.load(repo_or_dir='snakers4/silero-vad',
                                       model='silero_vad',
-                                      force_reload=True,
+                                      force_reload=False,
                                       onnx=False)
         self.model = model
         self.utils = utils
@@ -40,25 +40,21 @@ class AudioProcessor:
          collect_chunks) = utils
         self.vad_iterator = VADIterator(model)
         self.get_speech_timestamps = get_speech_timestamps
+        self.collect_chunks = collect_chunks
 
     def get_timestamps(self, audio: np.ndarray, ):
         # number of samples in a single audio chunk
-        # for i in range(0, len(audio), self.window_size_samples):
         timestamps = self.get_speech_timestamps(audio, self.model, sampling_rate=SAMPLING_RATE)
         return timestamps
-        # speech_dict = self.vad_iterator(audio, return_seconds=True)
-        # if speech_dict:
-        #     return speech_dict
-            # print(speech_dict, end=' ')
-        # self.vad_iterator.reset_states()  # reset model states after each audio
 
 
 if __name__ == '__main__':
 
     audio = np.fromfile('/Users/christianwengert/src/llama-server/server/temp.raw', np.float32)
 
-    audio_processor = AudioProcessor()
+    audio_processor = VoiceActivityDetector()
     timestamps = audio_processor.get_timestamps(audio)
     convert_float32_to_wave(audio, '/Users/christianwengert/src/llama-server/server/sanity.wav', 16000, 1)
-    for ts in timestamps:
+    for i, ts in enumerate(timestamps):
         print(ts)
+        convert_float32_to_wave(audio[ts['start']:ts['end']], f'/Users/christianwengert/src/llama-server/server/sanity_{i}.wav', 16000, 1)

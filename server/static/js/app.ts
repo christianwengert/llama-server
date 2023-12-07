@@ -300,7 +300,6 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
 };
 
 
-
 function setClipboardHandler() {
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
@@ -554,7 +553,6 @@ function setupMenu() {
 }
 
 
-
 const resampleAudioData = (inputBuffer: Float32Array, originalRate: number, targetRate: number) => {
     // Resample audio
     // Calculate the resampling factor
@@ -625,7 +623,7 @@ const setupAudio = () => {
     const startRecording = () => {
         console.log('start')
 
-        const bufferSize = 4096; // Adjust as needed
+        const bufferSize = 16384;
 
         navigator.mediaDevices.getUserMedia({audio: true})
             .then(stream => {
@@ -642,27 +640,23 @@ const setupAudio = () => {
                 mediaStreamSource.connect(processor);
                 processor.connect(audioContext.destination);
 
+                // let accumulatedData = [];
+                // let targetPacketSize = 5000; // Target size in bytes
+
                 processor.onaudioprocess = function(e) {
                     const chunk = e.inputBuffer.getChannelData(0);
                     const resampledChunk = resampleAudioData(chunk, audioContext.sampleRate, 16000);
-                    // change to PCM 16 (integer)
-                    // const int16Buffer = new Int16Array(resampledChunk.length);
-                    // for (let i = 0; i < resampledChunk.length; i++) {
-                    //     Scale and convert each sample
-                        // let intSample = Math.floor(resampledChunk[i] * 32767);
-                        // Clamp the values to Int16 range
-                        // int16Buffer[i] = Math.max(-32768, Math.min(32767, intSample));
-                    // }
 
-                    // sendAudioData(resampledChunk);
+                    // accumulatedData.push(resampledChunk);
+                    // Check if accumulated data reaches the target size
+
+                    // if (calculateSize(accumulatedData) >= targetPacketSize) {
+                    //     socket.emit('audio_stream', accumulatedData);
+                    //     accumulatedData = []; // Reset the accumulation
+                    // }
                     socket.emit('audio_stream', resampledChunk);  // send raw float values
                 };
 
-                // mediaRecorder.ondataavailable = (e) => {
-                //     if (e.data.size > 0) {
-                //         socket.emit('audio_stream', e.data);
-                //     }
-                // };
                 mediaRecorder.onstop = () => {
                     socket.emit('audio_stream', "<|STOP|>");
                 }
@@ -681,7 +675,6 @@ const setupAudio = () => {
             processor.disconnect()
         }
     };
-    // })
 };
 
 function setupTextInput() {
@@ -724,8 +717,3 @@ const main = () => {
 };
 
 main()
-
-
-
-
-

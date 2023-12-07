@@ -29,6 +29,26 @@
     isNodeMode || !mod || !mod.__esModule ? __defProp(target, "default", { value: mod, enumerable: true }) : target,
     mod
   ));
+  var __async = (__this, __arguments, generator) => {
+    return new Promise((resolve, reject) => {
+      var fulfilled = (value2) => {
+        try {
+          step(generator.next(value2));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      var rejected = (value2) => {
+        try {
+          step(generator.throw(value2));
+        } catch (e) {
+          reject(e);
+        }
+      };
+      var step = (x) => x.done ? resolve(x.value) : Promise.resolve(x.value).then(fulfilled, rejected);
+      step((generator = generator.apply(__this, __arguments)).next());
+    });
+  };
 
   // node_modules/highlight.js/lib/core.js
   var require_core = __commonJS({
@@ -50833,7 +50853,7 @@
       return (cb, setTimeoutFn) => setTimeoutFn(cb, 0);
     }
   })();
-  var WebSocket = globalThisShim.WebSocket || globalThisShim.MozWebSocket;
+  var WebSocket2 = globalThisShim.WebSocket || globalThisShim.MozWebSocket;
   var usingBrowserWebSocket = true;
   var defaultBinaryType = "arraybuffer";
 
@@ -50864,7 +50884,7 @@
         opts.headers = this.opts.extraHeaders;
       }
       try {
-        this.ws = usingBrowserWebSocket && !isReactNative ? protocols ? new WebSocket(uri, protocols) : new WebSocket(uri) : new WebSocket(uri, protocols, opts);
+        this.ws = usingBrowserWebSocket && !isReactNative ? protocols ? new WebSocket2(uri, protocols) : new WebSocket2(uri) : new WebSocket2(uri, protocols, opts);
       } catch (err) {
         return this.emitReserved("error", err);
       }
@@ -50957,7 +50977,7 @@
      * @private
      */
     check() {
-      return !!WebSocket;
+      return !!WebSocket2;
     }
   };
 
@@ -53580,7 +53600,7 @@
     });
     const startRecording = () => {
       console.log("start");
-      const bufferSize = 4096;
+      const bufferSize = 16384;
       navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
         socket.emit("audio_stream", "<|START|>");
         mediaRecorder = new MediaRecorder(stream);
@@ -53637,5 +53657,72 @@
     setupAudio();
   };
   main();
+  function testAudio() {
+    const serverUrl = "ws://127.0.0.1:8090/paddlespeech/asr/streaming";
+    const socket = new WebSocket(serverUrl);
+    socket.onopen = function(event) {
+      return __async(this, null, function* () {
+        console.log("Connection established");
+        const chunkSize = 1024;
+        for (let i2 = 0; i2 < arrayBuffer.byteLength; i2 += chunkSize) {
+          const chunk = arrayBuffer.slice(i2, i2 + chunkSize);
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(chunk);
+          } else {
+            console.log("WebSocket is not open");
+            break;
+          }
+        }
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({ signal: "end" }));
+        }
+      });
+    };
+    socket.onmessage = function(event) {
+      console.log("Received message from server: ", event.data);
+    };
+    socket.onerror = function(error) {
+      console.error("WebSocket error: ", error);
+    };
+    document.getElementById("wavfile").addEventListener("change", function(event) {
+      return __async(this, null, function* () {
+        const file = event.target.files[0];
+        if (!file) {
+          console.log("No file selected");
+          return;
+        }
+        socket.onopen = function(event2) {
+          return __async(this, null, function* () {
+            console.log("Connection established");
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(JSON.stringify({ signal: "end" }));
+            }
+          });
+        };
+        socket.onmessage = function(event2) {
+          console.log("Received message from server: ", event2.data);
+        };
+        socket.onerror = function(error) {
+          console.error("WebSocket error: ", error);
+        };
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          return __async(this, null, function* () {
+            const arrayBuffer2 = e.target.result;
+            yield sendAudioChunks(arrayBuffer2);
+          });
+        };
+        reader.onerror = function(err) {
+          console.error("Error reading file", err);
+        };
+        reader.readAsArrayBuffer(file);
+      });
+    });
+    function sendAudioChunks(arrayBuffer2) {
+      return __async(this, null, function* () {
+      });
+    }
+  }
+  testAudio();
 })();
 //# sourceMappingURL=app.js.map

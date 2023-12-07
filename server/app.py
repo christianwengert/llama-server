@@ -1,26 +1,23 @@
 import argparse
-import fcntl
 import hashlib
 import json
 import os
 import secrets
-import signal
 import tempfile
-import time
 import urllib
-import wave
 from functools import wraps
+from io import BytesIO
 from json import JSONDecodeError
 from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, stream_with_context
-
-from audio import AudioProcessor
+from audio import VoiceActivityDetector, convert_float32_to_wave
 from flask_session import Session
 from flask_socketio import SocketIO
 import datetime
+import numpy as np
 
-import subprocess
+# import subprocess
 
 
 MAX_TITLE_LENGTH = 48
@@ -104,88 +101,114 @@ tmpfile = None
 
 FORMAT = 8                # Audio format (16-bit PCM)
 CHANNELS = 1              # Mono audio
-RATE = 16000              # Sample rate in Hz
+SAMPLING_RATE = 16000              # Sample rate in Hz
 CHUNK = 1024              # Size of each audio chunk
+NP_F32_BYTES_PER_VALUE = 4
 
 
-def get_ffmpeg_process(rate, channels):
-    # global ffmpeg_process
-    ffmpeg_process = subprocess.Popen(
-        [
-            'ffmpeg',
-            '-i', '-',  # Input from stdin
-            '-ar', f'{rate}',  # Set sample rate to 16000 Hz
-            '-ac', f'{channels}',  # Set audio channels to 1
-            '-f', 'wav',  # Output format as WAV
-            '-'  # Output to stdout
-        ],
-        stdin=subprocess.PIPE,
-        stdout=subprocess.PIPE
-    )
-    fd = ffmpeg_process.stdout.fileno()
-    fl = fcntl.fcntl(fd, fcntl.F_GETFL)
-    fcntl.fcntl(fd, fcntl.F_SETFL, fl | os.O_NONBLOCK)
-    return ffmpeg_process
+class AudioProcessor:
+    def __init__(self, sampling_rate=SAMPLING_RATE, min_samples=5 * SAMPLING_RATE * NP_F32_BYTES_PER_VALUE):
+        self.min_samples = min_samples
+        self.sampling_rate = sampling_rate
+        self.accumulated_speech = np.array([], np.float32)
+        self.vad = VoiceActivityDetector()
 
-global audio_buffer
-audio_processor = AudioProcessor()
+    def process(self, chunk: bytes):
+        speech_active = False
+        buffer = np.frombuffer(chunk, np.float32)  # raw audio
+        timestamps = self.vad.get_timestamps(buffer)
+
+        for ts in timestamps:
+            start = int(ts.get('start', 0))
+            end = int(ts.get('end', len(buffer)))
+
+            if 'start' in ts:
+                speech_active = True
+
+            if 'end' in ts and speech_active:
+                self.accumulated_speech = np.concatenate([self.accumulated_speech, buffer[start:end]])
+                speech_active = False
+
+                # Check if accumulated speech meets minimum duration
+                if self.accumulated_speech.size >= self.min_samples:
+                    # process_speech(accumulated_speech)  # Process the speech
+                    yield self.accumulated_speech
+                    self.accumulated_speech = np.array([], np.float32)  # Reset accumulated speech
+        # yield None
+    def finalize(self):
+        if len(self.accumulated_speech) > 0:  # not yet yielded
+            tmp = self.accumulated_speech.copy()
+            self.accumulated_speech = np.array([], np.float32)  # Reset accumulated speech
+            return tmp
+
+
+
+def test_audio():
+
+    processor = AudioProcessor()
+
+    import wave
+    w = wave.open('/Users/christianwengert/src/llama-server/server/sanity.wav', 'r')
+    # w = wave.open('/Users/christianwengert/src/whisper.cpp/samples/gb0.wav', 'r')
+
+    sample_width = w.getsampwidth()
+    n_frames = w.getnframes()
+    frame_rate = w.getframerate()
+
+    audio_data = np.frombuffer(w.readframes(n_frames), dtype=np.int16)
+    max_value = float(2 ** (8 * sample_width - 1))
+    float_data = audio_data / max_value
+
+    full_audio = float_data.astype(np.float32)
+    global counter
+    counter = 0
+
+    def split_into_chunks(audio, chunk_length, frame_rate):
+        # Split audio into chunks of specified length
+        chunk_size = int(frame_rate * chunk_length)
+        return [audio[i:i + chunk_size] for i in range(0, len(audio), chunk_size)]
+
+    def concatenate_speech(chunks, vad, threshold=5.0):
+        global counter
+        accumulated_speech = np.array([], dtype=np.float32)
+        for chunk in chunks:
+
+            timestamps = vad.get_timestamps(chunk)
+            for timestamp in timestamps:
+                start = timestamp.get('start', 0)
+                end = timestamp.get('end', len(chunk))
+                active_speech = chunk[start:end]
+                accumulated_speech = np.concatenate((accumulated_speech, active_speech))
+
+                # Check if accumulated speech length has reached the threshold
+                if len(accumulated_speech) / frame_rate >= threshold:
+                    convert_float32_to_wave(accumulated_speech, f'/Users/christianwengert/src/llama-server/server/part_{0}.wav', 16000, 1)
+                    counter += 1
+                    # process(accumulated_speech)  # Process the speech
+                    accumulated_speech = np.array([], dtype=np.float32)  # Reset accumulator
+
+        # Process remaining speech if it's not empty
+        if len(accumulated_speech) > 0:
+            convert_float32_to_wave(accumulated_speech, f'/Users/christianwengert/src/llama-server/server/part_{0}.wav', 16000, 1)
+            counter += 1
+
+    # Example usage
+    chunk_length = 5.0  # Chunk length in seconds
+    chunks = split_into_chunks(full_audio, chunk_length, frame_rate)
+    concatenate_speech(chunks, processor.vad)
+
 
 @socketio.on('audio_stream')
 def handle_audio_stream(chunk: bytes):
-    global audio_buffer
     if chunk == '<|START|>':
-        audio_buffer = b''
-
-        # stop = False
-        # ffmpeg_process = get_ffmpeg_process(RATE, CHANNELS)
-
         if os.path.exists('temp.raw'):
             os.remove('temp.raw')
-        # write_wav_header('temp.wav', 16000, 1, 16)
-        # if os.path.exists('temp.ogg'):
-        #     os.remove('temp.ogg')
         print('start')
     elif chunk == '<|STOP|>':
-        # stop = True
-        # os.kill(ffmpeg_process.pid, signal.SIGTERM)
         print('stop')
     else:
-        # audio_buffer += chunk  # TODO: start using vad to separate chunks
-
-        timestamps = audio_processor.get_timestamps(chunk)
-
-        # trim audio and split chunks
-
-
         with open('/Users/christianwengert/src/llama-server/server/temp.raw', 'ab') as file:
-        # append_audio_data('temp.wav', chunk)
             file.write(chunk)  # this works
-        # with open('temp.wav', 'ab') as file:
-        #     ffmpeg_process.stdin.write(chunk)
-        #     ffmpeg_process.stdin.flush()
-        #     # Read the converted data (this might need to be done in a separate thread or async loop)
-        #     # 5 sec =
-        #     #file_size = RATE * (16 // 8) * CHANNELS * 5
-        #     timeout_seconds = 0.1
-        #     last_data_time = time.time()
-        #     while True:
-        #         inline = ffmpeg_process.stdout.read(1024)
-        #         if inline:
-        #             last_data_time = time.time()
-        #             file.write(inline)
-        #             file.flush()
-        #         elif time.time() - last_data_time > timeout_seconds:
-        #             # No data for a while, assuming process is done
-        #             os.kill(ffmpeg_process.pid, signal.SIGINT)
-        #             break
-        #         elif ffmpeg_process.poll() is not None:
-        #             # Process has exited
-        #             break
-        #         # Optionally, sleep for a short time to prevent busy waiting
-        #         time.sleep(0.05)
-
-            # a = 2
-
 
     print('Received audio data', len(chunk))
 
@@ -570,5 +593,6 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
 
 
 if __name__ == '__main__':
+    test_audio()
     # app.run()
     socketio.run(app)
