@@ -299,7 +299,6 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
 };
 
 
-
 function setClipboardHandler() {
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
@@ -607,8 +606,3 @@ const main = () => {
 };
 
 main()
-
-
-
-
-
