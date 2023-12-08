@@ -6,19 +6,12 @@ import secrets
 import tempfile
 import urllib
 from functools import wraps
-from io import BytesIO
 from json import JSONDecodeError
 from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context, send_from_directory
-from audio import VoiceActivityDetector, convert_float32_to_wave
-from flask_session import Session
-from flask_socketio import SocketIO
 import datetime
-import numpy as np
-
-# import subprocess
 
 
 MAX_TITLE_LENGTH = 48
@@ -59,11 +52,6 @@ app.config['SESSION_TYPE'] = 'filesystem'  # Filesystem-based sessions
 app.config['SESSION_PERMANENT'] = True  # Persist sessions across restarts
 app.config["PERMANENT_SESSION_LIFETIME"] = 30 * 24 * 60 * 60  # 30 days
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
-Session(app)
-socketio = SocketIO(app)
-
-
-audio_chunks = []
 
 
 CACHE_DIR = 'cache'
@@ -98,121 +86,6 @@ parser.add_argument("--host", type=str, help="Set the ip address to listen.(defa
 parser.add_argument("--port", type=int, help="Set the port to listen.(default: 8081)", default=8081)
 args = parser.parse_args()
 
-tmpfile = None
-
-FORMAT = 8                # Audio format (16-bit PCM)
-CHANNELS = 1              # Mono audio
-SAMPLING_RATE = 16000              # Sample rate in Hz
-CHUNK = 1024              # Size of each audio chunk
-NP_F32_BYTES_PER_VALUE = 4
-
-
-class AudioProcessor:
-    def __init__(self, sampling_rate=SAMPLING_RATE, min_samples=5 * SAMPLING_RATE * NP_F32_BYTES_PER_VALUE):
-        self.min_samples = min_samples
-        self.sampling_rate = sampling_rate
-        self.accumulated_speech = np.array([], np.float32)
-        self.vad = VoiceActivityDetector()
-
-    def process(self, chunk: bytes):
-        speech_active = False
-        buffer = np.frombuffer(chunk, np.float32)  # raw audio
-        timestamps = self.vad.get_timestamps(buffer)
-
-        for ts in timestamps:
-            start = int(ts.get('start', 0))
-            end = int(ts.get('end', len(buffer)))
-
-            if 'start' in ts:
-                speech_active = True
-
-            if 'end' in ts and speech_active:
-                self.accumulated_speech = np.concatenate([self.accumulated_speech, buffer[start:end]])
-                speech_active = False
-
-                # Check if accumulated speech meets minimum duration
-                if self.accumulated_speech.size >= self.min_samples:
-                    # process_speech(accumulated_speech)  # Process the speech
-                    yield self.accumulated_speech
-                    self.accumulated_speech = np.array([], np.float32)  # Reset accumulated speech
-        # yield None
-    def finalize(self):
-        if len(self.accumulated_speech) > 0:  # not yet yielded
-            tmp = self.accumulated_speech.copy()
-            self.accumulated_speech = np.array([], np.float32)  # Reset accumulated speech
-            return tmp
-
-
-
-def test_audio():
-
-    processor = AudioProcessor()
-
-    import wave
-    w = wave.open('/Users/christianwengert/src/llama-server/server/sanity.wav', 'r')
-    # w = wave.open('/Users/christianwengert/src/whisper.cpp/samples/gb0.wav', 'r')
-
-    sample_width = w.getsampwidth()
-    n_frames = w.getnframes()
-    frame_rate = w.getframerate()
-
-    audio_data = np.frombuffer(w.readframes(n_frames), dtype=np.int16)
-    max_value = float(2 ** (8 * sample_width - 1))
-    float_data = audio_data / max_value
-
-    full_audio = float_data.astype(np.float32)
-    global counter
-    counter = 0
-
-    def split_into_chunks(audio, chunk_length, frame_rate):
-        # Split audio into chunks of specified length
-        chunk_size = int(frame_rate * chunk_length)
-        return [audio[i:i + chunk_size] for i in range(0, len(audio), chunk_size)]
-
-    def concatenate_speech(chunks, vad, threshold=5.0):
-        global counter
-        accumulated_speech = np.array([], dtype=np.float32)
-        for chunk in chunks:
-
-            timestamps = vad.get_timestamps(chunk)
-            for timestamp in timestamps:
-                start = timestamp.get('start', 0)
-                end = timestamp.get('end', len(chunk))
-                active_speech = chunk[start:end]
-                accumulated_speech = np.concatenate((accumulated_speech, active_speech))
-
-                # Check if accumulated speech length has reached the threshold
-                if len(accumulated_speech) / frame_rate >= threshold:
-                    convert_float32_to_wave(accumulated_speech, f'/Users/christianwengert/src/llama-server/server/part_{0}.wav', 16000, 1)
-                    counter += 1
-                    # process(accumulated_speech)  # Process the speech
-                    accumulated_speech = np.array([], dtype=np.float32)  # Reset accumulator
-
-        # Process remaining speech if it's not empty
-        if len(accumulated_speech) > 0:
-            convert_float32_to_wave(accumulated_speech, f'/Users/christianwengert/src/llama-server/server/part_{0}.wav', 16000, 1)
-            counter += 1
-
-    # Example usage
-    chunk_length = 5.0  # Chunk length in seconds
-    chunks = split_into_chunks(full_audio, chunk_length, frame_rate)
-    concatenate_speech(chunks, processor.vad)
-
-
-@socketio.on('audio_stream')
-def handle_audio_stream(chunk: bytes):
-    if chunk == '<|START|>':
-        if os.path.exists('temp.raw'):
-            os.remove('temp.raw')
-        print('start')
-    elif chunk == '<|STOP|>':
-        print('stop')
-    else:
-        with open('/Users/christianwengert/src/llama-server/server/temp.raw', 'ab') as file:
-            file.write(chunk)  # this works
-
-    print('Received audio data', len(chunk))
-
 
 def login_required(f):
     @wraps(f)
@@ -226,7 +99,7 @@ def login_required(f):
 
 @app.route('/logout', methods=['GET'])
 def logout():
-    session.pop('username')
+    session.pop('username', None)
     return redirect(url_for('login'))
 
 
@@ -601,6 +474,4 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
 
 
 if __name__ == '__main__':
-    # test_audio()
-    # app.run()
-    socketio.run(app)
+    app.run()
