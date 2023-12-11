@@ -550,21 +550,7 @@ function setupMenu() {
         })
     }
 }
-//
-// function setupAudio() {
-//     navigator.mediaDevices.getUserMedia({audio: true, video: false})
-//         .then(stream => {
-//             const mediaRecorder = new MediaRecorder(stream);
-//             mediaRecorder.start();
-//
-//             mediaRecorder.ondataavailable = function (e) {
-//                 // Send the audio chunks to the server here
-//             }
-//         })
-//         .catch(err => {
-//             console.log('Error accessing microphone:', err);
-//         });
-// }
+
 
 function setupTextInput() {
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
@@ -602,7 +588,6 @@ const main = () => {
 
     setupEscapeButtonForPopups();
 
-    // setupAudio()
 };
 
 main()
