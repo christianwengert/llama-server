@@ -50190,6 +50190,8 @@
     const menuLink = document.getElementById("menuLink");
     const textNode = menuLink.firstChild;
     const menu = document.getElementById("menu");
+    const key = "collection";
+    const curUrl = new URL(window.location.href);
     menuLink.addEventListener("click", function(event) {
       menu.classList.toggle("hidden");
       event.preventDefault();
@@ -50200,20 +50202,35 @@
         menu.classList.add("hidden");
       }
     });
+    const selectedMode = curUrl.searchParams.get(key);
     for (let elem of document.getElementsByClassName("mode-button")) {
       elem.addEventListener("click", (e) => {
         e.preventDefault();
         const target = e.target;
         menu.classList.toggle("hidden");
+        const updateUrlParam = (term) => {
+          if (!curUrl.searchParams.has(key)) {
+            curUrl.searchParams.append(key, term);
+          } else {
+            curUrl.searchParams.set(key, term);
+          }
+          window.history.pushState({}, "", curUrl.href);
+        };
         if (target.id === "mode-chat") {
           textNode.textContent = "Chat";
+          updateUrlParam("");
           return;
         }
         if (target.id === "mode-stackexchange") {
           textNode.textContent = "Stackexchange";
+          updateUrlParam("mode-stackexchange");
           return;
         }
       });
+      if (selectedMode && elem.id === selectedMode) {
+        elem.click();
+        menu.classList.add("hidden");
+      }
     }
   }
   function setupTextInput() {

@@ -518,36 +518,62 @@ function setupMenu() {
 
     const menu = document.getElementById('menu')!;
 
+    const key = 'collection'
+
+    // Get the current location and parse it into a URL object
+    const curUrl = new URL(window.location.href);
+
     menuLink.addEventListener('click', function (event) {
         menu.classList.toggle('hidden');
         event.preventDefault();
     });
 
+    // hide menu
     window.addEventListener('click', function (event) {
         let target = event.target! as HTMLElement;
         if (!menu.contains(target) && target !== menuLink) {
             menu.classList.add('hidden');
         }
-        // todo: close popup when out of reach
-        // const targetElement = document.getElementById('element');
     });
 
 
+    // get and set current mode
+    const selectedMode = curUrl.searchParams.get(key);
     for (let elem of document.getElementsByClassName('mode-button')) {
         elem.addEventListener('click', (e) => {
             e.preventDefault()
             const target = e.target! as HTMLElement;
             menu.classList.toggle('hidden');
+
+            const updateUrlParam = (term: string) => {
+                // Add or update the 'q' parameter in the query string
+                if (!curUrl.searchParams.has(key)) {
+                    curUrl.searchParams.append(key, term); // Append a new search param if it doesn't exist
+                } else {
+                    curUrl.searchParams.set(key, term); // Overwrite the existing search param with the new value
+                }
+                // Update the URL in the browser
+                window.history.pushState({}, '', curUrl.href);
+            }
+
             if (target.id === 'mode-chat') {
                 textNode.textContent = 'Chat';
+                updateUrlParam('')
                 return
             }
             if (target.id === 'mode-stackexchange') {
                 textNode.textContent = 'Stackexchange';
+                updateUrlParam('mode-stackexchange')
                 return
             }
 
         })
+        //update current selection
+        if(selectedMode && elem.id === selectedMode) {
+            // console.log('sekect ', elem)
+            (elem as HTMLAnchorElement).click();
+            menu.classList.add('hidden');
+        }
     }
 }
 
