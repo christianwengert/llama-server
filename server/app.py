@@ -12,14 +12,14 @@ from typing import Dict, Any, Tuple, List, Literal, Optional
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
-from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.embeddings import HuggingFaceEmbeddings  # todo get rid off langchain
 from langchain.vectorstores.faiss import FAISS
 
 from flask_session import Session
 import datetime
 from urllib.parse import urlparse, parse_qs
 
-from rag import build_or_load_stackexchange_collection
+
 
 MAX_TITLE_LENGTH = 48
 
@@ -516,9 +516,9 @@ def get_collection_from_query() -> str:
     if request.referrer:
         parsed_url = urlparse(request.referrer)
         query_params = parse_qs(parsed_url.query)
-        collections = query_params.get('collection')
-        if collections:
-            collection = collections[0]
+        collections = query_params.get('collection')  # Returns a vector....
+        if collections and len(collection) == 1:
+            collection = collections[0]  # Just take one, there should not be more
     return collection
 
 
