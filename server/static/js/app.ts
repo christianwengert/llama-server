@@ -79,7 +79,6 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     messageDiv.className = `message from-${direction}`;
     messageDiv.id = ident;
 
-
     const messageExtra = document.createElement('div')
     messageExtra.className = 'message-header'
     messageDiv.appendChild(messageExtra);
@@ -561,11 +560,15 @@ function setupMenu() {
                 updateUrlParam('')
                 return
             }
-            if (target.id === 'mode-stackexchange') {
-                textNode.textContent = 'Stackexchange';
-                updateUrlParam('mode-stackexchange')
-                return
-            }
+            // if (target.id === 'mode-stackexchange') {
+            // const vals = target.id.split('-')
+            // console.log(vals)
+
+
+            textNode.textContent = target.id.replace('-', '/');
+            updateUrlParam(target.id)
+                // return
+            // }
 
         })
         //update current selection

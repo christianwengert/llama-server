@@ -50221,11 +50221,8 @@
           updateUrlParam("");
           return;
         }
-        if (target.id === "mode-stackexchange") {
-          textNode.textContent = "Stackexchange";
-          updateUrlParam("mode-stackexchange");
-          return;
-        }
+        textNode.textContent = target.id.replace("-", "/");
+        updateUrlParam(target.id);
       });
       if (selectedMode && elem.id === selectedMode) {
         elem.click();

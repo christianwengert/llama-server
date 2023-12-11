@@ -2,17 +2,24 @@ import argparse
 import hashlib
 import json
 import os
+from pathlib import Path
 import secrets
 import tempfile
 import urllib
 from functools import wraps
 from json import JSONDecodeError
-from typing import Dict, Any
+from typing import Dict, Any, Tuple, List, Literal, Optional
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
+from langchain.embeddings import HuggingFaceEmbeddings
+from langchain.vectorstores.faiss import FAISS
+
 from flask_session import Session
 import datetime
+from urllib.parse import urlparse, parse_qs
+
+from rag import build_or_load_stackexchange_collection
 
 MAX_TITLE_LENGTH = 48
 
@@ -21,6 +28,15 @@ ASSISTANT_NAME = '### Assistant'
 USER = '### User Message'
 
 SEPARATOR = '~~~~'
+
+
+COLLECTION_DATA_DIR = os.path.dirname(__file__) + '/../data'
+
+
+EMBEDDINGS = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5',
+                                   encode_kwargs={'normalize_embeddings': True},
+                                   # set True to compute cosine similarity
+                                   )
 
 
 def categorize_timestamp(timestamp: float):
@@ -167,6 +183,41 @@ def get_default_settings():
     return jsonify(get_llama_parameters())
 
 
+def find_files(directory, extension):
+    result = []
+    for root, dirs, files in os.walk(directory):
+        for file in files:
+            if file.endswith(extension):  # Check if file has the specified extension (e.g., ".txt")
+                result.append(os.path.join(root, file))  # Add full path to the list of results
+    return result
+
+
+def list_directories(directory):
+    result = []
+    for file in os.listdir(directory):
+        if os.path.isdir(os.path.join(directory, file)):
+            result.append(file)
+    return result
+
+
+def get_available_collections(username: str = None) -> List[Tuple[Literal['common', 'user'], str]]:
+    common_dir = Path(COLLECTION_DATA_DIR) / Path('common')
+
+    common_collections = list_directories(common_dir)
+
+    collections = []
+
+    for collection in common_collections:
+        # indices = find_files(common_dir / collection, '.faiss')
+        collections.append(('common', collection))
+
+    if username:
+        user_dir = Path(COLLECTION_DATA_DIR) / Path('user') / Path(username)
+        _user_collections = list_directories(user_dir)
+        # TODO
+    return collections
+
+
 @login_required
 @app.route("/c/<path:token>")
 def c(token):
@@ -178,7 +229,11 @@ def c(token):
     if type(data['stop']) == list:
         data['stop'] = ','.join(data['stop'])
 
+    collections = get_available_collections()
+    common_collections = [b for a, b in collections if a == 'common']
+
     return render_template('index.html',
+                           common_collections=common_collections,
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
@@ -337,18 +392,40 @@ def compile_history(hist):
     return '\n'.join(lines)
 
 
+def load_collection(collection: str) -> Optional[FAISS]:
+    collections = get_available_collections()
+    db = None
+    for corpus, name in collections:
+        if name == collection:
+            indices = find_files(COLLECTION_DATA_DIR / Path(corpus) / Path(name), '.faiss')
+
+            db = None
+            for index in indices:
+                tmp = FAISS.load_local(os.path.dirname(index), EMBEDDINGS)
+                if db:
+                    db.merge_from(tmp)
+                else:
+                    db = tmp
+
+    return db
+
+
 @login_required
 @app.route('/', methods=["POST"])
 def get_input():
     token = session.get('token', None)
     username = session.get('username')
 
+    collection = get_collection_from_query()
+    if collection:
+        index = session.get('rag-collection', None)
+        if index is None:
+            index = load_collection(collection)
+            session['rag-collection'] = index
+
     data = request.get_json()
     text = data.pop('input')
     prune_history_index = data.pop('pruneHistoryIndex')
-
-    # if type(data['stop']) == list:
-    #     data['stop'] = ','.join(data['stop'])
 
     session['params'] = dict(**data)  # must copy
 
@@ -432,6 +509,17 @@ def get_input():
     return Response(stream_with_context(generate()),
                     mimetype='text/event-stream',
                     direct_passthrough=False)
+
+
+def get_collection_from_query() -> str:
+    collection = None
+    if request.referrer:
+        parsed_url = urlparse(request.referrer)
+        query_params = parse_qs(parsed_url.query)
+        collections = query_params.get('collection')
+        if collections:
+            collection = collections[0]
+    return collection
 
 
 def hash_username(username):
