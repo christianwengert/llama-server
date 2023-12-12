@@ -35,6 +35,28 @@ EMBEDDINGS = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5',
                                    # set True to compute cosine similarity
                                    )
 
+# This is how to get rid off langchain
+# from sentence_transformers import SentenceTransformer
+# EMBEDDINGS = SentenceTransformer('BAAI/bge-large-en-v1.5')
+#
+# #Our sentences we like to encode
+# sentences = ['This framework generates embeddings for each input sentence',
+#     'Sentences are passed as a list of string.',
+#     'The quick brown fox jumps over the lazy dog.']
+#
+# #Sentences are encoded by calling model.encode()
+# embeddings = model.encode(sentences, normalize_embeddings=True)
+# EMBEDDINGS.embed_documents(sentences)
+#
+# #Print the embeddings
+# for sentence, embedding in zip(sentences, embeddings):
+#     print("Sentence:", sentence)
+#     print("Embedding:", embedding)
+#     print("")
+
+
+LOADED_EMBEDDINGS = {}
+
 
 def categorize_timestamp(timestamp: float):
     now = datetime.datetime.now()
@@ -414,11 +436,14 @@ def get_input():
     username = session.get('username')
 
     collection = get_collection_from_query()
+    vector_store = None
     if collection:
-        index = session.get('rag-collection', None)
-        if index is None:
-            index = load_collection(collection)
-            session['rag-collection'] = index
+        vector_store = LOADED_EMBEDDINGS.get(token)
+
+        # index = session.get('rag-collection', None)
+        if vector_store is None:
+            vector_store = load_collection(collection)
+            LOADED_EMBEDDINGS[token] = vector_store
 
     data = request.get_json()
     text = data.pop('input')
@@ -460,6 +485,8 @@ def get_input():
         hist['items'].append(dict(role=user, content=f'This is the context: {context}', suffix=user_suffix))
         hist['items'].append(dict(role=assistant, content='OK', suffix=""))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
+    if vector_store:
+        pass
 
     if prune_history_index >= 0:  # remove items if required
         hist["items"] = hist["items"][:prune_history_index]

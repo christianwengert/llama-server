@@ -13,11 +13,11 @@ requests==2.31.0
 urllib3==2.1.0
 Werkzeug==3.0.1
 
-langchain==0.0.348
+langchain==0.0.349
 SQLAlchemy~=2.0.23
 tqdm~=4.66.1
 beautifulsoup4~=4.12.2
 py7zr~=0.20.8
-transformers==4.35.2
+transformers==4.36.0
 torch==2.1.1
 datasets==2.15.0
