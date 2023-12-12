@@ -443,6 +443,7 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
         'cache_prompt': True,
         'frequency_penalty': 0,
         'grammar': '',
+        'min_p': 0.1,
         'image_data': [],
         'mirostat': 0,
         'mirostat_tau': 5,
