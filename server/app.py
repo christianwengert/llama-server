@@ -20,9 +20,6 @@ import datetime
 from urllib.parse import urlparse, parse_qs
 
 
-
-MAX_TITLE_LENGTH = 48
-
 SYSTEM_PROMPT_PREFIX = '### System Prompt'
 ASSISTANT_NAME = '### Assistant'
 USER = '### User Message'
@@ -354,7 +351,7 @@ def get_tokens(text):
     data_json = data.json()
     return data_json
 
-#
+
 # @login_required
 # @app.route('/update/history/<path:item>')
 # def update_history_title(item):
@@ -517,7 +514,7 @@ def get_collection_from_query() -> str:
         parsed_url = urlparse(request.referrer)
         query_params = parse_qs(parsed_url.query)
         collections = query_params.get('collection')  # Returns a vector....
-        if collections and len(collection) == 1:
+        if collections and len(collections) == 1:
             collection = collections[0]  # Just take one, there should not be more
     return collection
 
