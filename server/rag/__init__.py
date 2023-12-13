@@ -10,7 +10,7 @@ from langchain_core.documents import Document
 
 from utils.filesystem import list_directories, find_files
 
-RAG_DATA_DIR = os.path.dirname(__file__) + '/../data'
+RAG_DATA_DIR = os.path.dirname(__file__) + '/../../data'
 RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
 RAG_RERANKING_YESNO_GRAMMAR = r'''
     root ::= answer
