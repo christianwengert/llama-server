@@ -820,6 +820,11 @@ input[type="number"]::-webkit-outer-spin-button {
     display: block;
     line-height: 32px;
 }
+#menu hr {
+    border: 0;
+    border-bottom: 1px solid lightgray;
+    height: 1px; /* Set height to 1px for a very thin line */
+}
 
 .chevron-down {
     position: relative;

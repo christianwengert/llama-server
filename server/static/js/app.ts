@@ -513,7 +513,10 @@ function setupScrollButton() {
 
 function setupMenu() {
 
-    const menuLink = document.getElementById('menuLink')!;
+    const menuLink = document.getElementById('menuLink');
+    if (!menuLink) {
+        return;
+    }
     const textNode = menuLink.firstChild! as HTMLElement;
 
     const menu = document.getElementById('menu')!;
