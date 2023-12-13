@@ -14,6 +14,7 @@ from flask import Flask, render_template, request, session, Response, abort, red
     stream_with_context
 from langchain.embeddings import HuggingFaceEmbeddings  # todo get rid off langchain
 from langchain.vectorstores.faiss import FAISS
+from langchain_core.documents import Document
 
 from flask_session import Session
 import datetime
@@ -25,6 +26,46 @@ ASSISTANT_NAME = '### Assistant'
 USER = '### User Message'
 
 SEPARATOR = '~~~~'
+
+RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
+RAG_RERANKING_YESNO_GRAMMAR = r'''
+    root ::= answer
+    answer ::= (complaint | yesno)        
+    complaint ::= "I DON'T KNOW"
+    yesno ::= ("YES" | "NO")
+'''
+RAG_NUM_DOCS = 5
+
+
+def rag(docs: List[Document], question: str) -> str:
+    context = []
+    for d in docs:
+        answers = d.metadata.get('answers')
+        if answers:
+            context.append(
+                f"Q:\n\n{d.page_content}\n\n"
+            )
+
+            for a in answers:
+                context.append(
+                    f"A:\n\n{a}\n\n"
+                )
+
+    context_string = "".join(context)
+
+    prompt = f"""
+    You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. The context consists of questions and one or more relevant answers to each question. Each question in the context starts with Q: and each answer in the context starts with A:. If you don't know the answer, just say that you don't know.
+
+    Context: 
+    {context_string}
+
+    Question:
+    {question}
+
+    Answer:
+    """
+
+    return prompt
 
 
 COLLECTION_DATA_DIR = os.path.dirname(__file__) + '/../data'
@@ -439,8 +480,6 @@ def get_input():
     vector_store = None
     if collection:
         vector_store = LOADED_EMBEDDINGS.get(token)
-
-        # index = session.get('rag-collection', None)
         if vector_store is None:
             vector_store = load_collection(collection)
             LOADED_EMBEDDINGS[token] = vector_store
@@ -486,25 +525,59 @@ def get_input():
         hist['items'].append(dict(role=assistant, content='OK', suffix=""))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
     if vector_store:
-        pass
 
-    if prune_history_index >= 0:  # remove items if required
-        hist["items"] = hist["items"][:prune_history_index]
+        # retrieve documents
+        reranked_docs = []
+        docs = vector_store.similarity_search(text, k=RAG_NUM_DOCS)  #
 
-    history = compile_history(hist)
+        rerank_post_data = _get_llama_default_parameters(data)
 
-    # system = "### System prompt\n"
-    prompt = f'''{system_prompt_prefix}
-{system_prompt}{system_prompt_suffix}
-    
-{history}
-    
-{user}
-{text}
-{user_suffix}
-    
-{assistant}
-    '''
+        rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
+        rerank_post_data['stream'] = False
+
+        # re-rank documents
+        for d in docs:
+            formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=text, context=d.page_content)
+
+            rerank_post_data['prompt'] = formatted_prompt
+
+            rr_data = requests.request(method="POST",
+                                       url=urllib.parse.urljoin(args.llama_api, "/completion"),
+                                       data=json.dumps(rerank_post_data),
+                                       stream=False)
+
+            rr_response = rr_data.json()
+            print(rr_response.get('content'))
+            # todo: Logic here
+            if 'YES' == rr_response.get('content').strip():
+                reranked_docs.append(d)
+        # answer = test(llm, reranked_docs, question)
+        # print(answer)
+        if reranked_docs:
+            prompt = rag(reranked_docs, text)
+        else:
+            # continue with normal promp
+            prompt = "hahahhuhuhu"  # todo
+
+    else:
+
+        if prune_history_index >= 0:  # remove items if required
+            hist["items"] = hist["items"][:prune_history_index]
+
+        history = compile_history(hist)
+
+        # system = "### System prompt\n"
+        prompt = f'''{system_prompt_prefix}
+    {system_prompt}{system_prompt_suffix}
+        
+    {history}
+        
+    {user}
+    {text}
+    {user_suffix}
+        
+    {assistant}
+        '''
 
     post_data = _get_llama_default_parameters(data)
 
