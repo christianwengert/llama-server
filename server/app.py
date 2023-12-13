@@ -2,79 +2,28 @@ import argparse
 import hashlib
 import json
 import os
-from pathlib import Path
 import secrets
 import tempfile
 import urllib
 from functools import wraps
 from json import JSONDecodeError
-from typing import Dict, Any, Tuple, List, Literal, Optional
+from typing import Dict, Any
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
-from langchain.embeddings import HuggingFaceEmbeddings  # todo get rid off langchain
-from langchain.vectorstores.faiss import FAISS
-from langchain_core.documents import Document
 
 from flask_session import Session
-import datetime
-from urllib.parse import urlparse, parse_qs
+from urllib.parse import urlparse
 
+from rag import rag_prompt, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
+    get_available_collections, load_collection, get_collection_from_query
+from utils.timestamp_formatter import categorize_timestamp
 
 SYSTEM_PROMPT_PREFIX = '### System Prompt'
 ASSISTANT_NAME = '### Assistant'
 USER = '### User Message'
 
 SEPARATOR = '~~~~'
-
-RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
-RAG_RERANKING_YESNO_GRAMMAR = r'''
-    root ::= answer
-    answer ::= (complaint | yesno)        
-    complaint ::= "I DON'T KNOW"
-    yesno ::= ("YES" | "NO")
-'''
-RAG_NUM_DOCS = 5
-
-
-def rag(docs: List[Document], question: str) -> str:
-    context = []
-    for d in docs:
-        answers = d.metadata.get('answers')
-        if answers:
-            context.append(
-                f"Q:\n\n{d.page_content}\n\n"
-            )
-
-            for a in answers:
-                context.append(
-                    f"A:\n\n{a}\n\n"
-                )
-
-    context_string = "".join(context)
-
-    prompt = f"""
-    You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. The context consists of questions and one or more relevant answers to each question. Each question in the context starts with Q: and each answer in the context starts with A:. If you don't know the answer, just say that you don't know.
-
-    Context: 
-    {context_string}
-
-    Question:
-    {question}
-
-    Answer:
-    """
-
-    return prompt
-
-
-COLLECTION_DATA_DIR = os.path.dirname(__file__) + '/../data'
-
-
-EMBEDDINGS = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5',
-                                   encode_kwargs={'normalize_embeddings': True},
-                                   # set True to compute cosine similarity
-                                   )
 
 # This is how to get rid off langchain
 # from sentence_transformers import SentenceTransformer
@@ -97,25 +46,6 @@ EMBEDDINGS = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5',
 
 
 LOADED_EMBEDDINGS = {}
-
-
-def categorize_timestamp(timestamp: float):
-    now = datetime.datetime.now()
-
-    # for timestamp in timestamps:
-    item_date = datetime.datetime.fromtimestamp(timestamp)
-
-    if (now - item_date).days == 0:
-        return "Today"
-    elif (now - item_date).days == 1:
-        return "Yesterday"
-    elif (now - item_date).days <= 7:
-        return "Last week"
-    elif (now - item_date).days <= 30:
-        return "Last month"
-    else:
-        return "Older"
-
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
@@ -243,41 +173,6 @@ def get_default_settings():
     return jsonify(get_llama_parameters())
 
 
-def find_files(directory, extension):
-    result = []
-    for root, dirs, files in os.walk(directory):
-        for file in files:
-            if file.endswith(extension):  # Check if file has the specified extension (e.g., ".txt")
-                result.append(os.path.join(root, file))  # Add full path to the list of results
-    return result
-
-
-def list_directories(directory):
-    result = []
-    for file in os.listdir(directory):
-        if os.path.isdir(os.path.join(directory, file)):
-            result.append(file)
-    return result
-
-
-def get_available_collections(username: str = None) -> List[Tuple[Literal['common', 'user'], str]]:
-    common_dir = Path(COLLECTION_DATA_DIR) / Path('common')
-
-    common_collections = list_directories(common_dir)
-
-    collections = []
-
-    for collection in common_collections:
-        # indices = find_files(common_dir / collection, '.faiss')
-        collections.append(('common', collection))
-
-    if username:
-        user_dir = Path(COLLECTION_DATA_DIR) / Path('user') / Path(username)
-        _user_collections = list_directories(user_dir)
-        # TODO
-    return collections
-
-
 @login_required
 @app.route("/c/<path:token>")
 def c(token):
@@ -389,15 +284,17 @@ def upload():
 @login_required
 @app.route('/embeddings', methods=["POST"])
 def embeddings():
+    # This returns the embeddings from the llama.cpp model, this is NOT the same as embeddings for RAG
     data = request.get_json()
     if 'content' not in data:
         abort(400)
     if len(data) > 1:
         abort(400)
-    return get_embeddings(data)
+    return get_llama_cpp_embeddings(data)
 
 
-def get_embeddings(data):
+def get_llama_cpp_embeddings(data):
+    # This returns the embeddings from the llama.cpp model, this is NOT the same as embeddings for RAG
     data = requests.request(method="POST",
                             url=urllib.parse.urljoin(args.llama_api, "/embedding"),
                             data=json.dumps(data),
@@ -433,7 +330,7 @@ def get_tokens(text):
 #
 #     history = compile_history(hist)
 #
-#     prompt = title_prompt + 'Convesation:\n' + history
+#     prompt = title_prompt + 'Conversation:\n' + history
 #
 #     data = requests.request(method="POST",
 #                             url=urllib.parse.urljoin(args.llama_api, "/completion"),
@@ -452,31 +349,13 @@ def compile_history(hist):
     return '\n'.join(lines)
 
 
-def load_collection(collection: str) -> Optional[FAISS]:
-    collections = get_available_collections()
-    db = None
-    for corpus, name in collections:
-        if name == collection:
-            indices = find_files(COLLECTION_DATA_DIR / Path(corpus) / Path(name), '.faiss')
-
-            db = None
-            for index in indices:
-                tmp = FAISS.load_local(os.path.dirname(index), EMBEDDINGS)
-                if db:
-                    db.merge_from(tmp)
-                else:
-                    db = tmp
-
-    return db
-
-
 @login_required
 @app.route('/', methods=["POST"])
 def get_input():
     token = session.get('token', None)
     username = session.get('username')
 
-    collection = get_collection_from_query()
+    collection = get_collection_from_query(request)
     vector_store = None
     if collection:
         vector_store = LOADED_EMBEDDINGS.get(token)
@@ -554,7 +433,7 @@ def get_input():
         # answer = test(llm, reranked_docs, question)
         # print(answer)
         if reranked_docs:
-            prompt = rag(reranked_docs, text)
+            prompt = rag_prompt(reranked_docs, text)
         else:
             # continue with normal promp
             prompt = "hahahhuhuhu"  # todo
@@ -606,17 +485,6 @@ def get_input():
     return Response(stream_with_context(generate()),
                     mimetype='text/event-stream',
                     direct_passthrough=False)
-
-
-def get_collection_from_query() -> str:
-    collection = None
-    if request.referrer:
-        parsed_url = urlparse(request.referrer)
-        query_params = parse_qs(parsed_url.query)
-        collections = query_params.get('collection')  # Returns a vector....
-        if collections and len(collections) == 1:
-            collection = collections[0]  # Just take one, there should not be more
-    return collection
 
 
 def hash_username(username):
