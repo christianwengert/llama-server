@@ -16,9 +16,9 @@ import datetime
 
 MAX_TITLE_LENGTH = 48
 
-SYSTEM_PROMPT_PREFIX = '### System Prompt'
-ASSISTANT_NAME = '### Assistant'
-USER = '### User Message'
+SYSTEM = 'system'
+ASSISTANT = 'assistant'
+USER = 'user'
 
 SEPARATOR = '~~~~'
 
@@ -190,9 +190,9 @@ def get_llama_parameters():
     data = dict(
         system_prompt=INSTRUCTION,
         grammar='',
-        assistant_name=ASSISTANT_NAME,
+        assistant_name=ASSISTANT,
         anti_prompt=USER,
-        system_prompt_prefix=SYSTEM_PROMPT_PREFIX,
+        system_prompt_prefix=SYSTEM,
     )
     data = _get_llama_default_parameters(data)
     if type(data['stop']) == list:
@@ -347,21 +347,11 @@ def get_input():
     text = data.pop('input')
     prune_history_index = data.pop('pruneHistoryIndex')
 
-    # if type(data['stop']) == list:
-    #     data['stop'] = ','.join(data['stop'])
-
     session['params'] = dict(**data)  # must copy
 
-    system_prompt = data.pop('system_prompt', INSTRUCTION)
-    if not system_prompt:
-        system_prompt = INSTRUCTION
+    system_prompt = data.pop('system_prompt')
 
-    assistant = data.pop('assistant_name', ASSISTANT_NAME)
-
-    user = data.pop('anti_prompt', USER)
-    user_suffix = data.pop('user_prompt_suffix', '')
-    system_prompt_prefix = data.pop('system_prompt_prefix', SYSTEM_PROMPT_PREFIX)
-    system_prompt_suffix = data.pop('system_prompt_suffix', '')
+    prompt_template = data.pop('prompt_template', 'mixtral')
 
     hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
@@ -375,26 +365,30 @@ def get_input():
             "items": [],
             "title": text,
             "grammar": data.get('grammar'),
-            "assistant": assistant,
-            "user": user
+            "assistant": ASSISTANT,
+            "user": USER
         }
 
     context = ADDITIONAL_CONTEXT.get(token)
     if context:
         # todo: Add n_keep correctly
         context = context.strip()
-        hist['items'].append(dict(role=user, content=f'This is the context: {context}', suffix=user_suffix))
-        hist['items'].append(dict(role=assistant, content='OK', suffix=""))  # f'{assistant}: OK'
+        hist['items'].append(dict(role=USER, content=f'This is the context: {context}'))
+        hist['items'].append(dict(role=ASSISTANT, content='OK'))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
 
     if prune_history_index >= 0:  # remove items if required
         hist["items"] = hist["items"][:prune_history_index]
 
-    prompt = make_prompt(assistant, hist, system_prompt, system_prompt_prefix, system_prompt_suffix, text, user, user_suffix)
+    # prompt_template = data.pop('prompt_template')
+
+    prompt = make_prompt(hist, system_prompt, text, prompt_template)
 
     post_data = _get_llama_default_parameters(data)
 
     post_data['prompt'] = prompt
+    # post_data['model'] = 'mixtral'
+    # post_data['messages'] = prompt
 
     def generate():
         data = requests.request(method="POST",
@@ -411,8 +405,8 @@ def get_input():
                 yield response + SEPARATOR
 
         output = "".join([json.loads(a)['content'] for a in responses if 'embedding' not in a]).strip()
-        hist['items'].append(dict(role=user, content=text, suffix=user_suffix))  # f'User: {text}'
-        hist['items'].append(dict(role=assistant, content=output, suffix=""))  # f'Llama: {output}'
+        hist['items'].append(dict(role=USER, content=text))
+        hist['items'].append(dict(role=ASSISTANT, content=output))
         with open(cache_key, 'w') as f:
             json.dump(hist, f)
 
@@ -421,34 +415,112 @@ def get_input():
                     direct_passthrough=False)
 
 
-def make_prompt(assistant, hist, system_prompt, system_prompt_prefix, system_prompt_suffix, text, user, user_suffix):
-    model = 'mixtral'
-    if model == 'mixtral':
-        # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
-        h = ""
-        for item in hist['items']:
-            h += item['role'] + item['content'] + item['suffix']
-            if item['role'] == '':
-                h += '</s>'
-            h += ' '
+def make_prompt(hist, system_prompt, text, prompt_template):
 
-        prompt = h + f'[INST] {text.strip()} [/INST]'
+    if prompt_template == 'mixtral':
+        # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
+        prompt = ''
+        for line in hist['items']:
+            if line['role'] == USER:
+                prompt += f' [INST] {line["content"]} [/INST] '
+            if line['role'] == ASSISTANT:
+                prompt += f'{line["content"]}</s>'
+        prompt += f' [INST] {text} [/INST]'
         return prompt
-    else:
-        history = compile_history(hist)
-        prompt = f'''{system_prompt_prefix}
-{system_prompt}
-{system_prompt_suffix}
-    
-{history}
-    
-{user}
-{text}
-{user_suffix}
-    
-{assistant}
-        '''
+
+    if prompt_template == 'chatml':
+        # <|im_start|>system
+        # {system_message}<|im_end|>
+        # <|im_start|>user
+        # {prompt}<|im_end|>
+        # <|im_start|>assistant
+        prompt = ''
+        prompt += f'<|im_start|>system\n'
+        prompt += f'{system_prompt}<|im_end|>\n'
+        for line in hist['items']:
+            if line['role'] == USER:
+                prompt += f'<|im_start|>user\n{line["content"]}<|im_end|>\n'
+            if line['role'] == ASSISTANT:
+                prompt += f'<|im_start|>assistant\n{line["content"]}<|im_end|>'
+        prompt += f'<|im_start|>user\n{text}<|im_end|>'
+        prompt += f'<|im_start|>assistant'
         return prompt
+
+    if prompt_template == 'alpaca':
+        # "### Instruction", "### Response"
+        prompt = ''
+
+        prompt += f'{system_prompt}\n'
+        for line in hist['items']:
+            if line['role'] == USER:
+                prompt += f'### User:\n{line["content"]}\n'
+            if line['role'] == ASSISTANT:
+                prompt += f'### Assistant:\n{line["content"]}'
+        prompt += f'### User:\n{text}<|im_end|>'
+        prompt += f'### Assistant:\n'
+        return prompt
+
+
+    # system_n = args.system_name
+    # user_n = args.user_name
+    # ai_n = args.ai_name
+    # stop = args.stop
+    #
+    # prompt = []
+    # if system_prompt:
+    #     prompt.append(dict(role=SYSTEM, content=system_prompt))
+    #
+    # for line in hist['items']:
+    #     prompt.append(dict(role=USER, content=line['content']))
+    #
+    # prompt.append(dict(role=USER, content=text))
+    #
+    # return prompt
+
+    # {
+    # "model": "gpt-3.5-turbo",
+    # "messages": [
+    # {
+    #     "role": "system",
+    #     "content": "You are ChatGPT, an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests."
+    # },
+    # {
+    #     "role": "user",
+    #     "content": "Write a limerick about python exceptions"
+    # }
+    # ]
+    # }
+
+
+
+    # return []
+#     model = 'mixtral'
+#     if model == 'mixtral':
+#         # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
+#         h = ""
+#         for item in hist['items']:
+#             h += item['role'] + item['content'] + item['suffix']
+#             if item['role'] == '':
+#                 h += '</s>'
+#             h += ' '
+#
+#         prompt = h + f'[INST] {text.strip()} [/INST]'
+#         return prompt
+#     else:
+#         history = compile_history(hist)
+#         prompt = f'''{system_prompt_prefix}
+# {system_prompt}
+# {system_prompt_suffix}
+#
+# {history}
+#
+# {user}
+# {text}
+# {user_suffix}
+#
+# {assistant}
+#         '''
+#         return prompt
 
 
 def hash_username(username):
@@ -459,6 +531,7 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
     default_params = {
         'cache_prompt': True,
         'frequency_penalty': 0,
+        'prompt_template': 'mixtral',
         'grammar': '',
         'min_p': 0.1,
         'image_data': [],
