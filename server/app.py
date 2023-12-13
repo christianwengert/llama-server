@@ -390,20 +390,7 @@ def get_input():
     if prune_history_index >= 0:  # remove items if required
         hist["items"] = hist["items"][:prune_history_index]
 
-    history = compile_history(hist)
-
-    # system = "### System prompt\n"
-    prompt = f'''{system_prompt_prefix}
-{system_prompt}{system_prompt_suffix}
-    
-{history}
-    
-{user}
-{text}
-{user_suffix}
-    
-{assistant}
-    '''
+    prompt = make_prompt(assistant, hist, system_prompt, system_prompt_prefix, system_prompt_suffix, text, user, user_suffix)
 
     post_data = _get_llama_default_parameters(data)
 
@@ -432,6 +419,36 @@ def get_input():
     return Response(stream_with_context(generate()),
                     mimetype='text/event-stream',
                     direct_passthrough=False)
+
+
+def make_prompt(assistant, hist, system_prompt, system_prompt_prefix, system_prompt_suffix, text, user, user_suffix):
+    model = 'mixtral'
+    if model == 'mixtral':
+        # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
+        h = ""
+        for item in hist['items']:
+            h += item['role'] + item['content'] + item['suffix']
+            if item['role'] == '':
+                h += '</s>'
+            h += ' '
+
+        prompt = h + f'[INST] {text.strip()} [/INST]'
+        return prompt
+    else:
+        history = compile_history(hist)
+        prompt = f'''{system_prompt_prefix}
+{system_prompt}
+{system_prompt_suffix}
+    
+{history}
+    
+{user}
+{text}
+{user_suffix}
+    
+{assistant}
+        '''
+        return prompt
 
 
 def hash_username(username):
