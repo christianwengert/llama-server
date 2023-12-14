@@ -25,8 +25,8 @@ RAG_EMBEDDINGS = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5',
                                        )
 
 
-def rag_prompt(docs: List[Document], question: str) -> str:
-    context = []
+def rag_context(docs: List[Document]) -> str:
+    context = []  # todo: add reference to metadata
     for d in docs:
         answers = d.metadata.get('answers')
         if answers:
@@ -41,19 +41,7 @@ def rag_prompt(docs: List[Document], question: str) -> str:
 
     context_string = "".join(context)
 
-    prompt = f"""
-    You are an assistant for question-answering tasks. Use the following pieces of retrieved context to answer the question. The context consists of questions and one or more relevant answers to each question. Each question in the context starts with Q: and each answer in the context starts with A:. If you don't know the answer, just say that you don't know.
-
-    Context: 
-    {context_string}
-
-    Question:
-    {question}
-
-    Answer:
-    """
-
-    return prompt
+    return context_string
 
 
 def get_available_collections(username: str = None) -> List[Tuple[Literal['common', 'user'], str]]:
