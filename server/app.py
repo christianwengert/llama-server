@@ -16,9 +16,9 @@ import datetime
 
 MAX_TITLE_LENGTH = 48
 
-SYSTEM_PROMPT_PREFIX = '### System Prompt'
-ASSISTANT_NAME = '### Assistant'
-USER = '### User Message'
+SYSTEM = 'system'
+ASSISTANT = 'assistant'
+USER = 'user'
 
 SEPARATOR = '~~~~'
 
@@ -178,9 +178,9 @@ def get_llama_parameters():
     data = dict(
         system_prompt=INSTRUCTION,
         grammar='',
-        assistant_name=ASSISTANT_NAME,
+        assistant_name=ASSISTANT,
         anti_prompt=USER,
-        system_prompt_prefix=SYSTEM_PROMPT_PREFIX,
+        system_prompt_prefix=SYSTEM,
     )
     data = _get_llama_default_parameters(data)
     if type(data['stop']) == list:
@@ -311,16 +311,9 @@ def get_input():
 
     session['params'] = dict(**data)  # must copy
 
-    system_prompt = data.pop('system_prompt', INSTRUCTION)
-    if not system_prompt:
-        system_prompt = INSTRUCTION
+    system_prompt = data.pop('system_prompt')
 
-    assistant = data.pop('assistant_name', ASSISTANT_NAME)
-
-    user = data.pop('anti_prompt', USER)
-    user_suffix = data.pop('user_prompt_suffix', '')
-    system_prompt_prefix = data.pop('system_prompt_prefix', SYSTEM_PROMPT_PREFIX)
-    system_prompt_suffix = data.pop('system_prompt_suffix', '')
+    prompt_template = data.pop('prompt_template', 'mixtral')
 
     hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
@@ -334,39 +327,30 @@ def get_input():
             "items": [],
             "title": text,
             "grammar": data.get('grammar'),
-            "assistant": assistant,
-            "user": user
+            "assistant": ASSISTANT,
+            "user": USER
         }
 
     context = ADDITIONAL_CONTEXT.get(token)
     if context:
         # todo: Add n_keep correctly
         context = context.strip()
-        hist['items'].append(dict(role=user, content=f'This is the context: {context}', suffix=user_suffix))
-        hist['items'].append(dict(role=assistant, content='OK', suffix=""))  # f'{assistant}: OK'
+        hist['items'].append(dict(role=USER, content=f'This is the context: {context}'))
+        hist['items'].append(dict(role=ASSISTANT, content='OK'))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token)  # remove it, it is now part of the history
 
     if prune_history_index >= 0:  # remove items if required
         hist["items"] = hist["items"][:prune_history_index]
 
-    history = compile_history(hist)
+    # prompt_template = data.pop('prompt_template')
 
-    # system = "### System prompt\n"
-    prompt = f'''{system_prompt_prefix}
-{system_prompt}{system_prompt_suffix}
-    
-{history}
-    
-{user}
-{text}
-{user_suffix}
-    
-{assistant}
-    '''
+    prompt = make_prompt(hist, system_prompt, text, prompt_template)
 
     post_data = _get_llama_default_parameters(data)
 
     post_data['prompt'] = prompt
+    # post_data['model'] = 'mixtral'
+    # post_data['messages'] = prompt
 
     def generate():
         data = requests.request(method="POST",
@@ -383,14 +367,61 @@ def get_input():
                 yield response + SEPARATOR
 
         output = "".join([json.loads(a)['content'] for a in responses if 'embedding' not in a]).strip()
-        hist['items'].append(dict(role=user, content=text, suffix=user_suffix))  # f'User: {text}'
-        hist['items'].append(dict(role=assistant, content=output, suffix=""))  # f'Llama: {output}'
+        hist['items'].append(dict(role=USER, content=text))
+        hist['items'].append(dict(role=ASSISTANT, content=output))
         with open(cache_key, 'w') as f:
             json.dump(hist, f)
 
     return Response(stream_with_context(generate()),
                     mimetype='text/event-stream',
                     direct_passthrough=False)
+
+
+def make_prompt(hist, system_prompt, text, prompt_template):
+
+    if prompt_template == 'mixtral':
+        # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
+        prompt = ''
+        prompt += f' [INST] {system_prompt} [/INST] '
+        for line in hist['items']:
+            if line['role'] == USER:
+                prompt += f' [INST] {line["content"]} [/INST] '
+            if line['role'] == ASSISTANT:
+                prompt += f'{line["content"]}</s>'
+        prompt += f' [INST] {text} [/INST]'
+        return prompt
+
+    if prompt_template == 'chatml':
+        # <|im_start|>system
+        # {system_message}<|im_end|>
+        # <|im_start|>user
+        # {prompt}<|im_end|>
+        # <|im_start|>assistant
+        prompt = ''
+        prompt += f'<|im_start|>system\n'
+        prompt += f'{system_prompt}<|im_end|>\n'
+        for line in hist['items']:
+            if line['role'] == USER:
+                prompt += f'<|im_start|>user\n{line["content"]}<|im_end|>\n'
+            if line['role'] == ASSISTANT:
+                prompt += f'<|im_start|>assistant\n{line["content"]}<|im_end|>'
+        prompt += f'<|im_start|>user\n{text}<|im_end|>'
+        prompt += f'<|im_start|>assistant'
+        return prompt
+
+    if prompt_template == 'alpaca':
+        # "### Instruction", "### Response"
+        prompt = ''
+
+        prompt += f'{system_prompt}\n'
+        for line in hist['items']:
+            if line['role'] == USER:
+                prompt += f'### User:\n{line["content"]}\n'
+            if line['role'] == ASSISTANT:
+                prompt += f'### Assistant:\n{line["content"]}'
+        prompt += f'### User:\n{text}<|im_end|>'
+        prompt += f'### Assistant:\n'
+        return prompt
 
 
 def hash_username(username):
@@ -400,25 +431,26 @@ def hash_username(username):
 def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
     default_params = {
         'cache_prompt': True,
-        'frequency_penalty': 0,
+        'frequency_penalty': 0,  # Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled)
+        'prompt_template': 'mixtral',
         'grammar': '',
+        'min_p': 0.1,  # The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
         'image_data': [],
-        'mirostat': 0,
+        'mirostat': 0,  # Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
         'mirostat_tau': 5,
         'mirostat_eta': 0.1,
         'n_predict': 2048,
-        'n_probs': 0,
-        'presence_penalty': 0,
-        'repeat_last_n': 256,
-        'repeat_penalty': 1.1,
+        'n_probs': 0,  #
+        'presence_penalty': 0,  # Repeat alpha presence penalty (default: 0.0, 0.0 = disabled)
+        'repeat_last_n': 256,  # Last n tokens to consider for penalizing repetition (default: 256, 0 = disabled, -1 = ctx-size)
+        'repeat_penalty': 1.1,  # Control the repetition of token sequences in the generated text (default: 1.1, 1.0 = disabled)
         'stop': ['</s>', 'Llama:', 'User:', '<|endoftext|>', '<|im_end|>'],
         'stream': True,
         'temperature': 0.7,
-        'tfs_z': 1,
-        'top_k': 40,
-        'top_p': 0.5,
-        'typical_p': 1,
-        'min_p': 0.1
+        'tfs_z': 1,  # Enable tail free sampling with parameter z (default: 1.0, 1.0 = disabled).
+        'top_k': 40,  # Limit the next token selection to the K most probable tokens (default: 40, 0 = disabled).
+        'top_p': 0.5,  # Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
+        'typical_p': 1,  # Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).
     }
 
     # 'slot_id': 0 or 1

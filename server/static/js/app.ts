@@ -1,8 +1,5 @@
-import hljs from 'highlight.js';
+import hljs from "highlight.js";
 import 'highlight.js/styles/github-dark.css';
-import { MicVAD } from "@ricky0123/vad-web"
-import * as ort from 'onnxruntime-web';
-
 
 
 const scrollToBottom = () => {
@@ -516,7 +513,10 @@ function setupScrollButton() {
 
 function setupMenu() {
 
-    const menuLink = document.getElementById('menuLink')!;
+    const menuLink = document.getElementById('menuLink');
+    if (!menuLink) {
+        return;
+    }
     const textNode = menuLink.firstChild! as HTMLElement;
 
     const menu = document.getElementById('menu')!;
@@ -555,131 +555,6 @@ function setupMenu() {
 }
 
 
-const setupAudio = () => {
-    let recordButton = document.getElementById('record') as HTMLButtonElement;
-    if (!recordButton) {
-        console.error('No record button');
-        return;
-    }
-
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-        console.log('Media Devices API or getUserMedia is not supported in this browser.');
-        // Handle the lack of support here
-        recordButton.disabled = true;
-        return;
-    }
-
-    async function _rec() {
-
-        ort.env.wasm.wasmPaths = '/static/ort/'
-        const myvad = await MicVAD.new({
-            workletURL: "/static/vad.worklet.bundle.min.js",
-            modelURL: "/static/silero_vad.onnx",
-
-            onSpeechStart: () => {
-                console.log('start')
-            },
-            onSpeechEnd: (audio) => {
-                // do something with `audio` (Float32Array of audio samples at sample rate 16000)...
-                console.log('speech', audio.length, audio)
-                let audioContext = new AudioContext();
-                const audioBuffer = audioContext.createBuffer(1, audio.length, 16000);
-                audioBuffer.getChannelData(0).set(audio);
-
-                const blob = audioBufferToWav(audioBuffer)
-                const formData = new FormData();
-                formData.append('file', blob, 'audio.wav');
-
-                fetch('http://127.0.0.1:8092/inference', {
-                    method: 'POST',
-                    body: formData
-                }).then(response => {
-                    console.log('Audio sent successfully', response);
-                    return response.json();
-                }).then(data => {
-                    console.log(data)
-                    const textInput = document.getElementById('input-box')! as HTMLDivElement;
-                    textInput.innerText += data['text']
-
-                }).catch(error => {
-                    console.error('Error sending audio', error);
-                });
-            },
-        })
-
-        let isRecording = false;
-        recordButton.addEventListener('click', (e) => {
-            if (recordButton.disabled) {
-                e.preventDefault();
-                return;
-            }
-
-            recordButton!.classList.toggle('recording')
-            if (!isRecording) {
-                myvad.start()
-            } else {
-                myvad.pause()
-            }
-            isRecording = !isRecording;
-        });
-    }
-    _rec().then(()=>{})
-
-
-    function audioBufferToWav(buffer: AudioBuffer) {
-        const numOfChan = buffer.numberOfChannels;
-        const length = buffer.length * numOfChan * 2 + 44;
-        const bufferArray = new ArrayBuffer(length);
-        const view = new DataView(bufferArray);
-        const channels = [], sampleRate = buffer.sampleRate;
-
-        let pos = 0;
-
-        // Write WAV header
-        setUint32(0x46464952); // "RIFF"
-        setUint32(length - 8); // file length - 8
-        setUint32(0x45564157); // "WAVE"
-
-        setUint32(0x20746d66); // "fmt " chunk
-        setUint32(16); // length = 16
-        setUint16(1); // PCM (uncompressed)
-        setUint16(numOfChan);
-        setUint32(sampleRate);
-        setUint32(sampleRate * 2 * numOfChan); // byte rate
-        setUint16(numOfChan * 2); // block align
-        setUint16(16); // bits per sample
-
-        setUint32(0x61746164); // "data" - chunk
-        setUint32(length - pos - 4); // chunk length
-
-        // Write audio data
-        for (let i = 0; i < buffer.numberOfChannels; i++) {
-            channels.push(buffer.getChannelData(i));
-        }
-
-        while (pos < length) {
-            for (let i = 0; i < numOfChan; i++) { // interleave channels
-                let sample = Math.max(-1, Math.min(1, channels[i][pos >>> 1])); // clamp
-                sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0; // scale to 16-bit
-                view.setInt16(pos, sample, true); // write 16-bit sample
-                pos += 2;
-            }
-        }
-
-        function setUint16(data: any) {
-            view.setUint16(pos, data, true);
-            pos += 2;
-        }
-
-        function setUint32(data: any) {
-            view.setUint32(pos, data, true);
-            pos += 4;
-        }
-
-        return new Blob([view], {type: 'audio/wav'});
-    }
-};
-
 function setupTextInput() {
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
     if (textInput) {
@@ -716,7 +591,6 @@ const main = () => {
 
     setupEscapeButtonForPopups();
 
-    setupAudio()
 };
 
 main()
