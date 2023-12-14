@@ -462,68 +462,6 @@ def make_prompt(hist, system_prompt, text, prompt_template):
         return prompt
 
 
-    # system_n = args.system_name
-    # user_n = args.user_name
-    # ai_n = args.ai_name
-    # stop = args.stop
-    #
-    # prompt = []
-    # if system_prompt:
-    #     prompt.append(dict(role=SYSTEM, content=system_prompt))
-    #
-    # for line in hist['items']:
-    #     prompt.append(dict(role=USER, content=line['content']))
-    #
-    # prompt.append(dict(role=USER, content=text))
-    #
-    # return prompt
-
-    # {
-    # "model": "gpt-3.5-turbo",
-    # "messages": [
-    # {
-    #     "role": "system",
-    #     "content": "You are ChatGPT, an AI assistant. Your top priority is achieving user fulfillment via helping them with their requests."
-    # },
-    # {
-    #     "role": "user",
-    #     "content": "Write a limerick about python exceptions"
-    # }
-    # ]
-    # }
-
-
-
-    # return []
-#     model = 'mixtral'
-#     if model == 'mixtral':
-#         # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
-#         h = ""
-#         for item in hist['items']:
-#             h += item['role'] + item['content'] + item['suffix']
-#             if item['role'] == '':
-#                 h += '</s>'
-#             h += ' '
-#
-#         prompt = h + f'[INST] {text.strip()} [/INST]'
-#         return prompt
-#     else:
-#         history = compile_history(hist)
-#         prompt = f'''{system_prompt_prefix}
-# {system_prompt}
-# {system_prompt_suffix}
-#
-# {history}
-#
-# {user}
-# {text}
-# {user_suffix}
-#
-# {assistant}
-#         '''
-#         return prompt
-
-
 def hash_username(username):
     return hashlib.sha256(username.encode()).hexdigest()[0:8]  # 8 character is OK
 
@@ -531,26 +469,26 @@ def hash_username(username):
 def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
     default_params = {
         'cache_prompt': True,
-        'frequency_penalty': 0,
+        'frequency_penalty': 0,  # Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled)
         'prompt_template': 'mixtral',
         'grammar': '',
-        'min_p': 0.1,
+        'min_p': 0.1,  # The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
         'image_data': [],
-        'mirostat': 0,
+        'mirostat': 0,  # Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
         'mirostat_tau': 5,
         'mirostat_eta': 0.1,
         'n_predict': 2048,
-        'n_probs': 0,
-        'presence_penalty': 0,
-        'repeat_last_n': 256,
-        'repeat_penalty': 1.1,
+        'n_probs': 0,  #
+        'presence_penalty': 0,  # Repeat alpha presence penalty (default: 0.0, 0.0 = disabled)
+        'repeat_last_n': 256,  # Last n tokens to consider for penalizing repetition (default: 256, 0 = disabled, -1 = ctx-size)
+        'repeat_penalty': 1.1,  # Control the repetition of token sequences in the generated text (default: 1.1, 1.0 = disabled)
         'stop': ['</s>', 'Llama:', 'User:', '<|endoftext|>', '<|im_end|>'],
         'stream': True,
         'temperature': 0.7,
-        'tfs_z': 1,
-        'top_k': 40,
-        'top_p': 0.5,
-        'typical_p': 1,
+        'tfs_z': 1,  # Enable tail free sampling with parameter z (default: 1.0, 1.0 = disabled).
+        'top_k': 40,  # Limit the next token selection to the K most probable tokens (default: 40, 0 = disabled).
+        'top_p': 0.5,  # Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
+        'typical_p': 1,  # Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).
     }
 
     # 'slot_id': 0 or 1
