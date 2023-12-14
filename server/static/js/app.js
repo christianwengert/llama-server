@@ -50188,6 +50188,9 @@
   }
   function setupMenu() {
     const menuLink = document.getElementById("menuLink");
+    if (!menuLink) {
+      return;
+    }
     const textNode = menuLink.firstChild;
     const menu = document.getElementById("menu");
     const key = "collection";

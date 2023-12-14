@@ -74,40 +74,53 @@
                     Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
                 </div>
                 <div>
-                    <label for="assistant_name">Assistant prompt:</label>
-                    <input type="text" id="assistant_name" name="assistant_name" value="{{assistant_name}}"><br>
+                    <label for="prompt_template">Prompt template:</label>
+                    <select id="prompt_template" name="prompt_template" >
+                        <option value="mixtral"{% if prompt_template=='mixtral' %} selected="selected"{% endif %}>Mixtral</option>
+                        <option value="chatml"{% if prompt_template=='chatml' %} selected="selected"{% endif %}>ChatML</option>
+                        <option value="alpaca"{% if prompt_template=='alpaca' %} selected="selected"{% endif %}>Alpaca</option>
+                    </select>
                 </div>
                 <div class="param-help">
-                    The bot's name is necessary for each customer to generate the prompt
+                    The prompt template. Depends on the model used.
                 </div>
-                <div>
-                    <label for="anti_prompt">User prompt prefix:</label>
-                    <input type="text" id="anti_prompt" name="anti_prompt" value="{{anti_prompt}}"><br>
-                </div>
-                <div class="param-help">
-                    Specify the word you want to use to instruct the model to stop
-                </div>
-                <div>
-                    <label for="user_prompt_suffix">User prompt suffix:</label>
-                    <input type="text" id="user_prompt_suffix" name="user_prompt_suffix" value="{{user_prompt_suffix}}"><br>
-                </div>
-                <div class="param-help">
-                    Suffix for system prompt
-                </div>
-                <div>
-                    <label for="system_prompt_prefix">System prompt prefix:</label>
-                    <input type="text" id="system_prompt_prefix" name="system_prompt_prefix" value="{{system_prompt_prefix}}"><br>
-                </div>
-                <div class="param-help">
-                    Prefix for system prompt
-                </div>
-                <div>
-                    <label for="system_prompt_suffix">System Prompt Suffix:</label>
-                    <input type="text" id="system_prompt_suffix" name="system_prompt_suffix" value="{{system_prompt_suffix}}"><br>
-                </div>
-                <div class="param-help">
-                    Suffix for system prompt
-                </div>
+<!--                <div>-->
+<!--                    <label for="assistant_name">Assistant name:</label>-->
+<!--                    <input type="text" id="assistant_name" name="assistant_name" value="{{assistant_name}}"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    The bot's name is necessary for each customer to generate the prompt-->
+<!--                </div>-->
+
+
+<!--                <div>-->
+<!--                    <label for="anti_prompt">User prompt prefix:</label>-->
+<!--                    <input type="text" id="anti_prompt" name="anti_prompt" value="{{anti_prompt}}"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Specify the word you want to use to instruct the model to stop-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label for="user_prompt_suffix">User prompt suffix:</label>-->
+<!--                    <input type="text" id="user_prompt_suffix" name="user_prompt_suffix" value="{{user_prompt_suffix}}"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Suffix for system prompt-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label for="system_prompt_prefix">System prompt prefix:</label>-->
+<!--                    <input type="text" id="system_prompt_prefix" name="system_prompt_prefix" value="{{system_prompt_prefix}}"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Prefix for system prompt-->
+<!--                </div>-->
+<!--                <div>-->
+<!--                    <label for="system_prompt_suffix">System Prompt Suffix:</label>-->
+<!--                    <input type="text" id="system_prompt_suffix" name="system_prompt_suffix" value="{{system_prompt_suffix}}"><br>-->
+<!--                </div>-->
+<!--                <div class="param-help">-->
+<!--                    Suffix for system prompt-->
+<!--                </div>-->
                 <div>
                     <label for="system_prompt">System prompt:</label>
                     <textarea id="system_prompt" name="system_prompt" rows="8">{{system_prompt}}</textarea>
