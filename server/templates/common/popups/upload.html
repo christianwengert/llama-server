@@ -4,17 +4,20 @@
         <a class="close" href="#">&times;</a>
         <div class="scroll-content">
             <div>
-                <p>
-                    You can add context to the current prompt either by just adding a file (must be shorter than ~1500
+                <div>
+                    You can add context to the current prompt either by just adding a file (must be shorter than ~10000
                     words). Once uploaded you can simply chat with the bot by referring to the 'context'.
+                    <br><br>
                     <strong>Example</strong>: Summarize / Translate the context
-                </p>
-
-                <p>
-                    If you want to add several documents or larger files or being able to reuse an uploaded file, you
-                    can add it to a collection.
-                    <strong>TODO</strong>
-                </p>
+                </div>
+                <br>
+                <div>
+                    If you want to add several documents or larger files or being able to reuse an
+                    uploaded file, you can add it to a collection. Then, a retrieval augmented generation
+                    algorithm will try to fetch the most relevant parts of the document or files and put them
+                    into the context.
+                </div>
+                <br>
             </div>
             <br>
             <form id="upload-form" class="popup-form">
@@ -23,7 +26,9 @@
                     <input id="file" name="file" type="file" required>
                 </div>
                 <div class="param-help">
-                    Single documents or zip-archives.
+                    Single documents (*.txt, *.pdf, *.doc, *.rtf). If small enough will be packed
+                    automatically into the current context.<br>
+                    Zip archives will be unpacked on the server and if small enough will be added to the context.
                 </div>
 
                 <div>
@@ -36,7 +41,7 @@
                 </div>
 
                 <div class="param-help">
-                    Todo
+                    A collection of documents can be re-used in later conversations.
                 </div>
                 <div>
                     <button id="upload-button" class="ml-auto">
