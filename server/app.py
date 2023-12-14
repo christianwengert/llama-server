@@ -420,6 +420,7 @@ def make_prompt(hist, system_prompt, text, prompt_template):
     if prompt_template == 'mixtral':
         # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
         prompt = ''
+        prompt += f' [INST] {system_prompt} [/INST] '
         for line in hist['items']:
             if line['role'] == USER:
                 prompt += f' [INST] {line["content"]} [/INST] '
