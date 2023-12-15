@@ -49933,8 +49933,16 @@
             body: formData,
             method: "post"
           }
-        ).then(() => {
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        }).then((jsonData) => {
+          console.log(jsonData);
           document.location.hash = "";
+        }).catch((error) => {
+          console.error("Error while fetching data:", error);
         });
       });
     }

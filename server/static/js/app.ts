@@ -154,9 +154,28 @@ const setupUploadButton = () => {
                 {
                     body: formData,
                     method: "post"
-                }).then(() => {
-                document.location.hash = ''
-            });
+                }).then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                }).then((jsonData) => {
+                    // Process the JSON data here
+                    console.log(jsonData);
+                    document.location.hash = ''
+                })
+                .catch((error) => {
+                    // Handle errors or display a message to the user
+                    console.error("Error while fetching data:", error);
+                });
+
+
+            //
+            //
+            // then((response) => {
+            //         console.log(response)
+            //     document.location.hash = ''
+            // });
         })
     }
 };

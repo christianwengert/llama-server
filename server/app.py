@@ -248,7 +248,10 @@ def upload():
         ADDITIONAL_CONTEXT[token] = contents
 
         tokens = get_tokens(contents)
-        _n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
+
+        n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
+        if n_tokens > 500:
+            return jsonify({"status": "Too large", "n_tokens": n_tokens})
 
     # collection = request.form['collection-selector']  # todo
 
@@ -279,7 +282,7 @@ def upload():
     #
     # EMBEDDINGS[name] = None
 
-    return "OK"  # redirect done in JS
+    return jsonify({"status": "OK"}) # redirect done in JS
 
 
 @login_required
