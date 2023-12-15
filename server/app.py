@@ -20,6 +20,8 @@ from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_
     get_available_collections, load_collection, get_collection_from_query
 from utils.timestamp_formatter import categorize_timestamp
 
+MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 4096
+
 SYSTEM = 'system'
 ASSISTANT = 'assistant'
 USER = 'user'
@@ -250,8 +252,8 @@ def upload():
         tokens = get_tokens(contents)
 
         n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
-        if n_tokens > 500:
-            return jsonify({"status": "Too large", "n_tokens": n_tokens})
+        if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
+            return jsonify({"status": "Too large", "n_tokens": n_tokens, "max_tokens": MAX_NUM_TOKENS_FOR_INLINE_CONTEXT})
 
     # collection = request.form['collection-selector']  # todo
 
