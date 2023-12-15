@@ -49926,6 +49926,9 @@
       uploadButton.addEventListener("click", (e) => {
         e.preventDefault();
         const formElement = document.getElementById("upload-form");
+        const fileInput = formElement.querySelector("#file");
+        const parentDiv = fileInput.parentElement;
+        const help = parentDiv.nextElementSibling;
         const formData = new FormData(formElement);
         fetch(
           "/upload",
@@ -49940,9 +49943,16 @@
           return response.json();
         }).then((jsonData) => {
           console.log(jsonData);
-          document.location.hash = "";
+          if (jsonData.status !== "OK") {
+            const status = jsonData.status;
+            const n_tokens = jsonData.n_tokens;
+            help.classList.add("warning", "warning-too-many-tokens");
+          } else {
+            help.classList.remove("warning", "warning-too-many-tokens");
+            document.location.hash = "";
+          }
         }).catch((error) => {
-          console.error("Error while fetching data:", error);
+          help.classList.add("warning", "warning-too-many-tokens");
         });
       });
     }
@@ -50260,9 +50270,8 @@
     if (!form) {
       return;
     }
-    const fields = form.querySelectorAll("input[required]");
+    const inputs = form.querySelectorAll("input[required]");
     const validateInput = () => {
-      const inputs = document.querySelectorAll("input[required]");
       inputs.forEach((elem) => {
         const input = elem;
         const parent = input.parentElement;

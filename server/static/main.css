@@ -1049,6 +1049,14 @@ div.warning:after {
     color: red; /* Text color of the error message */
     display: block; /* Makes the pseudo-element behave like a block element */
 }
+
+.warning-too-many-tokens:after {
+    content: "File contains too many tokens. Split it up into smaller chunks or add the text to a collection." !important;
+}
+.warning-file-upload-failed:after {
+    content: "File upload failed" !important;
+}
+
 .warning-message {
     display: none;
 }

@@ -146,6 +146,9 @@ const setupUploadButton = () => {
             e.preventDefault();
 
             const formElement = document.getElementById("upload-form") as HTMLFormElement;
+            const fileInput = formElement.querySelector('#file')! as HTMLInputElement;
+            const parentDiv = fileInput.parentElement!;
+            const help = parentDiv.nextElementSibling!;
 
             // Create a new FormData object
             const formData = new FormData(formElement);
@@ -162,20 +165,22 @@ const setupUploadButton = () => {
                 }).then((jsonData) => {
                     // Process the JSON data here
                     console.log(jsonData);
-                    document.location.hash = ''
+                    if(jsonData.status !== 'OK') {
+                        // const status = jsonData.status;
+                        // const n_tokens = jsonData.n_tokens;
+
+                        help.classList.add('warning', 'warning-too-many-tokens')
+                        // help.
+
+                    } else { // all set
+                        help.classList.remove('warning', 'warning-too-many-tokens')
+                        document.location.hash = ''
+                    }
                 })
-                .catch((error) => {
+                .catch((_error) => {
                     // Handle errors or display a message to the user
-                    console.error("Error while fetching data:", error);
+                    help.classList.add('warning', 'warning-file-upload-failed')
                 });
-
-
-            //
-            //
-            // then((response) => {
-            //         console.log(response)
-            //     document.location.hash = ''
-            // });
         })
     }
 };
@@ -317,7 +322,7 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
 };
 
 
-function setClipboardHandler() {
+const setClipboardHandler = () => {
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
 
@@ -340,7 +345,7 @@ function setClipboardHandler() {
             });
         }
     });
-}
+};
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -629,10 +634,10 @@ const setupSettingsMustBeSet = () => {
     if(!form) {
         return
     }
-    const fields = form.querySelectorAll('input[required]')
+    const inputs = form.querySelectorAll('input[required]')
 
     const validateInput = () => {
-        const inputs = document.querySelectorAll('input[required]');
+
         inputs.forEach(elem => {
             const input =  elem as HTMLInputElement;
             const parent = input.parentElement as HTMLDivElement;
@@ -649,7 +654,7 @@ const setupSettingsMustBeSet = () => {
         });
     };
 
-    fields.forEach(function(input) {
+    inputs.forEach(input => {
         input.addEventListener('input', validateInput);
     });
     validateInput();
