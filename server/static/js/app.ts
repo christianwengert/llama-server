@@ -624,6 +624,37 @@ const setupEscapeButtonForPopups = () => {
 };
 
 
+const setupSettingsMustBeSet = () => {
+    let form = document.getElementById('settings-form');
+    if(!form) {
+        return
+    }
+    const fields = form.querySelectorAll('input[required]')
+
+    const validateInput = () => {
+        const inputs = document.querySelectorAll('input[required]');
+        inputs.forEach(elem => {
+            const input =  elem as HTMLInputElement;
+            const parent = input.parentElement as HTMLDivElement;
+            const help = parent.nextElementSibling as HTMLDivElement;
+            console.log(help)
+            if (input.value.trim() === '') {
+                // Handle empty input, e.g., show a message, add a warning class, etc.
+                help.classList.add('warning');
+            } else {
+                // Remove warning if the input is not empty
+                help.classList.remove('warning');
+            }
+            // todo: show in settings-button? disable submit button?
+        });
+    };
+
+    fields.forEach(function(input) {
+        input.addEventListener('input', validateInput);
+    });
+    validateInput();
+};
+
 const main = () => {
 
     setupMenu(); // Menu on top left
@@ -639,6 +670,7 @@ const main = () => {
 
     setupEscapeButtonForPopups();
 
+    setupSettingsMustBeSet();
 };
 
 main()

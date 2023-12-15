@@ -545,7 +545,7 @@ def hash_username(username):
     return hashlib.sha256(username.encode()).hexdigest()[0:8]  # 8 character is OK
 
 
-def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str, Any]:
+def _get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, Any]:
     default_params = {
         'cache_prompt': True,
         'frequency_penalty': 0,  # Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled)
@@ -569,10 +569,28 @@ def _get_llama_default_parameters(parames_from_post: Dict[str, Any]) -> Dict[str
         'top_p': 0.5,  # Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
         'typical_p': 1,  # Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).
     }
-
+    params = dict(default_params)
     # 'slot_id': 0 or 1
-    default_params.update(parames_from_post)
-    return default_params
+    params.update(params_from_post)
+    # ensure relevant parameters are not empty, this may lead to a crash otherwise on ./server
+    for key in ['frequency_penalty',
+                'min_p',
+                'mirostat',
+                'mirostat_tau',
+                'mirostat_eta',
+                'n_predict',
+                'n_probs',
+                'presence_penalty',
+                'repeat_last_n',
+                'repeat_penalty',
+                'temperature',
+                'tfs_z',
+                'top_k',
+                'top_p',
+                'typical_p']:
+        if params[key] == "" or type(params[key] == str):  # ensure int
+            params[key] = default_params[key]
+    return params
 
 
 if __name__ == '__main__':

@@ -50255,6 +50255,31 @@
       }
     });
   };
+  var setupSettingsMustBeSet = () => {
+    let form = document.getElementById("settings-form");
+    if (!form) {
+      return;
+    }
+    const fields = form.querySelectorAll("input[required]");
+    const validateInput = () => {
+      const inputs = document.querySelectorAll("input[required]");
+      inputs.forEach((elem) => {
+        const input = elem;
+        const parent = input.parentElement;
+        const help = parent.nextElementSibling;
+        console.log(help);
+        if (input.value.trim() === "") {
+          help.classList.add("warning");
+        } else {
+          help.classList.remove("warning");
+        }
+      });
+    };
+    fields.forEach(function(input) {
+      input.addEventListener("input", validateInput);
+    });
+    validateInput();
+  };
   var main = () => {
     setupMenu();
     setupResetSettingsButton();
@@ -50264,6 +50289,7 @@
     loadHistory();
     setClipboardHandler();
     setupEscapeButtonForPopups();
+    setupSettingsMustBeSet();
   };
   main();
 })();

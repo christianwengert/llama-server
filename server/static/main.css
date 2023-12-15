@@ -614,12 +614,7 @@ li:hover .delete-history-item {
     align-items: center;
 }
 
-.param-help {
-    margin-bottom: 1.5rem !important;
-    color: rgba(106, 115, 125, 0.64);
-    /*color: rgba(93, 65, 178, 0.5);*/
-    font-size: smaller;
-}
+
 
 .popup-form div > label {
     display: inline-block;
@@ -1042,4 +1037,28 @@ details {
 summary {
     cursor: pointer;
     margin-bottom: 8px;
+}
+
+div.warning input {
+    border: 1px solid red; /* Example to highlight the field in error */
+    /*position: relative;*/
+}
+
+div.warning:after {
+    content: "Field cannot be empty"; /* Error message */
+    color: red; /* Text color of the error message */
+    display: block; /* Makes the pseudo-element behave like a block element */
+}
+.warning-message {
+    display: none;
+}
+div.warning .warning-message {
+    display: block;
+}
+.param-help {
+    margin-bottom: 1.5rem !important;
+    color: rgba(106, 115, 125, 0.64);
+    /*color: rgba(93, 65, 178, 0.5);*/
+    font-size: smaller;
+    display: block !important;
 }
