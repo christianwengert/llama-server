@@ -10,7 +10,7 @@
             <form id="settings-form" class="popup-form">
                 <div>
                     <label for="n_predict">Predict:</label>
-                    <input required type="number" id="n_predict" name="n_predict" value="{{n_predict}}"><br>
+                    <input required type="number" id="n_predict" name="n_predict" value="{{n_predict}}" placeholder="1024">
                 </div>
                 <div class="param-help">
                     Set the number of tokens to predict when generating text. Note: May exceed the set limit slightly if the last token is a partial multibyte character. When 0, no tokens will be generated but the prompt is evaluated into the cache. (default: 1024, -1 = infinity).
@@ -24,14 +24,14 @@
 <!--                </div>-->
                 <div>
                     <label for="temperature">Temperature:</label>
-                    <input required type="number" id="temperature" name="temperature" step="0.01" value="{{temperature}}"><br>
+                    <input required type="number" id="temperature" name="temperature" min="0" step="0.01" value="{{temperature}}" placeholder="0.7">
                 </div>
                 <div class="param-help">
                     Adjust the randomness of the generated text
                 </div>
                 <div>
                     <label for="min_p">Min p:</label>
-                    <input required type="number" id="min_p" name="min_p" step="0.05" value="{{min_p}}"><br>
+                    <input required type="number" id="min_p" name="min_p" step="0.05" value="{{min_p}}" placeholder="0.1">
                 </div>
                 <div class="param-help">
                     The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
@@ -39,7 +39,7 @@
                 <!-- Array of Strings -->
                 <div>
                     <label for="stop">Stop:</label>
-                    <input required type="text" id="stop" name="stop" value="{{stop}}"><br>
+                    <input required type="text" id="stop" name="stop" value="{{stop}}">
                 </div>
                 <div class="param-help">
                     Specify a JSON array of stopping strings. These words will not be included in the completion, so make sure to add them to the prompt for the next iteration (default: []).
@@ -47,28 +47,28 @@
                 <!-- More Numerical Settings -->
                 <div>
                     <label for="repeat_last_n">Repeat last n:</label>
-                    <input required type="number" id="repeat_last_n" name="repeat_last_n" value="{{repeat_last_n}}"><br>
+                    <input required type="number" id="repeat_last_n" name="repeat_last_n" value="{{repeat_last_n}}" placeholder="256">
                 </div>
                 <div class="param-help">
                     Last n tokens to consider for penalizing repetition (default: 256, 0 = disabled, -1 = ctx-size)
                 </div>
                 <div>
                     <label for="repeat_penalty">Repeat penalty:</label>
-                    <input required type="number" id="repeat_penalty" name="repeat_penalty" step="0.01" value="{{repeat_penalty}}"><br>
+                    <input required type="number" id="repeat_penalty" name="repeat_penalty" step="0.01" value="{{repeat_penalty}}" placeholder="1.1">
                 </div>
                 <div class="param-help">
                     Control the repetition of token sequences in the generated text (default: 1.1, 1.0 = disabled)
                 </div>
                 <div>
                     <label for="top_k">Top k:</label>
-                    <input required type="number" id="top_k" name="top_k" value="{{top_k}}"><br>
+                    <input required type="number" id="top_k" name="top_k" value="{{top_k}}" placeholder="40">
                 </div>
                 <div class="param-help">
                     Limit the next token selection to the K most probable tokens (default: 40, 0 = disabled).
                 </div>
                 <div>
                     <label for="top_p">Top p:</label>
-                    <input required type="number" id="top_p" name="top_p" step="0.01" value="{{top_p}}"><br>
+                    <input required type="number" id="top_p" name="top_p" step="0.01" value="{{top_p}}" placeholder="0.9">
                 </div>
                 <div class="param-help">
                     Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
@@ -142,21 +142,21 @@
                     </summary>
                     <div>
                     <label for="mirostat">Mirostat:</label>
-                    <input required type="number" id="mirostat" name="mirostat" value="{{mirostat}}"><br>
+                    <input required type="number" id="mirostat" name="mirostat" value="{{mirostat}}" placeholder="0">
                     </div>
                     <div class="param-help">
                         Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
                     </div>
                     <div>
                         <label for="mirostat_tau">Mirostat Tau:</label>
-                        <input required type="number" id="mirostat_tau" name="mirostat_tau" step="0.01" value="{{mirostat_tau}}"><br>
+                        <input required type="number" id="mirostat_tau" name="mirostat_tau" step="0.01" value="{{mirostat_tau}}" placeholder="5">
                     </div>
                     <div class="param-help">
                         Set the Mirostat target entropy, parameter tau (default: 5).
                     </div>
                     <div>
                         <label for="mirostat_eta">Mirostat Eta:</label>
-                        <input required type="number" id="mirostat_eta" name="mirostat_eta" step="0.01" value="{{mirostat_eta}}"><br>
+                        <input required type="number" id="mirostat_eta" name="mirostat_eta" step="0.01" value="{{mirostat_eta}}" placeholder="0.1">
                     </div>
                     <div class="param-help">
                         Set the Mirostat learning rate, parameter eta (default: 0.1).

@@ -509,7 +509,7 @@ def _get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str,
                 'top_k',
                 'top_p',
                 'typical_p']:
-        if params[key] == "":
+        if params[key] == "" or type(params[key] == str):  # ensure int
             params[key] = default_params[key]
     return params
 
