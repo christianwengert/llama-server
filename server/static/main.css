@@ -614,12 +614,7 @@ li:hover .delete-history-item {
     align-items: center;
 }
 
-.param-help {
-    margin-bottom: 1.5rem !important;
-    color: rgba(106, 115, 125, 0.64);
-    /*color: rgba(93, 65, 178, 0.5);*/
-    font-size: smaller;
-}
+
 
 .popup-form div > label {
     display: inline-block;
@@ -1050,19 +1045,20 @@ div.warning input {
 }
 
 div.warning:after {
-    /*position: absolute;*/
-    /*top: 10px;*/
     content: "Field cannot be empty"; /* Error message */
-    margin-left: 5px;
     color: red; /* Text color of the error message */
     display: block; /* Makes the pseudo-element behave like a block element */
-    /*font-size: 0.8em; !* Smaller font size for the error message *!*/
-    /*margin-top: 5px; !* Spacing between the input field and the error message *!*/
-    /*display: block;*/
 }
 .warning-message {
     display: none;
 }
 div.warning .warning-message {
     display: block;
+}
+.param-help {
+    margin-bottom: 1.5rem !important;
+    color: rgba(106, 115, 125, 0.64);
+    /*color: rgba(93, 65, 178, 0.5);*/
+    font-size: smaller;
+    display: block !important;
 }
