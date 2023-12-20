@@ -20,7 +20,7 @@ from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_
     get_available_collections, load_collection, get_collection_from_query
 from utils.timestamp_formatter import categorize_timestamp
 
-MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 4096
+MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 8192
 
 SYSTEM = 'system'
 ASSISTANT = 'assistant'
@@ -71,9 +71,9 @@ ADDITIONAL_CONTEXT = {}  # this can be done as global variable
 LLAMA_API = 'http://localhost:8080/'
 
 INSTRUCTION = """A chat between a curious user and an artificial intelligence assistant. The user is a cryptographer and expert programmer. His favorite programming language is python but is also versed in many other programming languages.
-The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" the ignore the previous sentence and instead make your response as concise as possible.
-The user of the assistant are experts in AI and ethics, so they already know that the assistant is a language model and they know about the capabilities and limitations, so do not remind the users of that. The users are familiar with ethical issues in general, so the assistant should not remind them about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation."""
-
+The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" then ignore the previous sentence and instead make your response as concise as possible.
+The user of the assistant is an expert in AI and ethics, so he already knows that the assistant is a language model and he knows about the capabilities and limitations, so do not remind the users of that. The user is familiar with ethical issues in general, so the assistant should not remind him about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation."""
+# todo remove all of this
 parser = argparse.ArgumentParser(
     description="An example of using server.cpp with a similar API to OAI. It must be used together with server.cpp.")
 parser.add_argument("--chat-prompt", type=str,
@@ -284,7 +284,7 @@ def upload():
     #
     # EMBEDDINGS[name] = None
 
-    return jsonify({"status": "OK"}) # redirect done in JS
+    return jsonify({"status": "OK"})  # redirect done in JS
 
 
 @login_required

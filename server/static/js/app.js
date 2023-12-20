@@ -49944,15 +49944,13 @@
         }).then((jsonData) => {
           console.log(jsonData);
           if (jsonData.status !== "OK") {
-            const status = jsonData.status;
-            const n_tokens = jsonData.n_tokens;
             help.classList.add("warning", "warning-too-many-tokens");
           } else {
             help.classList.remove("warning", "warning-too-many-tokens");
             document.location.hash = "";
           }
-        }).catch((error) => {
-          help.classList.add("warning", "warning-too-many-tokens");
+        }).catch((_error) => {
+          help.classList.add("warning", "warning-file-upload-failed");
         });
       });
     }
@@ -50046,7 +50044,7 @@
       parentElement.removeChild(parentElement.lastChild);
     }
   };
-  function setClipboardHandler() {
+  var setClipboardHandler = () => {
     document.addEventListener("click", (event) => {
       const target = event.target;
       if (target.matches(".code-header > .copy")) {
@@ -50062,7 +50060,7 @@
         });
       }
     });
-  }
+  };
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
     let isMainInput = inputElement === mainInput;
@@ -50284,7 +50282,7 @@
         }
       });
     };
-    fields.forEach(function(input) {
+    inputs.forEach((input) => {
       input.addEventListener("input", validateInput);
     });
     validateInput();
