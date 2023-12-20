@@ -50119,7 +50119,8 @@
             try {
               jsonMessage = JSON.parse(message);
             } catch (e2) {
-              console.log(e2);
+              console.log(e2, message);
+              break;
             }
             if (jsonMessage.stop === true) {
               const timings = jsonMessage.timings;

@@ -422,7 +422,8 @@ function getInputHandler(inputElement: HTMLElement) {
                     try {
                         jsonMessage = JSON.parse(message);
                     } catch (e) {
-                        console.log(e)
+                        console.log(e, message)
+                        break;
                     }
 
                     if (jsonMessage.stop === true) {
