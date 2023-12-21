@@ -50147,6 +50147,7 @@
           console.log("error: " + e2);
         });
         xhr.onload = function() {
+          console.log(buffer);
           if (isMainInput) {
             inputElement.contentEditable = "true";
           }

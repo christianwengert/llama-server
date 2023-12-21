@@ -18,6 +18,7 @@ from urllib.parse import urlparse
 
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query
+from utils.filesystem import is_archive, extract_archive
 from utils.timestamp_formatter import categorize_timestamp
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 8192
@@ -229,21 +230,28 @@ def upload():
 
     files = request.files.getlist('file')
     if len(files) != 1:
-        abort(400)
+        abort(400)  # todo, maybe one day we will upload more files
 
-    # dest = None
+    # destination = None
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
     for file in files:
-        dest = os.path.join(base_folder, file.filename)
-        os.makedirs(os.path.dirname(dest), exist_ok=True)
-        file.save(dest)
+        destination = os.path.join(base_folder, file.filename)
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        file.save(destination)
+
+        if is_archive(file):
+            print('zip')
+            extract_archive(file, destination)  # this will always be put into a collection?
+
+        # count tokens
+        # get_tokens()
 
         # const splitter = RecursiveCharacterTextSplitter.fromLanguage("js", {
         #   chunkSize: 32,
         #   chunkOverlap: 0,
         # });
-        # texts = split_pdf(dest, 1024, 64)
-        with open(dest, 'r') as f:
+        # texts = split_pdf(destination, 1024, 64)
+        with open(destination, 'r') as f:
             contents = f.read()
 
         token = session.get('token')
@@ -277,10 +285,10 @@ def upload():
     #     executor.submit_stored(h, long_running_code_indexer, name, base_folder, model)
     #
     # if embedding_type == 'pdf':
-    #     executor.submit_stored(h, long_running_pdf_indexer, name, dest, model)
+    #     executor.submit_stored(h, long_running_pdf_indexer, name, destination, model)
     #
     # if embedding_type == 'sql':
-    #     executor.submit_stored(h, long_running_sql_indexer, name, dest, model)
+    #     executor.submit_stored(h, long_running_sql_indexer, name, destination, model)
     #
     # EMBEDDINGS[name] = None
 

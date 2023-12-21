@@ -422,7 +422,7 @@ function getInputHandler(inputElement: HTMLElement) {
                     try {
                         jsonMessage = JSON.parse(message);
                     } catch (e) {
-                        console.log(e, message)
+                        console.log(e, message);  // this would happen if the separator is part of the prompt!!!
                         break;
                     }
 
@@ -458,6 +458,9 @@ function getInputHandler(inputElement: HTMLElement) {
             });
 
             xhr.onload = function () {
+
+                console.log(buffer)
+
                 if (isMainInput) {
                     inputElement.contentEditable = "true";
                 }
