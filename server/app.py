@@ -262,7 +262,7 @@ def upload():
     collection_selector = request.form['collection-selector']
     collection_name = request.form['collection-name']
 
-    use_collection = collection_selector == 'None, just use file in the current context'
+    use_collection = collection_selector != 'None, just use file in the current context'
 
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
     for file in files:
@@ -305,6 +305,23 @@ def upload():
 
         if use_collection:
             # todo
+            from langchain.text_splitter import (
+                Language,
+                RecursiveCharacterTextSplitter,
+
+            )
+            from langchain.text_splitter import MarkdownHeaderTextSplitter
+            # You can also see the separators used for a given language
+            RecursiveCharacterTextSplitter.get_separators_for_language(Language.PYTHON)
+            python_splitter = RecursiveCharacterTextSplitter.from_language(
+                language=Language.PYTHON, chunk_size=50, chunk_overlap=0
+            )
+            # python_docs = python_splitter.create_documents([PYTHON_CODE])
+
+
+
+
+
             pass
 
         else:
