@@ -259,9 +259,15 @@ def upload():
     if len(files) != 1:
         abort(400)  # todo, maybe one day we will upload more files
 
-    # destination = None
+    collection_selector = request.form['collection-selector']
+    collection_name = request.form['collection-name']
+
+    use_collection = collection_selector == 'None, just use file in the current context'
+
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
     for file in files:
+        if not file.filename:
+            return jsonify({"error": "You must provide a file."})
         destination = os.path.join(base_folder, file.filename)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         file.save(destination)
@@ -292,43 +298,20 @@ def upload():
         else:
             mime_type = get_mime_type(destination)
             return jsonify({"error": f"Unknown file type {mime_type}. If you need this, open a Github Issue."})
-        token = session.get('token')
-        ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
 
         tokens = get_tokens(contents)
 
         n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
-        if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
-            return jsonify({"error": f"Too many tokens: {n_tokens}. Maximum tokens allows: {MAX_NUM_TOKENS_FOR_INLINE_CONTEXT}"})
 
-    # collection = request.form['collection-selector']  # todo
+        if use_collection:
+            # todo
+            pass
 
-    # extract text fro document
-
-    # name = request.files['collection-selector']
-    # if not name:
-    #     abort(400)
-
-    # embedding_type = request.form.get('embedding')
-    # if not embedding_type:
-    #     abort(400)
-
-    # h = hashlib.sha3_512(name.encode('utf8')).hexdigest()
-
-    # model = session.get('model')
-    # if not model:
-    #     abort(400)
-
-    # if embedding_type == 'code':
-    #     executor.submit_stored(h, long_running_code_indexer, name, base_folder, model)
-    #
-    # if embedding_type == 'pdf':
-    #     executor.submit_stored(h, long_running_pdf_indexer, name, destination, model)
-    #
-    # if embedding_type == 'sql':
-    #     executor.submit_stored(h, long_running_sql_indexer, name, destination, model)
-    #
-    # EMBEDDINGS[name] = None
+        else:
+            if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
+                return jsonify({"error": f"Too many tokens: {n_tokens}. Maximum tokens allows: {MAX_NUM_TOKENS_FOR_INLINE_CONTEXT}"})
+            token = session.get('token')
+            ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
 
     return jsonify({"status": "OK"})  # redirect done in JS
 

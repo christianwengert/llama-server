@@ -145,7 +145,7 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
 
 
 const setupUploadButton = () => {
-    const uploadButton = document.getElementById('upload-button') as HTMLButtonElement
+    const uploadButton = document.getElementById('upload-button') as HTMLButtonElement;
     if (uploadButton) {
         uploadButton.addEventListener('click', (e) => {
             e.preventDefault();
@@ -189,6 +189,28 @@ const setupUploadButton = () => {
                 });
         })
     }
+
+    const collectionSelector = document.getElementById('collection-selector') as HTMLSelectElement;
+    const collectionName = document.getElementById('collection-name') as HTMLInputElement;
+
+    if (collectionSelector && collectionName) {
+        const outer = collectionName.parentElement!
+        const eventHandler = (event?: Event) => {
+            if(event) {
+                event.preventDefault();
+            }
+            if(collectionSelector.value === "New")
+            {
+                outer.style.display = 'flex'
+            } else {
+                outer.style.display = 'none'
+            }
+        }
+        collectionSelector.addEventListener('change', eventHandler)
+        eventHandler();  // set it for starter
+    }
+
+
 };
 
 

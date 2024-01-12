@@ -49965,6 +49965,23 @@
         });
       });
     }
+    const collectionSelector = document.getElementById("collection-selector");
+    const collectionName = document.getElementById("collection-name");
+    if (collectionSelector && collectionName) {
+      const outer = collectionName.parentElement;
+      const eventHandler = (event) => {
+        if (event) {
+          event.preventDefault();
+        }
+        if (collectionSelector.value === "New") {
+          outer.style.display = "flex";
+        } else {
+          outer.style.display = "none";
+        }
+      };
+      collectionSelector.addEventListener("change", eventHandler);
+      eventHandler();
+    }
   };
   var highlightCode = (inner) => {
     const convertMarkdownToHTML = (mdString) => {
