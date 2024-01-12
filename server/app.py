@@ -21,7 +21,7 @@ from urllib.parse import urlparse
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query
 from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
-    get_mime_type
+    get_mime_type, is_json
 from utils.timestamp_formatter import categorize_timestamp
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
@@ -275,6 +275,10 @@ def upload():
             contents = make_pdf_prompt(document)
 
         elif is_source_code_file(destination):
+            with open(destination, 'r') as f:
+                contents = f.read()
+
+        elif is_json(destination):
             with open(destination, 'r') as f:
                 contents = f.read()
 

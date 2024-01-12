@@ -34,7 +34,8 @@ def is_source_code_file(filename: str) -> bool:
     source_code_extensions = {
         '.py', '.java', '.c', '.cpp', '.cs', '.js', '.ts', '.html', '.css',
         '.php', '.rb', '.swift', '.go', '.kt', '.rs', '.lua', '.pl', '.sh',
-        '.bat', '.sql', '.r', '.m', '.f', '.fs', '.scala', '.clj', '.hs', '.erl'
+        '.bat', '.sql', '.r', '.m', '.f', '.fs', '.scala', '.clj', '.hs', '.erl',
+        '.xml', '.json', '.jsonl'
     }
 
     # Extract the file extension
@@ -42,6 +43,16 @@ def is_source_code_file(filename: str) -> bool:
 
     # Check if the file extension is in the list
     return extension in source_code_extensions
+
+
+def is_json(filename: str) -> bool:
+    try:
+        with open(filename, 'rb') as f:
+            mime = magic.from_buffer(f.read(), mime=True)
+        return 'application/json' in mime or 'application/javascript' in mime
+    except Exception as e:
+        print(f"Error occurred while checking file type: {e}")
+        return False
 
 
 def is_sqlite(filename: str) -> bool:
