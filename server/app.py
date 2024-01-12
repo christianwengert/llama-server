@@ -20,7 +20,7 @@ from urllib.parse import urlparse
 
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query
-from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file
+from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file
 from utils.timestamp_formatter import categorize_timestamp
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 16384
@@ -263,22 +263,28 @@ def upload():
         destination = os.path.join(base_folder, file.filename)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         file.save(destination)
-        contents = ""  # Set it to empty to avoid breaking if some garbage is uploaded
+        # contents = ""  # Set it to empty to avoid breaking if some garbage is uploaded
         if is_archive(destination):
-            print('zip')
             extract_archive(file.filename, destination)  # this will always be put into a collection?
-            # todo
-            return jsonify({"error": "Archives are not supported yet"})
+            return jsonify({"error": "Archives are not supported yet. If you need this, open a Github Issue."})
 
         elif is_pdf(destination):
             document = parse_pdf(destination)
             contents = make_pdf_prompt(document)
 
+        elif is_source_code_file(destination):
+            with open(destination, 'r') as f:
+                contents = f.read()
+
         elif is_text_file(destination):
             with open(destination, 'r') as f:
                 contents = f.read()
+
+        elif is_sqlite(destination):
+            return jsonify({"error": "sqlite Databases are not supported yet. If you need this, open a Github Issue."})
+
         else:
-            return jsonify({"error": "Unknown file type"})
+            return jsonify({"error": "Unknown file type. If you need this, open a Github Issue."})
         token = session.get('token')
         ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
 

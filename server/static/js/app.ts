@@ -172,14 +172,13 @@ const setupUploadButton = () => {
                     // Process the JSON data here
                     console.log(jsonData);
                     help.classList.remove('warning')
-                    if(jsonData.error !== '') {
+                    if(jsonData.error) {
                         help.dataset.errorMessage = jsonData['error']
                         help.classList.add('warning')
                     } else { // all set
                         document.location.hash = ''
+                        renderMessage((formData.get('file') as any).name, "me", chat, 'file-icon', false);
                     }
-                    // make the upload a message for visual feedback
-                    renderMessage((formData.get('file') as any).name, "me", chat, 'file-icon', false)
                 })
                 .catch((_error) => {
                     // Handle errors or display a message to the user
@@ -304,26 +303,22 @@ const loadHistory = () => {
         if (chat.children.length > 0) {
             return;  // not necessary to do anything, it is rendered already
         }
-
         item.items.forEach((msg, index) => {
             const direction = index % 2 === 0 ? "me" : "them";
-            let innerMessageExtraClass: string|undefined = undefined
-            let renderButtons: boolean = true
+            let innerMessageExtraClass: string|undefined = undefined;
+            let renderButtons: boolean = true;
             if(msg.metadata && msg.metadata.filename) {
                 innerMessageExtraClass = "file-icon";
                 msg.content = msg.metadata.filename;
                 renderButtons = false;
-
             }
 
             const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
 
-            const msgDiv = document.getElementById(ident)
+            const msgDiv = document.getElementById(ident);
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
-            // if (direction === 'them') {
             highlightCode(inner);  // highlight both directions
-            // }
         })
     }
     const index = document.location.pathname.indexOf('/c/')

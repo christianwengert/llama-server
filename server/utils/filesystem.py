@@ -23,6 +23,37 @@ def list_directories(directory: str) -> List[str]:
     return result
 
 
+def get_mime_type(filename: str) -> str:
+    with open(filename, 'rb') as f:
+        mime = magic.from_buffer(f.read(), mime=True)
+        return mime
+
+
+def is_source_code_file(filename: str) -> bool:
+    # List of common source code file extensions
+    source_code_extensions = {
+        '.py', '.java', '.c', '.cpp', '.cs', '.js', '.ts', '.html', '.css',
+        '.php', '.rb', '.swift', '.go', '.kt', '.rs', '.lua', '.pl', '.sh',
+        '.bat', '.sql', '.r', '.m', '.f', '.fs', '.scala', '.clj', '.hs', '.erl'
+    }
+
+    # Extract the file extension
+    extension = os.path.splitext(filename)[1].lower()
+
+    # Check if the file extension is in the list
+    return extension in source_code_extensions
+
+
+def is_sqlite(filename: str) -> bool:
+    try:
+        with open(filename, 'rb') as f:
+            mime = magic.from_buffer(f.read(), mime=True)
+        return 'application/vnd.sqlite3' in mime or 'application/x-sqlite3' in mime
+    except Exception as e:
+        print(f"Error occurred while checking file type: {e}")
+        return False
+
+
 def is_text_file(filename: str) -> bool:
     try:
         with open(filename, 'rb') as f:

@@ -49951,13 +49951,13 @@
         }).then((jsonData) => {
           console.log(jsonData);
           help.classList.remove("warning");
-          if (jsonData.error !== "") {
+          if (jsonData.error) {
             help.dataset.errorMessage = jsonData["error"];
             help.classList.add("warning");
           } else {
             document.location.hash = "";
+            renderMessage(formData.get("file").name, "me", chat, "file-icon", false);
           }
-          renderMessage(formData.get("file").name, "me", chat, "file-icon", false);
         }).catch((_error) => {
           help.classList.add("warning", "warning-file-upload-failed");
         }).finally(() => {
