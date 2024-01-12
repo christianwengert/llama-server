@@ -49958,7 +49958,6 @@
             document.location.hash = "";
           }
           renderMessage(formData.get("file").name, "me", chat, "file-icon", false);
-          console.log(formData);
         }).catch((_error) => {
           help.classList.add("warning", "warning-file-upload-failed");
         }).finally(() => {

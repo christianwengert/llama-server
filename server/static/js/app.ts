@@ -12,6 +12,7 @@ const getFormDataAsJSON = (formId: string): Record<string, string | number | boo
     const formData: Record<string, string | number | boolean> = {};
 
     if (form) {
+        // @ts-ignore
         for (const [key, value] of new FormData(form).entries()) {
             if (value === 'true') {
                 formData[key] = true;
@@ -178,8 +179,7 @@ const setupUploadButton = () => {
                         document.location.hash = ''
                     }
                     // make the upload a message for visual feedback
-                    renderMessage(formData.get('file').name, "me", chat, 'file-icon', false)
-                    console.log(formData)
+                    renderMessage((formData.get('file') as any).name, "me", chat, 'file-icon', false)
                 })
                 .catch((_error) => {
                     // Handle errors or display a message to the user
@@ -601,6 +601,7 @@ function setupMenu() {
 
     // get and set current mode
     const selectedMode = curUrl.searchParams.get(key);
+    // @ts-ignore
     for (let elem of document.getElementsByClassName('mode-button')) {
         elem.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault()
