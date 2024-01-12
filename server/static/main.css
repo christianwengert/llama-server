@@ -1122,32 +1122,14 @@ summary {
 div.warning input {
     border: 1px solid red; /* Example to highlight the field in error */
     /*position: relative;*/
-}
 
+}
 div.warning:after {
-    content: "Field cannot be empty"; /* Error message */
+    content: attr(data-error-message);
     color: red; /* Text color of the error message */
-    display: block; /* Makes the pseudo-element behave like a block element */
-}
-
-.warning-too-many-tokens:after {
-    content: "File contains too many tokens. Split it up into smaller chunks or add the text to a collection." !important;
-}
-
-.warning-file-upload-failed:after {
-    content: "File upload failed" !important;
-}
-.warning-unknown-file-type:after {
-    content: "Unkown file type" !important;
-}
-
-.warning-message {
-    display: none;
-}
-
-div.warning .warning-message {
     display: block;
 }
+
 
 .param-help {
     margin-bottom: 1.5rem !important;

@@ -268,6 +268,7 @@ def upload():
             print('zip')
             extract_archive(file.filename, destination)  # this will always be put into a collection?
             # todo
+            return jsonify({"error": "Archives are not supported yet"})
 
         elif is_pdf(destination):
             document = parse_pdf(destination)
@@ -277,7 +278,7 @@ def upload():
             with open(destination, 'r') as f:
                 contents = f.read()
         else:
-            return jsonify({"status": "Unknown file type", "n_tokens": 0, "max_tokens": MAX_NUM_TOKENS_FOR_INLINE_CONTEXT, "class_name": 'warning-unknown-file-type'})
+            return jsonify({"error": "Unknown file type"})
         token = session.get('token')
         ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
 
@@ -285,7 +286,7 @@ def upload():
 
         n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
         if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
-            return jsonify({"status": "Too large", "n_tokens": n_tokens, "max_tokens": MAX_NUM_TOKENS_FOR_INLINE_CONTEXT, "class_name": 'warning-too-many-tokens'})
+            return jsonify({"error": f"Too many tokens: {n_tokens}. Maximum tokens allows: {MAX_NUM_TOKENS_FOR_INLINE_CONTEXT}"})
 
     # collection = request.form['collection-selector']  # todo
 

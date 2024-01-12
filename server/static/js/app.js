@@ -49937,7 +49937,6 @@
         const formData = new FormData(formElement);
         const chat = document.getElementById("chat");
         uploadButton.disabled = true;
-        help.className = "param-help";
         fetch(
           "/upload",
           {
@@ -49951,8 +49950,10 @@
           return response.json();
         }).then((jsonData) => {
           console.log(jsonData);
-          if (jsonData.status !== "OK") {
-            help.classList.add("warning", jsonData["class_name"]);
+          help.classList.remove("warning");
+          if (jsonData.error !== "") {
+            help.dataset.errorMessage = jsonData["error"];
+            help.classList.add("warning");
           } else {
             document.location.hash = "";
           }

@@ -152,13 +152,12 @@ const setupUploadButton = () => {
             const formElement = document.getElementById("upload-form") as HTMLFormElement;
             const fileInput = formElement.querySelector('#file')! as HTMLInputElement;
             const parentDiv = fileInput.parentElement!;
-            const help = parentDiv.nextElementSibling!;
+            const help = parentDiv.nextElementSibling! as HTMLElement;
 
             // Create a new FormData object
             const formData = new FormData(formElement);
             const chat = document.getElementById('chat')!;
             uploadButton.disabled = true;
-            help.className = "param-help";  // clean all previous errors
             fetch("/upload",
                 {
                     body: formData,
@@ -171,10 +170,11 @@ const setupUploadButton = () => {
                 }).then((jsonData) => {
                     // Process the JSON data here
                     console.log(jsonData);
-                    if(jsonData.status !== 'OK') {
-                        help.classList.add('warning', jsonData['class_name'])
+                    help.classList.remove('warning')
+                    if(jsonData.error !== '') {
+                        help.dataset.errorMessage = jsonData['error']
+                        help.classList.add('warning')
                     } else { // all set
-                        // help.classList.remove('warning', 'warning-too-many-tokens')
                         document.location.hash = ''
                     }
                     // make the upload a message for visual feedback
