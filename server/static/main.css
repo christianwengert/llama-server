@@ -1137,6 +1137,9 @@ div.warning:after {
 .warning-file-upload-failed:after {
     content: "File upload failed" !important;
 }
+.warning-unknown-file-type:after {
+    content: "Unkown file type" !important;
+}
 
 .warning-message {
     display: none;
@@ -1172,4 +1175,42 @@ div.warning .warning-message {
     height: 24px;
     display: inline-block;
     /*position: absolute;*/
+}
+
+#upload-button:disabled {
+    display: inline-block;
+/*}*/
+
+
+/*button[disabled] .spinner {*/
+/*    display: inline-block;*/
+/*    border: 2px solid rgba(255, 255, 255, 0.3);*/
+/*    border-top: 2px solid #fff;*/
+/*    border-radius: 50%;*/
+/*    width: 14px;*/
+/*    height: 14px;*/
+/*    animation: spin 1s linear infinite;*/
+}
+.spinner {
+    display: none;
+    border: 3px solid rgba(255, 255, 255, 0.3); /* Light grey border */
+    border-top: 3px solid blue; /* Blue top border */
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    animation: spin 2s linear infinite; /* Animation applied here */
+}
+
+button:disabled .spinner {
+    display: inline-block;
+    /* More styles for visible spinner */
+}
+
+button:disabled {
+    /* Optional: Styles to indicate the button is disabled */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }

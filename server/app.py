@@ -263,22 +263,21 @@ def upload():
         destination = os.path.join(base_folder, file.filename)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         file.save(destination)
-
+        contents = ""  # Set it to empty to avoid breaking if some garbage is uploaded
         if is_archive(destination):
             print('zip')
             extract_archive(file.filename, destination)  # this will always be put into a collection?
             # todo
 
-        if is_pdf(destination):
-            print('pdf')
+        elif is_pdf(destination):
             document = parse_pdf(destination)
             contents = make_pdf_prompt(document)
 
-        if is_text_file(destination):
-            print('text')
+        elif is_text_file(destination):
             with open(destination, 'r') as f:
                 contents = f.read()
-
+        else:
+            return jsonify({"status": "Unknown file type", "n_tokens": 0, "max_tokens": MAX_NUM_TOKENS_FOR_INLINE_CONTEXT, "class_name": 'warning-unknown-file-type'})
         token = session.get('token')
         ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
 
@@ -286,7 +285,7 @@ def upload():
 
         n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
         if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
-            return jsonify({"status": "Too large", "n_tokens": n_tokens, "max_tokens": MAX_NUM_TOKENS_FOR_INLINE_CONTEXT})
+            return jsonify({"status": "Too large", "n_tokens": n_tokens, "max_tokens": MAX_NUM_TOKENS_FOR_INLINE_CONTEXT, "class_name": 'warning-too-many-tokens'})
 
     # collection = request.form['collection-selector']  # todo
 

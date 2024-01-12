@@ -49936,6 +49936,8 @@
         const help = parentDiv.nextElementSibling;
         const formData = new FormData(formElement);
         const chat = document.getElementById("chat");
+        uploadButton.disabled = true;
+        help.className = "param-help";
         fetch(
           "/upload",
           {
@@ -49950,15 +49952,16 @@
         }).then((jsonData) => {
           console.log(jsonData);
           if (jsonData.status !== "OK") {
-            help.classList.add("warning", "warning-too-many-tokens");
+            help.classList.add("warning", jsonData["class_name"]);
           } else {
-            help.classList.remove("warning", "warning-too-many-tokens");
             document.location.hash = "";
           }
           renderMessage(formData.get("file").name, "me", chat, "file-icon", false);
           console.log(formData);
         }).catch((_error) => {
           help.classList.add("warning", "warning-file-upload-failed");
+        }).finally(() => {
+          uploadButton.disabled = false;
         });
       });
     }

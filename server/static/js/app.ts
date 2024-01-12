@@ -144,7 +144,7 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
 
 
 const setupUploadButton = () => {
-    const uploadButton = document.getElementById('upload-button')
+    const uploadButton = document.getElementById('upload-button') as HTMLButtonElement
     if (uploadButton) {
         uploadButton.addEventListener('click', (e) => {
             e.preventDefault();
@@ -157,6 +157,8 @@ const setupUploadButton = () => {
             // Create a new FormData object
             const formData = new FormData(formElement);
             const chat = document.getElementById('chat')!;
+            uploadButton.disabled = true;
+            help.className = "param-help";  // clean all previous errors
             fetch("/upload",
                 {
                     body: formData,
@@ -170,14 +172,9 @@ const setupUploadButton = () => {
                     // Process the JSON data here
                     console.log(jsonData);
                     if(jsonData.status !== 'OK') {
-                        // const status = jsonData.status;
-                        // const n_tokens = jsonData.n_tokens;
-
-                        help.classList.add('warning', 'warning-too-many-tokens')
-                        // help.
-
+                        help.classList.add('warning', jsonData['class_name'])
                     } else { // all set
-                        help.classList.remove('warning', 'warning-too-many-tokens')
+                        // help.classList.remove('warning', 'warning-too-many-tokens')
                         document.location.hash = ''
                     }
                     // make the upload a message for visual feedback
@@ -187,6 +184,9 @@ const setupUploadButton = () => {
                 .catch((_error) => {
                     // Handle errors or display a message to the user
                     help.classList.add('warning', 'warning-file-upload-failed')
+                })
+                .finally(() => {
+                    uploadButton.disabled = false;
                 });
         })
     }
