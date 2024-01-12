@@ -20,10 +20,11 @@ from urllib.parse import urlparse
 
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query
-from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file
+from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
+    get_mime_type
 from utils.timestamp_formatter import categorize_timestamp
 
-MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 16384
+MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
 
 SYSTEM = 'system'
 ASSISTANT = 'assistant'
@@ -197,6 +198,7 @@ def c(token):
                            common_collections=common_collections,
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
+                           num_words=round(MAX_NUM_TOKENS_FOR_INLINE_CONTEXT * 0.7 / 1000) * 1000,  # show how many tokens we can add to the context
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
                            **data
                            )
@@ -284,7 +286,8 @@ def upload():
             return jsonify({"error": "sqlite Databases are not supported yet. If you need this, open a Github Issue."})
 
         else:
-            return jsonify({"error": "Unknown file type. If you need this, open a Github Issue."})
+            mime_type = get_mime_type(destination)
+            return jsonify({"error": f"Unknown file type {mime_type}. If you need this, open a Github Issue."})
         token = session.get('token')
         ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
 

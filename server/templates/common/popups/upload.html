@@ -5,7 +5,7 @@
         <div class="scroll-content">
             <div>
                 <div>
-                    You can add context to the current prompt either by just adding a file (must be shorter than ~10000
+                    You can add context to the current prompt either by just adding a file (must be shorter than ~{{num_words}}
                     words). Once uploaded you can simply chat with the bot by referring to the 'context'.
                     <br><br>
                     <strong>Example</strong>: Summarize / Translate the context
@@ -26,9 +26,8 @@
                     <input id="file" name="file" type="file" required>
                 </div>
                 <div class="param-help">
-                    Single documents (*.txt, *.pdf, *.doc, *.rtf). If small enough will be packed
-                    automatically into the current context.<br>
-                    Zip archives will be unpacked on the server and if small enough will be added to the context.
+                    Single documents (*.txt, *.pdf, *.doc, *.rtf, *.sqlite, and of course code files).
+                    Archives will be unpacked on the server and if small enough will be added to the context.
                 </div>
 
                 <div>
