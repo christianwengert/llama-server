@@ -49886,7 +49886,7 @@
     selection.addRange(range);
     inner.addEventListener("keypress", getInputHandler(inner));
   };
-  var renderMessage = (message, direction, chat) => {
+  var renderMessage = (message, direction, chat, innerMessageExtraClass, renderButtons = true) => {
     const ident = (Math.random() + 1).toString(36).substring(2);
     const messageDiv = document.createElement("div");
     messageDiv.className = `message from-${direction}`;
@@ -49897,18 +49897,23 @@
     messageExtra.innerText = direction === "me" ? "You" : "Assistant";
     const innerMessageDiv = document.createElement("div");
     innerMessageDiv.className = "inner-message";
+    if (innerMessageExtraClass) {
+      innerMessageDiv.classList.add(innerMessageExtraClass);
+    }
     innerMessageDiv.textContent = message;
     messageDiv.appendChild(innerMessageDiv);
-    if (direction === "me") {
-      const editButtonDiv = document.createElement("div");
-      editButtonDiv.className = "edit-button";
-      const editLink = document.createElement("a");
-      editLink.href = "/edit/";
-      editLink.id = `edit-${ident}`;
-      editLink.textContent = "Edit";
-      editButtonDiv.appendChild(editLink);
-      editLink.addEventListener("click", handleEditAction);
-      messageDiv.appendChild(editButtonDiv);
+    if (renderButtons) {
+      if (direction === "me") {
+        const editButtonDiv = document.createElement("div");
+        editButtonDiv.className = "edit-button";
+        const editLink = document.createElement("a");
+        editLink.href = "/edit/";
+        editLink.id = `edit-${ident}`;
+        editLink.textContent = "Edit";
+        editButtonDiv.appendChild(editLink);
+        editLink.addEventListener("click", handleEditAction);
+        messageDiv.appendChild(editButtonDiv);
+      }
     }
     chat.appendChild(messageDiv);
     return ident;
@@ -49930,6 +49935,7 @@
         const parentDiv = fileInput.parentElement;
         const help = parentDiv.nextElementSibling;
         const formData = new FormData(formElement);
+        const chat = document.getElementById("chat");
         fetch(
           "/upload",
           {
@@ -49949,6 +49955,8 @@
             help.classList.remove("warning", "warning-too-many-tokens");
             document.location.hash = "";
           }
+          renderMessage(formData.get("file").name, "me", chat, "file-icon", false);
+          console.log(formData);
         }).catch((_error) => {
           help.classList.add("warning", "warning-file-upload-failed");
         });
@@ -49958,12 +49966,12 @@
   var highlightCode = (inner) => {
     const convertMarkdownToHTML = (mdString) => {
       const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+      mdString = mdString.replace(codeBlockRegex, (_match, lang, code) => {
         const language = lang || "bash";
         return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
       });
       const inlineCodeRegex = /`([^`]+)`/g;
-      mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+      mdString = mdString.replace(inlineCodeRegex, (_match, code) => {
         return `<code class="inline">${escapeHTML(code)}</code>`;
       });
       return mdString;
@@ -50026,7 +50034,14 @@
       }
       item.items.forEach((msg, index2) => {
         const direction = index2 % 2 === 0 ? "me" : "them";
-        const ident = renderMessage(msg.content, direction, chat);
+        let innerMessageExtraClass = void 0;
+        let renderButtons = true;
+        if (msg.metadata && msg.metadata.filename) {
+          innerMessageExtraClass = "file-icon";
+          msg.content = msg.metadata.filename;
+          renderButtons = false;
+        }
+        const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
         const msgDiv = document.getElementById(ident);
         const inner = msgDiv.getElementsByClassName("inner-message")[0];
         highlightCode(inner);

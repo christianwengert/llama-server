@@ -72,7 +72,7 @@ const handleEditAction = (e: MouseEvent) => {
 //     handleVoteAction(e, 'down')
 // };
 
-const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement): string => {
+const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement, innerMessageExtraClass?: string, renderButtons: boolean = true): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
 
     const messageDiv = document.createElement('div');
@@ -86,45 +86,49 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
 
     const innerMessageDiv = document.createElement('div');
     innerMessageDiv.className = 'inner-message';
+    if (innerMessageExtraClass) {
+        innerMessageDiv.classList.add(innerMessageExtraClass)
+    }
     innerMessageDiv.textContent = message;
     messageDiv.appendChild(innerMessageDiv);
+    if (renderButtons) {
+        if (direction === 'me') {
+            const editButtonDiv = document.createElement('div');
+            editButtonDiv.className = 'edit-button';
+            const editLink = document.createElement('a');
+            editLink.href = '/edit/';
+            editLink.id = `edit-${ident}`;
+            editLink.textContent = 'Edit';
+            editButtonDiv.appendChild(editLink);
 
-    if (direction === 'me') {
-        const editButtonDiv = document.createElement('div');
-        editButtonDiv.className = 'edit-button';
-        const editLink = document.createElement('a');
-        editLink.href = '/edit/';
-        editLink.id = `edit-${ident}`;
-        editLink.textContent = 'Edit';
-        editButtonDiv.appendChild(editLink);
+            editLink.addEventListener('click', handleEditAction)
 
-        editLink.addEventListener('click', handleEditAction)
-
-        messageDiv.appendChild(editButtonDiv);
+            messageDiv.appendChild(editButtonDiv);
+        }
+        // else {
+        // const voteButtonDiv = document.createElement('div');
+        // voteButtonDiv.className = 'edit-button';
+        // const upvoteLink = document.createElement('a');
+        // upvoteLink.href = '/upvote/';
+        // upvoteLink.id = `upvote-${ident}`;
+        // upvoteLink.textContent = '➞';
+        // voteButtonDiv.appendChild(upvoteLink);
+        //
+        //
+        // const downvoteLink = document.createElement('a');
+        // downvoteLink.href = '/downvote/';
+        // downvoteLink.id = `downvote-${ident}`;
+        // downvoteLink.textContent = '➞';
+        // voteButtonDiv.appendChild(downvoteLink);
+        //
+        // messageDiv.appendChild(voteButtonDiv);
+        //
+        // upvoteLink.addEventListener('click', handleUpvoteAction);
+        // downvoteLink.addEventListener('click', handleDownvoteAction);
+        //
+        //
+        // }
     }
-    // else {
-    // const voteButtonDiv = document.createElement('div');
-    // voteButtonDiv.className = 'edit-button';
-    // const upvoteLink = document.createElement('a');
-    // upvoteLink.href = '/upvote/';
-    // upvoteLink.id = `upvote-${ident}`;
-    // upvoteLink.textContent = '➞';
-    // voteButtonDiv.appendChild(upvoteLink);
-    //
-    //
-    // const downvoteLink = document.createElement('a');
-    // downvoteLink.href = '/downvote/';
-    // downvoteLink.id = `downvote-${ident}`;
-    // downvoteLink.textContent = '➞';
-    // voteButtonDiv.appendChild(downvoteLink);
-    //
-    // messageDiv.appendChild(voteButtonDiv);
-    //
-    // upvoteLink.addEventListener('click', handleUpvoteAction);
-    // downvoteLink.addEventListener('click', handleDownvoteAction);
-    //
-    //
-    // }
     chat.appendChild(messageDiv);
     return ident;
 };
@@ -152,7 +156,7 @@ const setupUploadButton = () => {
 
             // Create a new FormData object
             const formData = new FormData(formElement);
-
+            const chat = document.getElementById('chat')!;
             fetch("/upload",
                 {
                     body: formData,
@@ -176,6 +180,9 @@ const setupUploadButton = () => {
                         help.classList.remove('warning', 'warning-too-many-tokens')
                         document.location.hash = ''
                     }
+                    // make the upload a message for visual feedback
+                    renderMessage(formData.get('file').name, "me", chat, 'file-icon', false)
+                    console.log(formData)
                 })
                 .catch((_error) => {
                     // Handle errors or display a message to the user
@@ -191,14 +198,14 @@ const highlightCode = (inner: HTMLElement) => {
     const convertMarkdownToHTML = (mdString: string) => {
         // Replace triple backtick code blocks
         const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-        mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+        mdString = mdString.replace(codeBlockRegex, (_match, lang, code) => {
             const language = lang || 'bash';
             return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
         });
 
         // Replace inline code
         const inlineCodeRegex = /`([^`]+)`/g;
-        mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+        mdString = mdString.replace(inlineCodeRegex, (_match, code) => {
             return `<code class="inline">${escapeHTML(code)}</code>`;
         });
         // highlight inline **Title**
@@ -227,7 +234,11 @@ const highlightCode = (inner: HTMLElement) => {
 };
 
 const loadHistory = () => {
+    type Metadata = {
+        filename: string
+    }
     type Message = {
+        metadata: Metadata;
         role: string;
         content: string;
     }
@@ -296,7 +307,16 @@ const loadHistory = () => {
 
         item.items.forEach((msg, index) => {
             const direction = index % 2 === 0 ? "me" : "them";
-            const ident = renderMessage(msg.content, direction, chat)
+            let innerMessageExtraClass: string|undefined = undefined
+            let renderButtons: boolean = true
+            if(msg.metadata && msg.metadata.filename) {
+                innerMessageExtraClass = "file-icon";
+                msg.content = msg.metadata.filename;
+                renderButtons = false;
+
+            }
+
+            const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
 
             const msgDiv = document.getElementById(ident)
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
@@ -368,6 +388,18 @@ function getInputHandler(inputElement: HTMLElement) {
         removeAllChildrenAfterIndex(chat, pruneHistoryIndex)
     }
 
+    type TimingInfo = {
+        predicted_per_token_ms: number;
+
+    }
+    type ReturnMessage = {
+        content: string;
+        model: any;
+        timings: TimingInfo;
+        stop: boolean;
+
+    }
+
 
     function handleInput(e: KeyboardEvent) {
         if (e.key === 'Enter' && e.shiftKey === false) {
@@ -418,7 +450,7 @@ function getInputHandler(inputElement: HTMLElement) {
                 while ((end = buffer.indexOf(separator, start)) !== -1) {
                     let message = buffer.substring(start, end);
                     start = end + separator.length; // skip past the delimiter
-                    let jsonMessage;
+                    let jsonMessage: ReturnMessage;
                     try {
                         jsonMessage = JSON.parse(message);
                     } catch (e) {
@@ -570,7 +602,7 @@ function setupMenu() {
     // get and set current mode
     const selectedMode = curUrl.searchParams.get(key);
     for (let elem of document.getElementsByClassName('mode-button')) {
-        elem.addEventListener('click', (e) => {
+        elem.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault()
             const target = e.target! as HTMLElement;
             menu.classList.toggle('hidden');

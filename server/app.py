@@ -7,8 +7,10 @@ import tempfile
 import urllib
 from functools import wraps
 from json import JSONDecodeError
-from typing import Dict, Any, Optional
+from pathlib import Path
+from typing import Dict, Any, Optional, Union, Tuple
 import requests
+import scipdf
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
 from langchain_community.vectorstores.faiss import FAISS
@@ -18,10 +20,10 @@ from urllib.parse import urlparse
 
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query
-from utils.filesystem import is_archive, extract_archive
+from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file
 from utils.timestamp_formatter import categorize_timestamp
 
-MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 8192
+MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 16384
 
 SYSTEM = 'system'
 ASSISTANT = 'assistant'
@@ -185,7 +187,7 @@ def c(token):
     data = session.get('params', None)
     if not data:
         data = get_llama_parameters()
-    if type(data['stop']) == list:
+    if isinstance(data['stop'], list):
         data['stop'] = ','.join(data['stop'])
 
     collections = get_available_collections()
@@ -209,9 +211,32 @@ def get_llama_parameters():
         system_prompt_prefix=SYSTEM,
     )
     data = _get_llama_default_parameters(data)
-    if type(data['stop']) == list:
+    if isinstance(data['stop'], list):
         data['stop'] = ','.join(data['stop'])
     return data
+
+
+def parse_pdf(filename: Union[str, Path]) -> Dict:
+    if not os.path.exists(filename):
+        raise FileNotFoundError()
+    import time
+    start = time.time()
+    document = scipdf.parse_pdf_to_dict(filename)  # return dictionary
+    end = time.time()
+    print(f'Processed document in {end - start} seconds')
+    return document
+
+
+def make_pdf_prompt(article: Dict):
+    prompt_text = "The following is an article on which I will ask questions. After processing this article, acknowledge the following with OK."
+    prompt_text += f"# {article['title']}\n\n"
+    prompt_text += f"## authors: {article['authors']}\n\n"
+    prompt_text += f"## abstract: {article['abstract']}\n\n"
+
+    for section in article['sections']:
+        prompt_text += f"## {section['heading']}\n"
+        prompt_text += section['text']
+    return prompt_text
 
 
 @app.route("/")
@@ -239,23 +264,23 @@ def upload():
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         file.save(destination)
 
-        if is_archive(file):
+        if is_archive(destination):
             print('zip')
-            extract_archive(file, destination)  # this will always be put into a collection?
+            extract_archive(file.filename, destination)  # this will always be put into a collection?
+            # todo
 
-        # count tokens
-        # get_tokens()
+        if is_pdf(destination):
+            print('pdf')
+            document = parse_pdf(destination)
+            contents = make_pdf_prompt(document)
 
-        # const splitter = RecursiveCharacterTextSplitter.fromLanguage("js", {
-        #   chunkSize: 32,
-        #   chunkOverlap: 0,
-        # });
-        # texts = split_pdf(destination, 1024, 64)
-        with open(destination, 'r') as f:
-            contents = f.read()
+        if is_text_file(destination):
+            print('text')
+            with open(destination, 'r') as f:
+                contents = f.read()
 
         token = session.get('token')
-        ADDITIONAL_CONTEXT[token] = contents
+        ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
 
         tokens = get_tokens(contents)
 
@@ -404,9 +429,9 @@ def get_input():
         }
 
     # Add context if asked
-    context = make_context(data, text, token, vector_store)
+    context, metadata = make_context(data, text, token, vector_store)
     if context:
-        hist['items'].append(dict(role=USER, content=f'This is the context: {context}'))
+        hist['items'].append(dict(role=USER, content=f'This is the context: {context}', metadata=metadata))
         hist['items'].append(dict(role=ASSISTANT, content='OK'))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token, None)  # remove it, it is now part of the history
 
@@ -444,33 +469,38 @@ def get_input():
                     direct_passthrough=False)
 
 
-def make_context(data, query, token, vector_store) -> str:
+def make_context(data, query, token, vector_store) -> Tuple[Optional[str], Optional[Dict]]:
     # We add first the "generic" context from the collection and then the file.
     # The logic here is that if I added a file, it is probably more important
     context = ""
-    context_from_rag = get_context_from_rag(data, query, vector_store)
-    context_from_file = get_context_from_upload(token)
-
+    context_from_rag, metadata = get_context_from_rag(data, query, vector_store)
     if context_from_rag:
         context_from_rag = context_from_rag.strip()
-        context += 'Here is some relevant text from the database:'
+        # context += 'Here is some relevant text from the database:'
         context += context_from_rag
 
+    context_from_file, metadata = get_context_from_upload(token)
     if context_from_file:
         # todo: Add n_keep correctly
         context_from_file = context_from_file.strip()
-        context += 'Here is some relevant text from the upload:'
+        # context += 'Here is some relevant text from the upload:'
         context += context_from_file
 
-    return context
+    return context, metadata
 
 
-def get_context_from_upload(token: str) -> Optional[str]:
-    return ADDITIONAL_CONTEXT.get(token, None)
+def get_context_from_upload(token: str) -> Tuple[Optional[str], Optional[Dict]]:
+    context = ADDITIONAL_CONTEXT.get(token, {})
+    if context is None:
+        return None, None
+    metadata = dict(filename=context.get('filename', None))
+    contents = context.get('contents', None)
+    return contents, metadata
 
 
-def get_context_from_rag(data, query: str, vector_store: Optional[FAISS], num_docs=RAG_NUM_DOCS) -> Optional[str]:
+def get_context_from_rag(data, query: str, vector_store: Optional[FAISS], num_docs=RAG_NUM_DOCS) -> Tuple[Optional[str], Optional[Dict]]:
     context = None
+    metadata = None
     if vector_store:
         # retrieve documents
         reranked_docs = []
@@ -501,7 +531,7 @@ def get_context_from_rag(data, query: str, vector_store: Optional[FAISS], num_do
         # print(answer)
         if reranked_docs:
             context = rag_context(reranked_docs)
-    return context
+    return context, metadata
 
 
 def make_prompt(hist, system_prompt, text, prompt_template):

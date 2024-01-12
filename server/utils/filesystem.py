@@ -23,6 +23,26 @@ def list_directories(directory: str) -> List[str]:
     return result
 
 
+def is_text_file(filename: str) -> bool:
+    try:
+        with open(filename, 'rb') as f:
+            mime = magic.from_buffer(f.read(), mime=True)
+        return mime.startswith("text/")
+    except Exception as e:
+        print(f"Error occurred while checking file type: {e}")
+        return False
+
+
+def is_pdf(filename: str) -> bool:
+    try:
+        with open(filename, 'rb') as f:
+            mime = magic.from_buffer(f.read(), mime=True)
+        return "application/pdf" in mime
+    except Exception as e:
+        print(f"Error occurred while checking file type: {e}")
+        return False
+
+
 def is_archive(filename: str) -> bool:
     # Check if the file exists
     if not os.path.isfile(filename):
