@@ -19,7 +19,7 @@ from flask_session import Session
 from urllib.parse import urlparse
 
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
-    get_available_collections, load_collection, get_collection_from_query
+    get_available_collections, load_collection, get_collection_from_query, create_or_open_collection
 from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
     get_mime_type, is_json
 from utils.timestamp_formatter import categorize_timestamp
@@ -264,8 +264,12 @@ def upload():
 
     collection_selector = request.form['collection-selector']
     collection_name = request.form['collection-name']
-
+    collection_visibility = request.form['collection-visibility']
     use_collection = collection_selector != 'None, just use file in the current context'
+
+    username = session.get('username')
+    if use_collection:
+        index = create_or_open_collection(collection_name, username, collection_visibility == "on")
 
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
     for file in files:

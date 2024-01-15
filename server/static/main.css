@@ -629,9 +629,15 @@ li:hover .delete-history-item {
     border-radius: 5px;
     background-color: white;
 }
+.popup-form div > input[type=checkbox] {
+    /*width: 20px;*/
+    margin-left: 0;
+    min-width: 0;
+}
 
 .popup-form div > select {
     height: 32px;
+    text-align: left;
 
 }
 
@@ -1130,7 +1136,12 @@ div.warning:after {
     display: block;
 }
 
-
+.d-block {
+    display: block !important;
+}
+.d-none {
+    display: none !important;
+}
 .param-help {
     margin-bottom: 1.5rem !important;
     color: rgba(106, 115, 125, 0.64);

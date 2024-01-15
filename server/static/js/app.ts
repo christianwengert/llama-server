@@ -192,18 +192,22 @@ const setupUploadButton = () => {
 
     const collectionSelector = document.getElementById('collection-selector') as HTMLSelectElement;
     const collectionName = document.getElementById('collection-name') as HTMLInputElement;
+    const collectionVisibility = document.getElementById('collection-visibility') as HTMLInputElement;
 
-    if (collectionSelector && collectionName) {
-        const outer = collectionName.parentElement!
+    if (collectionSelector && collectionName && collectionVisibility) {
+        const outerName = collectionName.closest('.block')!;
+        const outerVisibility = collectionVisibility.closest('.block')!;
         const eventHandler = (event?: Event) => {
             if(event) {
                 event.preventDefault();
             }
             if(collectionSelector.value === "New")
             {
-                outer.style.display = 'flex'
+                outerName.className = 'd-block'
+                outerVisibility.className = 'd-block'
             } else {
-                outer.style.display = 'none'
+                outerName.className = 'd-none'
+                outerVisibility.className = 'd-none'
             }
         }
         collectionSelector.addEventListener('change', eventHandler)

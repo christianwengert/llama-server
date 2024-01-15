@@ -35,7 +35,7 @@
                     <select id="collection-selector" name="collection-selector">
                         <option>None, just use file in the current context</option>
                         <option value="New">New collection</option>
-                        <option value="iacr" disabled>IACR</option>
+                        <option value="iacr">IACR</option>
                     </select>
                 </div>
                 <div class="param-help">
@@ -47,12 +47,25 @@
                     <br><br>
                     For more information, see "Retrieval Augmented Generation" (RAG).
                 </div>
-                <div>
-                    <label for="collection-name">Collection name</label>
-                    <input type="text" placeholder="Please provide a name" required="required" id="collection-name" name="collection-name">
+                <div class="block">
+                    <div>
+                        <label for="collection-name">Collection name</label>
+                        <input type="text" placeholder="Please provide a name" required="required" id="collection-name"
+                               name="collection-name">
+                    </div>
+                    <div class="param-help">
+                        Test 1
+                    </div>
                 </div>
-                <div class="param-help">
-                    &nbsp;
+                <div class="block">
+                    <div>
+                        <label for="collection-visibility">Public</label>
+                        <input type="checkbox" required="required" id="collection-visibility"
+                               name="collection-visibility">
+                    </div>
+                    <div class="param-help">
+                        Test 2
+                    </div>
                 </div>
                 <div>
                     <button id="upload-button" class="ml-auto">

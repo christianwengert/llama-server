@@ -6,6 +6,7 @@ from urllib.parse import urlparse, parse_qs
 from flask import Request
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
+import faiss  # make faiss available
 from langchain_core.documents import Document
 
 from utils.filesystem import list_directories, find_files
@@ -57,9 +58,33 @@ def get_available_collections(username: str = None) -> List[Tuple[Literal['commo
 
     if username:
         user_dir = Path(RAG_DATA_DIR) / Path('user') / Path(username)
+        if not os.path.exists(user_dir):
+            os.mkdir(user_dir)
         _user_collections = list_directories(user_dir)
-        # TODO
+
     return collections
+
+
+def create_or_open_collection(index_name: str, username: Optional[str], public: Optional[bool]) -> Tuple[FAISS, Path]:
+
+    # Check if index exists already
+    collections = get_available_collections(username)
+
+    if public:
+        data_dir = Path(RAG_DATA_DIR) / Path('common')
+    else:
+        data_dir = Path(RAG_DATA_DIR) / Path('user') / Path(username)
+
+    path = data_dir / index_name
+
+
+
+    doc = Document(page_content="")  # We need to create a doc to initialize the docstore, then we gonna delete it again
+    index = FAISS.from_documents([doc], RAG_EMBEDDINGS)
+    # Todo: This is langchain stuff, too lazy to do it differently
+    index.delete([list(index.docstore._dict.keys())[0]])  # Empty again, this is
+    index.save_local(f'{path}.faiss')
+    return index, path
 
 
 def load_collection(collection: str) -> Optional[FAISS]:
@@ -89,3 +114,6 @@ def get_collection_from_query(request: Request) -> str:
         if collections and len(collections) == 1:
             collection = collections[0]  # Just take one, there should not be more
     return collection
+
+
+

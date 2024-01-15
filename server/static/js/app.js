@@ -49967,16 +49967,20 @@
     }
     const collectionSelector = document.getElementById("collection-selector");
     const collectionName = document.getElementById("collection-name");
-    if (collectionSelector && collectionName) {
-      const outer = collectionName.parentElement;
+    const collectionVisibility = document.getElementById("collection-visibility");
+    if (collectionSelector && collectionName && collectionVisibility) {
+      const outerName = collectionName.closest(".block");
+      const outerVisibility = collectionVisibility.closest(".block");
       const eventHandler = (event) => {
         if (event) {
           event.preventDefault();
         }
         if (collectionSelector.value === "New") {
-          outer.style.display = "flex";
+          outerName.className = "d-block";
+          outerVisibility.className = "d-block";
         } else {
-          outer.style.display = "none";
+          outerName.className = "d-none";
+          outerVisibility.className = "d-none";
         }
       };
       collectionSelector.addEventListener("change", eventHandler);
