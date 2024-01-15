@@ -33,9 +33,9 @@
                 <div>
                     <label for="collection-selector">Collection</label>
                     <select id="collection-selector" name="collection-selector">
-                        <option>None, just use file in the current context</option>
+                        <option value="">None, just use file in the current context</option>
                         <option value="New">New collection</option>
-                        <option value="iacr">IACR</option>
+<!--                        <option value="iacr">IACR</option>-->
                     </select>
                 </div>
                 <div class="param-help">
@@ -54,17 +54,17 @@
                                name="collection-name">
                     </div>
                     <div class="param-help">
-                        Test 1
+                        Provide a name for your collection.
                     </div>
                 </div>
                 <div class="block">
                     <div>
                         <label for="collection-visibility">Public</label>
                         <input type="checkbox" required="required" id="collection-visibility"
-                               name="collection-visibility">
+                               name="collection-visibility" value="public">
                     </div>
                     <div class="param-help">
-                        Test 2
+                        Make this collection available for other users.
                     </div>
                 </div>
                 <div>

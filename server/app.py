@@ -13,13 +13,14 @@ import requests
 import scipdf
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
 
 from flask_session import Session
 from urllib.parse import urlparse
 
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
-    get_available_collections, load_collection, get_collection_from_query, create_or_open_collection
+    get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_EMBEDDINGS
 from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
     get_mime_type, is_json
 from utils.timestamp_formatter import categorize_timestamp
@@ -262,15 +263,6 @@ def upload():
     if len(files) != 1:
         abort(400)  # todo, maybe one day we will upload more files
 
-    collection_selector = request.form['collection-selector']
-    collection_name = request.form['collection-name']
-    collection_visibility = request.form['collection-visibility']
-    use_collection = collection_selector != 'None, just use file in the current context'
-
-    username = session.get('username')
-    if use_collection:
-        index = create_or_open_collection(collection_name, username, collection_visibility == "on")
-
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
     for file in files:
         if not file.filename:
@@ -314,20 +306,44 @@ def upload():
 
         n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
 
+        collection_selector = request.form.get('collection-selector', None)
+
+        use_collection = collection_selector != ''
+
         if use_collection:
 
-            print(collection_name)
+            collection_name = request.form['collection-name']
+            collection_visibility = request.form['collection-visibility']
+            username = session.get('username')
+
+            index = create_or_open_collection(collection_name, username, collection_visibility == "on")
 
             if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
-                pass
+                CHUNK_SIZE = 512
+                text_splitter = RecursiveCharacterTextSplitter(
+                    separators=[r'(?<=[^A-Z].[.?]) +(?=[A-Z])'],
+                    # Set a really small chunk size, just to show.
+                    chunk_size=CHUNK_SIZE,
+                    chunk_overlap=0,
+                    length_function=len,
+                    is_separator_regex=True,
+                )
+                from langchain_experimental.text_splitter import SemanticChunker
+                SemanticChunker(RAG_EMBEDDINGS)
+
+                chunks = text_splitter.split_text(parsed_pdf_document['abstract'])
+                for section in parsed_pdf_document['sections']:
+                    chunk = text_splitter.split_text(section['heading'] + '\n\n' + section['text'])
+
+                    pass
             else:
 
                 # todo
-                from langchain.text_splitter import (
-                    Language,
-                    RecursiveCharacterTextSplitter,
-
-                )
+                # from langchain.text_splitter import (
+                #     Language,
+                #     RecursiveCharacterTextSplitter,
+                #
+                # )
                 from langchain.text_splitter import MarkdownHeaderTextSplitter
                 # You can also see the separators used for a given language
                 RecursiveCharacterTextSplitter.get_separators_for_language(Language.PYTHON)

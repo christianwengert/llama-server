@@ -203,8 +203,10 @@ const setupUploadButton = () => {
             }
             if(collectionSelector.value === "New")
             {
-                outerName.className = 'd-block'
-                outerVisibility.className = 'd-block'
+                outerName.className = 'd-block';
+                outerVisibility.className = 'd-block';
+                collectionName.value = "";
+                collectionVisibility.checked = false;
             } else {
                 outerName.className = 'd-none'
                 outerVisibility.className = 'd-none'
