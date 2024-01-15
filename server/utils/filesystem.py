@@ -1,7 +1,7 @@
 import gzip
 import os
 import tarfile
-from typing import List
+from typing import List, Dict, Any, Optional
 import magic
 import zipfile
 
@@ -100,7 +100,7 @@ def is_archive(filename: str) -> bool:
     return mime_type in ['application/x-tar', 'application/gzip', 'application/zip']
 
 
-def extract_archive(filename: str, destination: str) -> bool:
+def extract_archive(filename: str, destination: str) -> Optional[Dict[str, Any]]:
     # Check if the file exists
     if not os.path.isfile(filename):
         return False

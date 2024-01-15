@@ -218,7 +218,7 @@ def get_llama_parameters():
     return data
 
 
-def parse_pdf(filename: Union[str, Path]) -> Dict:
+def parse_pdf_with_grobid(filename: Union[str, Path]) -> Dict:
     if not os.path.exists(filename):
         raise FileNotFoundError()
     import time
@@ -238,6 +238,9 @@ def make_pdf_prompt(article: Dict):
     for section in article['sections']:
         prompt_text += f"## {section['heading']}\n"
         prompt_text += section['text']
+
+    for section in article['references']:
+        pass  # todo
     return prompt_text
 
 
@@ -272,17 +275,21 @@ def upload():
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         file.save(destination)
         # contents = ""  # Set it to empty to avoid breaking if some garbage is uploaded
+        parsed_pdf_document = None
+        # source_code_language = None
+
         if is_archive(destination):
             extract_archive(file.filename, destination)  # this will always be put into a collection?
             return jsonify({"error": "Archives are not supported yet. If you need this, open a Github Issue."})
 
         elif is_pdf(destination):
-            document = parse_pdf(destination)
-            contents = make_pdf_prompt(document)
+            parsed_pdf_document = parse_pdf_with_grobid(destination)
+            contents = make_pdf_prompt(parsed_pdf_document)
 
         elif is_source_code_file(destination):
             with open(destination, 'r') as f:
                 contents = f.read()
+            # source_code_language = Language.PYTHON  # Todo
 
         elif is_json(destination):
             with open(destination, 'r') as f:
@@ -293,7 +300,7 @@ def upload():
                 contents = f.read()
 
         elif is_sqlite(destination):
-            return jsonify({"error": "sqlite Databases are not supported yet. If you need this, open a Github Issue."})
+            return jsonify({"error": "sqlite Databases are not supported yet. If you need this, open a Github Issue. Or try the raw SQL text queries."})
 
         else:
             mime_type = get_mime_type(destination)
@@ -304,19 +311,26 @@ def upload():
         n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
 
         if use_collection:
-            # todo
-            from langchain.text_splitter import (
-                Language,
-                RecursiveCharacterTextSplitter,
 
-            )
-            from langchain.text_splitter import MarkdownHeaderTextSplitter
-            # You can also see the separators used for a given language
-            RecursiveCharacterTextSplitter.get_separators_for_language(Language.PYTHON)
-            python_splitter = RecursiveCharacterTextSplitter.from_language(
-                language=Language.PYTHON, chunk_size=50, chunk_overlap=0
-            )
-            # python_docs = python_splitter.create_documents([PYTHON_CODE])
+            print(collection_name)
+
+            if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
+                pass
+            else:
+
+                # todo
+                from langchain.text_splitter import (
+                    Language,
+                    RecursiveCharacterTextSplitter,
+
+                )
+                from langchain.text_splitter import MarkdownHeaderTextSplitter
+                # You can also see the separators used for a given language
+                RecursiveCharacterTextSplitter.get_separators_for_language(Language.PYTHON)
+                python_splitter = RecursiveCharacterTextSplitter.from_language(
+                    language=Language.PYTHON, chunk_size=50, chunk_overlap=0
+                )
+                # python_docs = python_splitter.create_documents([PYTHON_CODE])
 
 
 
