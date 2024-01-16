@@ -15,6 +15,8 @@ from flask import Flask, render_template, request, session, Response, abort, red
     stream_with_context
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
+from langchain_core.documents import Document
+
 from flask_session import Session
 from urllib.parse import urlparse
 from rag import rag_context, RAG_NUM_DOCS, \
@@ -553,8 +555,42 @@ def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: in
     context = None
     metadata = None
     if vector_store:
+        # This is called query transform
+        query_gen_str = """Provide a better search query for a search engine to answer the given question. Question: {query}\nAnswer:"""
+
+        post_data = _get_llama_default_parameters({})
+        post_data['stream'] = False
+        post_data['prompt'] = query_gen_str.format(query=query)
+
+        response = requests.request(method="POST",
+                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
+                                    data=json.dumps(post_data),
+                                    stream=False)
+
+        rewritten_query = response.json()['content'].strip()
+
         # retrieve documents
-        docs = vector_store.similarity_search(query, k=num_docs)  #
+        docs = vector_store.similarity_search(rewritten_query, k=num_docs * 2)  #
+
+        from flashrank import RerankRequest, Ranker
+        ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
+        rerankrequest = RerankRequest(query=query,
+                                      passages=[
+                                          {"meta": d.metadata, "text": d.page_content} for d in docs
+                                      ])
+        results = ranker.rerank(rerankrequest)
+        reranked_docs = []
+        for r in results:
+            reranked_docs.append(Document(page_content=r['text'], metadata=r['meta']))
+
+
+
+        # HyDe
+        # from langchain.chains import HypotheticalDocumentEmbedder
+        # HypotheticalDocumentEmbedder
+
+
+
         # if rerank:
         #     reranked_docs = []
         #     rerank_post_data = _get_llama_default_parameters(data)
@@ -584,7 +620,7 @@ def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: in
         #     if reranked_docs:
         #         context = rag_context(reranked_docs)
         # else:
-        context = rag_context(docs)
+        context = rag_context(reranked_docs)
     return context, metadata
 
 
