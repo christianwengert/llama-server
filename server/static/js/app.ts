@@ -193,8 +193,12 @@ const setupUploadButton = () => {
                                     button.textContent = jsonData['collection-name'];
                                     button.id = jsonData['collection-name'];
                                     subMenu.appendChild(button);
-                                    const curUrl = new URL(window.location.href);
-                                    curUrl.searchParams.set('collection', jsonData['collection-name']);
+                                    // Get the current URL
+                                    const url = new URL(window.location.href);
+                                    // Update the search parameter
+                                    url.searchParams.set('collection', jsonData['collection-name']);
+                                    // Change the location object without reloading the page
+                                    history.replaceState({}, '', url);
                                 }
                             }
                         }

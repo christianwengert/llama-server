@@ -17,7 +17,7 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
 from flask_session import Session
 from urllib.parse import urlparse
-from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
+from rag import rag_context, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE
 from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
     get_mime_type, is_json
@@ -450,8 +450,8 @@ def get_input():
     if collection:
         vector_store = LOADED_EMBEDDINGS.get(token)
         if vector_store is None:
-            vector_store = load_collection(collection)
-            LOADED_EMBEDDINGS[token] = vector_store
+            vector_store = load_collection(collection, username)
+            LOADED_EMBEDDINGS[token] = vector_store  # keep it for next time
 
     data = request.get_json()
     text = data.pop('input')
@@ -480,7 +480,7 @@ def get_input():
         }
 
     # Add context if asked
-    context, metadata = make_context(data, text, token, vector_store)
+    context, metadata = make_context(text, token, vector_store)
     if context:
         hist['items'].append(dict(role=USER, content=f'This is the context: {context}', metadata=metadata))
         hist['items'].append(dict(role=ASSISTANT, content='OK'))  # f'{assistant}: OK'
@@ -520,11 +520,11 @@ def get_input():
                     direct_passthrough=False)
 
 
-def make_context(data, query, token, vector_store) -> Tuple[Optional[str], Optional[Dict]]:
+def make_context(query, token, vector_store) -> Tuple[Optional[str], Optional[Dict]]:
     # We add first the "generic" context from the collection and then the file.
     # The logic here is that if I added a file, it is probably more important
     context = ""
-    context_from_rag, metadata = get_context_from_rag(data, query, vector_store)
+    context_from_rag, metadata = get_context_from_rag(query, vector_store)
     if context_from_rag:
         context_from_rag = context_from_rag.strip()
         # context += 'Here is some relevant text from the database:'
@@ -549,39 +549,42 @@ def get_context_from_upload(token: str) -> Tuple[Optional[str], Optional[Dict]]:
     return contents, metadata
 
 
-def get_context_from_rag(data, query: str, vector_store: Optional[FAISS], num_docs=RAG_NUM_DOCS) -> Tuple[Optional[str], Optional[Dict]]:
+def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: int = RAG_NUM_DOCS) -> Tuple[Optional[str], Optional[Dict]]:
     context = None
     metadata = None
     if vector_store:
         # retrieve documents
-        reranked_docs = []
         docs = vector_store.similarity_search(query, k=num_docs)  #
-
-        rerank_post_data = _get_llama_default_parameters(data)
-
-        rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
-        rerank_post_data['stream'] = False
-
-        # re-rank documents
-        for d in docs:
-            formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=query, context=d.page_content)
-
-            rerank_post_data['prompt'] = formatted_prompt
-
-            rr_data = requests.request(method="POST",
-                                       url=urllib.parse.urljoin(args.llama_api, "/completion"),
-                                       data=json.dumps(rerank_post_data),
-                                       stream=False)
-
-            rr_response = rr_data.json()
-            print(rr_response.get('content'))
-            # todo: Logic here
-            if 'YES' == rr_response.get('content').strip():
-                reranked_docs.append(d)
-        # answer = test(llm, reranked_docs, question)
-        # print(answer)
-        if reranked_docs:
-            context = rag_context(reranked_docs)
+        # if rerank:
+        #     reranked_docs = []
+        #     rerank_post_data = _get_llama_default_parameters(data)
+        #
+        #     rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
+        #     rerank_post_data['stream'] = False
+        #
+        #     # re-rank documents
+        #
+        #     for d in docs:
+        #         formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=query, context=d.page_content)
+        #
+        #         rerank_post_data['prompt'] = formatted_prompt
+        #
+        #         rr_data = requests.request(method="POST",
+        #                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
+        #                                    data=json.dumps(rerank_post_data),
+        #                                    stream=False)
+        #
+        #         rr_response = rr_data.json()
+        #         print(rr_response.get('content'))
+        #         # todo: Logic here
+        #         if 'YES' == rr_response.get('content').strip():
+        #             reranked_docs.append(d)
+        #     # answer = test(llm, reranked_docs, question)
+        #     # print(answer)
+        #     if reranked_docs:
+        #         context = rag_context(reranked_docs)
+        # else:
+        context = rag_context(docs)
     return context, metadata
 
 

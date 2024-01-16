@@ -8,9 +8,9 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
 
-from utils.filesystem import list_directories, find_files
+from utils.filesystem import list_directories
 
-RAG_CHUNK_SIZE = 512
+RAG_CHUNK_SIZE = 2048
 RAG_DATA_DIR = os.path.dirname(__file__) + '/../../data'
 RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
 RAG_RERANKING_YESNO_GRAMMAR = r'''
@@ -27,6 +27,13 @@ RAG_EMBEDDINGS = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5',
 
 
 def rag_context(docs: List[Document]) -> str:
+    context = ""
+    for d in docs:
+        context += "\n\nThis is one piece of context:\n" + d.page_content
+    return context
+
+
+def rag_contex_stackexchange(docs: List[Document]) -> str:
     context = []  # todo: add reference to metadata
     for d in docs:
         answers = d.metadata.get('answers')
@@ -92,22 +99,17 @@ def create_or_open_collection(index_name: str, username: Optional[str], public: 
     return index, path
 
 
-def load_collection(collection: str) -> Optional[FAISS]:
+def load_collection(collection: str, username: str) -> Optional[FAISS]:
     collections = get_available_collections()
-    db = None
-    for corpus, name in collections:
-        if name == collection:
-            indices = find_files(RAG_DATA_DIR / Path(corpus) / Path(name), '.faiss')
 
-            db = None
-            for index in indices:
-                tmp = FAISS.load_local(os.path.dirname(index), RAG_EMBEDDINGS)
-                if db:
-                    db.merge_from(tmp)
-                else:
-                    db = tmp
-
-    return db
+    for key in ['user', 'common']:  # first check for same name user!
+        for name in collections[key]:
+            if name == collection:
+                data_dir = RAG_DATA_DIR / Path(key)
+                if key == 'user':
+                    data_dir = data_dir / Path(username)
+                return FAISS.load_local(data_dir / Path(collection), RAG_EMBEDDINGS)
+    return None
 
 
 def get_collection_from_query(request: Request) -> str:

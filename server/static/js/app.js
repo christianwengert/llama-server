@@ -49971,8 +49971,9 @@
                   button.textContent = jsonData["collection-name"];
                   button.id = jsonData["collection-name"];
                   subMenu.appendChild(button);
-                  const curUrl = new URL(window.location.href);
-                  curUrl.searchParams.set("collection", jsonData["collection-name"]);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("collection", jsonData["collection-name"]);
+                  history.replaceState({}, "", url);
                 }
               }
             }
