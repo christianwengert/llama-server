@@ -1,4 +1,5 @@
 import gzip
+import importlib
 import os
 import tarfile
 from typing import List, Dict, Any, Optional
@@ -127,3 +128,11 @@ def untar(filename: str, mode: str, destination: str) -> bool:
 def unzip(filename: str, mode: str, destination: str) -> bool:
     with zipfile.ZipFile(filename, mode=mode) as archive:
         archive.extractall(path=destination)
+
+
+def is_importable(module_name):
+    try:
+        importlib.import_module(module_name)
+        return True
+    except ImportError:
+        return False

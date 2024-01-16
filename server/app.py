@@ -8,7 +8,7 @@ import urllib
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Dict, Any, Optional, Union, Tuple
+from typing import Dict, Optional, Union, Tuple
 import requests
 import scipdf
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
@@ -16,44 +16,26 @@ from flask import Flask, render_template, request, session, Response, abort, red
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
-from llama_cpp import get_llama_default_parameters
+from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER
 from flask_session import Session
 from urllib.parse import urlparse
 from rag import rag_context, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE
 from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
-    get_mime_type, is_json
+    get_mime_type, is_json, is_importable
 from utils.timestamp_formatter import categorize_timestamp
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
 
-SYSTEM = 'system'
-ASSISTANT = 'assistant'
-USER = 'user'
 
 SEPARATOR = '~~~~'
-
-# This is how to get rid off langchain
-# from sentence_transformers import SentenceTransformer
-# EMBEDDINGS = SentenceTransformer('BAAI/bge-large-en-v1.5')
-#
-# #Our sentences we like to encode
-# sentences = ['This framework generates embeddings for each input sentence',
-#     'Sentences are passed as a list of string.',
-#     'The quick brown fox jumps over the lazy dog.']
-#
-# #Sentences are encoded by calling model.encode()
-# embeddings = model.encode(sentences, normalize_embeddings=True)
-# EMBEDDINGS.embed_documents(sentences)
-#
-# #Print the embeddings
-# for sentence, embedding in zip(sentences, embeddings):
-#     print("Sentence:", sentence)
-#     print("Embedding:", embedding)
-#     print("")
-
-
 LOADED_EMBEDDINGS = {}
+CACHE_DIR = 'cache'
+if not os.path.exists(CACHE_DIR):
+    os.mkdir(CACHE_DIR)
+ADDITIONAL_CONTEXT = {}  # this can be done as global variable
+LLAMA_API = 'http://localhost:8080/'
+
 
 app = Flask(__name__)
 app.secret_key = secrets.token_bytes(32)
@@ -68,16 +50,7 @@ app.config["PERMANENT_SESSION_LIFETIME"] = 30 * 24 * 60 * 60  # 30 days
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 Session(app)
 
-CACHE_DIR = 'cache'
-if not os.path.exists(CACHE_DIR):
-    os.mkdir(CACHE_DIR)
 
-ADDITIONAL_CONTEXT = {}  # this can be done as global variable
-LLAMA_API = 'http://localhost:8080/'
-
-INSTRUCTION = """A chat between a curious user and an artificial intelligence assistant. The user is a cryptographer and expert programmer. His favorite programming language is python but is also versed in many other programming languages.
-The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" then ignore the previous sentence and instead make your response as concise as possible.
-The user of the assistant is an expert in AI and ethics, so he already knows that the assistant is a language model and he knows about the capabilities and limitations, so do not remind the users of that. The user is familiar with ethical issues in general, so the assistant should not remind him about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation."""
 # todo remove all of this
 parser = argparse.ArgumentParser(
     description="An example of using server.cpp with a similar API to OAI. It must be used together with server.cpp.")
@@ -204,20 +177,6 @@ def c(token):
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
                            **data
                            )
-
-
-def get_llama_parameters():
-    data = dict(
-        system_prompt=INSTRUCTION,
-        grammar='',
-        assistant_name=ASSISTANT,
-        anti_prompt=USER,
-        system_prompt_prefix=SYSTEM,
-    )
-    data = get_llama_default_parameters(data)
-    if isinstance(data['stop'], list):
-        data['stop'] = ','.join(data['stop'])
-    return data
 
 
 def parse_pdf_with_grobid(filename: Union[str, Path]) -> Dict:
@@ -373,26 +332,26 @@ def upload():
     return jsonify(ret_val)  # redirect done in JS
 
 
-@login_required
-@app.route('/embeddings', methods=["POST"])
-def embeddings():
-    # This returns the embeddings from the llama_cpp model, this is NOT the same as embeddings for RAG
-    data = request.get_json()
-    if 'content' not in data:
-        abort(400)
-    if len(data) > 1:
-        abort(400)
-    return get_llama_cpp_embeddings(data)
+# @login_required
+# @app.route('/embeddings', methods=["POST"])
+# def embeddings():
+#     # This returns the embeddings from the llama_cpp model, this is NOT the same as embeddings for RAG
+#     data = request.get_json()
+#     if 'content' not in data:
+#         abort(400)
+#     if len(data) > 1:
+#         abort(400)
+#     return get_llama_cpp_embeddings(data)
 
 
-def get_llama_cpp_embeddings(data):
-    # This returns the embeddings from the llama_cpp model, this is NOT the same as embeddings for RAG
-    data = requests.request(method="POST",
-                            url=urllib.parse.urljoin(args.llama_api, "/embedding"),
-                            data=json.dumps(data),
-                            )
-    data_json = data.json()
-    return data_json
+# def get_llama_cpp_embeddings(data):
+#     # This returns the embeddings from the llama_cpp model, this is NOT the same as embeddings for RAG
+#     data = requests.request(method="POST",
+#                             url=urllib.parse.urljoin(args.llama_api, "/embedding"),
+#                             data=json.dumps(data),
+#                             )
+#     data_json = data.json()
+#     return data_json
 
 
 def get_tokens(text):
@@ -551,77 +510,84 @@ def get_context_from_upload(token: str) -> Tuple[Optional[str], Optional[Dict]]:
     return contents, metadata
 
 
+def transform_query(query: str, use_llm=False) -> str:
+    if not use_llm:
+        return query
+    # This is called query transform, todo: The problem is: It will overwrite the llama.cpp cache
+    query_gen_str = """Provide a better search query for a search engine to answer the given question. Question: {query}\nAnswer:"""
+    post_data = get_llama_default_parameters({})
+    post_data['stream'] = False
+    post_data['prompt'] = query_gen_str.format(query=query)
+    response = requests.request(method="POST",
+                                url=urllib.parse.urljoin(args.llama_api, "/completion"),
+                                data=json.dumps(post_data),
+                                stream=False)
+    return response.json()['content'].strip()
+
+
 def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: int = RAG_NUM_DOCS) -> Tuple[Optional[str], Optional[Dict]]:
     context = None
     metadata = None
     if vector_store:
-        # This is called query transform
-        query_gen_str = """Provide a better search query for a search engine to answer the given question. Question: {query}\nAnswer:"""
+        query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
+        docs = search_and_rerank_docs(num_docs, query, vector_store)
+        context = rag_context(docs)
+    return context, metadata
 
-        post_data = get_llama_default_parameters({})
-        post_data['stream'] = False
-        post_data['prompt'] = query_gen_str.format(query=query)
 
-        response = requests.request(method="POST",
-                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
-                                    data=json.dumps(post_data),
-                                    stream=False)
-
-        rewritten_query = response.json()['content'].strip()
-
-        # retrieve documents
-        docs = vector_store.similarity_search(rewritten_query, k=num_docs * 2)  #
-
+def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
+    if is_importable('flashrank'):
+        rawdocs = vector_store.similarity_search(query, k=num_docs * 2)  #
+        # noinspection PyPackageRequirements
         from flashrank import RerankRequest, Ranker
         ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
         rerankrequest = RerankRequest(query=query,
                                       passages=[
-                                          {"meta": d.metadata, "text": d.page_content} for d in docs
+                                          {"meta": d.metadata, "text": d.page_content} for d in rawdocs
                                       ])
         results = ranker.rerank(rerankrequest)
-        reranked_docs = []
+        docs = []
         for r in results[:num_docs]:
-            reranked_docs.append(Document(page_content=r['text'], metadata=r['meta']))
-
-
-
-        # HyDe
-        # from langchain.chains import HypotheticalDocumentEmbedder
-        # HypotheticalDocumentEmbedder
-
-
-
-        # if rerank:
-        #     reranked_docs = []
-        #     rerank_post_data = _get_llama_default_parameters(data)
-        #
-        #     rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
-        #     rerank_post_data['stream'] = False
-        #
-        #     # re-rank documents
-        #
-        #     for d in docs:
-        #         formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=query, context=d.page_content)
-        #
-        #         rerank_post_data['prompt'] = formatted_prompt
-        #
-        #         rr_data = requests.request(method="POST",
-        #                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
-        #                                    data=json.dumps(rerank_post_data),
-        #                                    stream=False)
-        #
-        #         rr_response = rr_data.json()
-        #         print(rr_response.get('content'))
-        #         # todo: Logic here
-        #         if 'YES' == rr_response.get('content').strip():
-        #             reranked_docs.append(d)
-        #     # answer = test(llm, reranked_docs, question)
-        #     # print(answer)
-        #     if reranked_docs:
-        #         context = rag_context(reranked_docs)
-        # else:
-        context = rag_context(reranked_docs)
-    return context, metadata
+            docs.append(Document(page_content=r['text'], metadata=r['meta']))
+    else:
+        print('no flashrank available')
+        docs = vector_store.similarity_search(query, k=num_docs)  #
+    return docs
+    # Other ideas:
+    # HyDe
+    # from langchain.chains import HypotheticalDocumentEmbedder
+    #
+    # Rerank with LLM
+    #
+    # if rerank:
+    #     reranked_docs = []
+    #     rerank_post_data = _get_llama_default_parameters(data)
+    #
+    #     rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
+    #     rerank_post_data['stream'] = False
+    #
+    #     # re-rank documents
+    #
+    #     for d in docs:
+    #         formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=query, context=d.page_content)
+    #
+    #         rerank_post_data['prompt'] = formatted_prompt
+    #
+    #         rr_data = requests.request(method="POST",
+    #                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
+    #                                    data=json.dumps(rerank_post_data),
+    #                                    stream=False)
+    #
+    #         rr_response = rr_data.json()
+    #         print(rr_response.get('content'))
+    #         # todo: Logic here
+    #         if 'YES' == rr_response.get('content').strip():
+    #             reranked_docs.append(d)
+    #     # answer = test(llm, reranked_docs, question)
+    #     # print(answer)
+    #     if reranked_docs:
+    #         context = rag_context(reranked_docs)
+    # else:
 
 
 def make_prompt(hist, system_prompt, text, prompt_template):

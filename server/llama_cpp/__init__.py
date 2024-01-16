@@ -1,5 +1,12 @@
 from typing import Dict, Any
 
+SYSTEM = 'system'
+ASSISTANT = 'assistant'
+USER = 'user'
+INSTRUCTION = """A chat between a curious user and an artificial intelligence assistant. The user is a cryptographer and expert programmer. His favorite programming language is python but is also versed in many other programming languages.
+The assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" then ignore the previous sentence and instead make your response as concise as possible.
+The user of the assistant is an expert in AI and ethics, so he already knows that the assistant is a language model and he knows about the capabilities and limitations, so do not remind the users of that. The user is familiar with ethical issues in general, so the assistant should not remind him about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation."""
+
 
 def get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, Any]:
     default_params = {
@@ -47,3 +54,17 @@ def get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, 
         if params[key] == "" or type(params[key] == str):  # ensure int
             params[key] = default_params[key]
     return params
+
+
+def get_llama_parameters():
+    data = dict(
+        system_prompt=INSTRUCTION,
+        grammar='',
+        assistant_name=ASSISTANT,
+        anti_prompt=USER,
+        system_prompt_prefix=SYSTEM,
+    )
+    data = get_llama_default_parameters(data)
+    if isinstance(data['stop'], list):
+        data['stop'] = ','.join(data['stop'])
+    return data
