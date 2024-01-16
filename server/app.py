@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Union, Tuple
 import requests
 import scipdf
+
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -20,7 +21,7 @@ from flask_session import Session
 from urllib.parse import urlparse
 
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
-    get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_EMBEDDINGS
+    get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE
 from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
     get_mime_type, is_json
 from utils.timestamp_formatter import categorize_timestamp
@@ -240,7 +241,7 @@ def make_pdf_prompt(article: Dict):
         prompt_text += f"## {section['heading']}\n"
         prompt_text += section['text']
 
-    for section in article['references']:
+    for _reference in article['references']:
         pass  # todo
     return prompt_text
 
@@ -264,6 +265,10 @@ def upload():
         abort(400)  # todo, maybe one day we will upload more files
 
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
+    collection_selector = request.form.get('collection-selector', None)
+    use_collection = collection_selector != ''
+    return_args = {'use_collection': use_collection}
+
     for file in files:
         if not file.filename:
             return jsonify({"error": "You must provide a file."})
@@ -306,36 +311,35 @@ def upload():
 
         n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
 
-        collection_selector = request.form.get('collection-selector', None)
-
-        use_collection = collection_selector != ''
-
         if use_collection:
 
             collection_name = request.form['collection-name']
             collection_visibility = request.form['collection-visibility']
             username = session.get('username')
 
-            index = create_or_open_collection(collection_name, username, collection_visibility == "on")
+            index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "on")
 
             if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
-                CHUNK_SIZE = 512
+
+                # Todo: Check if doc is already in the index
+
                 text_splitter = RecursiveCharacterTextSplitter(
                     separators=[r'(?<=[^A-Z].[.?]) +(?=[A-Z])'],
                     # Set a really small chunk size, just to show.
-                    chunk_size=CHUNK_SIZE,
+                    chunk_size=RAG_CHUNK_SIZE,
                     chunk_overlap=0,
                     length_function=len,
                     is_separator_regex=True,
                 )
-                from langchain_experimental.text_splitter import SemanticChunker
-                SemanticChunker(RAG_EMBEDDINGS)
 
-                chunks = text_splitter.split_text(parsed_pdf_document['abstract'])
-                for section in parsed_pdf_document['sections']:
-                    chunk = text_splitter.split_text(section['heading'] + '\n\n' + section['text'])
+                docs = text_splitter.create_documents([parsed_pdf_document['abstract']], metadatas=[dict(file=file.filename, position='abstract')])
+                sections_with_titles = [section['heading'] + '\n\n' + section['text'] for section in parsed_pdf_document['sections']]
+                docs.extend(text_splitter.create_documents(sections_with_titles, metadatas=[dict(file=file.filename, position='section')] * len(sections_with_titles)))
+                # Ok now we have all docs and metadata
+                index.add_documents(docs)
+                index.save_local(index_path)
+                return_args['collection_name'] = collection_name
 
-                    pass
             else:
 
                 # todo
@@ -344,27 +348,21 @@ def upload():
                 #     RecursiveCharacterTextSplitter,
                 #
                 # )
-                from langchain.text_splitter import MarkdownHeaderTextSplitter
+                # from langchain.text_splitter import MarkdownHeaderTextSplitter
                 # You can also see the separators used for a given language
-                RecursiveCharacterTextSplitter.get_separators_for_language(Language.PYTHON)
-                python_splitter = RecursiveCharacterTextSplitter.from_language(
-                    language=Language.PYTHON, chunk_size=50, chunk_overlap=0
-                )
+                # RecursiveCharacterTextSplitter.get_separators_for_language(Language.PYTHON)
+                # python_splitter = RecursiveCharacterTextSplitter.from_language(
+                #     language=Language.PYTHON, chunk_size=50, chunk_overlap=0
+                # )
                 # python_docs = python_splitter.create_documents([PYTHON_CODE])
-
-
-
-
-
-            pass
-
+                pass
         else:
             if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
                 return jsonify({"error": f"Too many tokens: {n_tokens}. Maximum tokens allows: {MAX_NUM_TOKENS_FOR_INLINE_CONTEXT}"})
             token = session.get('token')
             ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
-
-    return jsonify({"status": "OK"})  # redirect done in JS
+    ret_val = {**{"status": "OK"}, **return_args}
+    return jsonify(ret_val)  # redirect done in JS
 
 
 @login_required

@@ -10,6 +10,7 @@ from langchain_core.documents import Document
 
 from utils.filesystem import list_directories, find_files
 
+RAG_CHUNK_SIZE = 512
 RAG_DATA_DIR = os.path.dirname(__file__) + '/../../data'
 RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
 RAG_RERANKING_YESNO_GRAMMAR = r'''
@@ -73,13 +74,13 @@ def create_or_open_collection(index_name: str, username: Optional[str], public: 
         data_dir = Path(RAG_DATA_DIR) / Path('common')
         public_with_this_name_exists = any(index_name == b for a, b in collections if a == 'common')
         if public_with_this_name_exists:
-            return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS)
+            return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS), data_dir / index_name
         # otherwise we will create a new DB
     else:
         data_dir = Path(RAG_DATA_DIR) / Path('user') / Path(username)
         private_with_this_name_exists = any(index_name == b for a, b in collections if a != 'common')
         if private_with_this_name_exists:
-            return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS)
+            return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS), data_dir / index_name
         # otherwise we will create a new DB
 
     path = data_dir / index_name
