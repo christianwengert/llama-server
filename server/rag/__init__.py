@@ -26,11 +26,13 @@ RAG_EMBEDDINGS = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5',
                                        )
 
 
-def rag_context(docs: List[Document]) -> str:
+def rag_context(docs: List[Document]) -> Tuple[str, List[Dict]]:
     context = ""
+    metadata = []
     for d in docs:
         context += "\n\nThis is one piece of context:\n" + d.page_content
-    return context
+        metadata.append(d.metadata)
+    return context, metadata
 
 
 def rag_contex_stackexchange(docs: List[Document]) -> str:

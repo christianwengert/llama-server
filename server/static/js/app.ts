@@ -287,10 +287,10 @@ const highlightCode = (inner: HTMLElement) => {
 
 const loadHistory = () => {
     type Metadata = {
-        filename: string
+        file: string
     }
     type Message = {
-        metadata: Metadata;
+        metadata: Array<Metadata>;
         role: string;
         content: string;
     }
@@ -360,9 +360,11 @@ const loadHistory = () => {
             const direction = index % 2 === 0 ? "me" : "them";
             let innerMessageExtraClass: string|undefined = undefined;
             let renderButtons: boolean = true;
-            if(msg.metadata && msg.metadata.filename) {
+            if(msg.metadata) {
                 innerMessageExtraClass = "file-icon";
-                msg.content = msg.metadata.filename;
+                const fileSet = new Set(msg.metadata.map(item => item.file));
+                msg.content = Array.from(fileSet).join(', ')
+                // msg.content = msg.metadata.filename;
                 renderButtons = false;
             }
 

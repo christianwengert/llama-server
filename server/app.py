@@ -8,7 +8,7 @@ import urllib
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
-from typing import Dict, Optional, Union, Tuple
+from typing import Dict, Optional, Union, Tuple, List
 import requests
 import scipdf
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
@@ -481,33 +481,33 @@ def get_input():
                     direct_passthrough=False)
 
 
-def make_context(query, token, vector_store) -> Tuple[Optional[str], Optional[Dict]]:
+def make_context(query, token, vector_store) -> Tuple[Optional[str], List[Dict]]:
     # We add first the "generic" context from the collection and then the file.
     # The logic here is that if I added a file, it is probably more important
     context = ""
-    context_from_rag, metadata = get_context_from_rag(query, vector_store)
+    context_from_rag, metadata_rag = get_context_from_rag(query, vector_store)
     if context_from_rag:
         context_from_rag = context_from_rag.strip()
         # context += 'Here is some relevant text from the database:'
         context += context_from_rag
 
-    context_from_file, metadata = get_context_from_upload(token)
+    context_from_file, metadata_direct = get_context_from_upload(token)
     if context_from_file:
         # todo: Add n_keep correctly
         context_from_file = context_from_file.strip()
         # context += 'Here is some relevant text from the upload:'
         context += context_from_file
 
-    return context, metadata
+    return context, metadata_rag + metadata_direct
 
 
-def get_context_from_upload(token: str) -> Tuple[Optional[str], Optional[Dict]]:
+def get_context_from_upload(token: str) -> Tuple[Optional[str], List[Dict]]:
     context = ADDITIONAL_CONTEXT.get(token, {})
-    if context is None:
-        return None, None
-    metadata = dict(filename=context.get('filename', None))
+    if not context:
+        return "", []
+    metadata = dict(file=context.get('filename', None))
     contents = context.get('contents', None)
-    return contents, metadata
+    return contents, [metadata]
 
 
 def transform_query(query: str, use_llm=False) -> str:
@@ -525,13 +525,13 @@ def transform_query(query: str, use_llm=False) -> str:
     return response.json()['content'].strip()
 
 
-def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: int = RAG_NUM_DOCS) -> Tuple[Optional[str], Optional[Dict]]:
+def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: int = RAG_NUM_DOCS) -> Tuple[Optional[str], List[Dict]]:
     context = None
     metadata = None
     if vector_store:
         query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
         docs = search_and_rerank_docs(num_docs, query, vector_store)
-        context = rag_context(docs)
+        context, metadata = rag_context(docs)
     return context, metadata
 
 

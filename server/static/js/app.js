@@ -50082,9 +50082,10 @@
         const direction = index2 % 2 === 0 ? "me" : "them";
         let innerMessageExtraClass = void 0;
         let renderButtons = true;
-        if (msg.metadata && msg.metadata.filename) {
+        if (msg.metadata) {
           innerMessageExtraClass = "file-icon";
-          msg.content = msg.metadata.filename;
+          const fileSet = new Set(msg.metadata.map((item2) => item2.file));
+          msg.content = Array.from(fileSet).join(", ");
           renderButtons = false;
         }
         const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
