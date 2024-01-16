@@ -35,7 +35,20 @@
                     <select id="collection-selector" name="collection-selector">
                         <option value="">None, just use file in the current context</option>
                         <option value="New">New collection</option>
-<!--                        <option value="iacr">IACR</option>-->
+                        {% if collections['common'] %}
+                            <optgroup label="Public">
+                            {% for my_item in collections['common'] %}
+                                <option value="my_item">{{my_item}}</option>-->
+                            {% endfor %}
+                            </optgroup>
+                        {% endif %}
+                        {% if collections['user'] %}
+                            <optgroup label="User">
+                            {% for my_item in collections['user'] %}
+                                <option value="my_item">{{my_item}}</option>-->
+                            {% endfor %}
+                            </optgroup>
+                        {% endif %}
                     </select>
                 </div>
                 <div class="param-help">

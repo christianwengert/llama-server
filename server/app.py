@@ -11,15 +11,12 @@ from pathlib import Path
 from typing import Dict, Any, Optional, Union, Tuple
 import requests
 import scipdf
-
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
-
 from flask_session import Session
 from urllib.parse import urlparse
-
 from rag import rag_context, RAG_RERANKING_TEMPLATE_STRING, RAG_RERANKING_YESNO_GRAMMAR, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE
 from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
@@ -193,11 +190,12 @@ def c(token):
     if isinstance(data['stop'], list):
         data['stop'] = ','.join(data['stop'])
 
-    collections = get_available_collections()
-    common_collections = [b for a, b in collections if a == 'common']
+    username = session.get('username')
+    collections = get_available_collections(username)
+    # common_collections = [b for a, b in collections if a == 'common']
 
     return render_template('index.html',
-                           common_collections=common_collections,
+                           collections=collections,
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
                            num_words=round(MAX_NUM_TOKENS_FOR_INLINE_CONTEXT * 0.7 / 1000) * 1000,  # show how many tokens we can add to the context
@@ -267,7 +265,7 @@ def upload():
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
     collection_selector = request.form.get('collection-selector', None)
     use_collection = collection_selector != ''
-    return_args = {'use_collection': use_collection}
+    return_args = {}
 
     for file in files:
         if not file.filename:
@@ -314,7 +312,9 @@ def upload():
         if use_collection:
 
             collection_name = request.form['collection-name']
-            collection_visibility = request.form['collection-visibility']
+            if not collection_name:
+                return jsonify({"error": f"You just provide a name for the collection."})
+            collection_visibility = request.form.get('collection-visibility', 'private')
             username = session.get('username')
 
             index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "public")
@@ -331,14 +331,20 @@ def upload():
                     length_function=len,
                     is_separator_regex=True,
                 )
-
-                docs = text_splitter.create_documents([parsed_pdf_document['abstract']], metadatas=[dict(file=file.filename, position='abstract')])
+                # docs = [
+                #     Document(page_content=f'{parsed_pdf_document["title"]}\n\n{parsed_pdf_document["authors"]}',
+                #              metadatas = [dict(file=file.filename, position='header')]
+                #     )
+                # ]
+                text = f"Title: {parsed_pdf_document['title']}\n\nAbstract:\n{parsed_pdf_document['abstract']}"
+                docs = text_splitter.create_documents([text], metadatas=[dict(file=file.filename, position='abstract')])
                 sections_with_titles = [section['heading'] + '\n\n' + section['text'] for section in parsed_pdf_document['sections']]
                 docs.extend(text_splitter.create_documents(sections_with_titles, metadatas=[dict(file=file.filename, position='section')] * len(sections_with_titles)))
                 # Ok now we have all docs and metadata
                 index.add_documents(docs)
                 index.save_local(index_path)
-                return_args['collection_name'] = collection_name
+                return_args['collection-name'] = collection_name
+                return_args['collection-visibility'] = collection_visibility
 
             else:
 

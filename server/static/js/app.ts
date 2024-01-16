@@ -178,6 +178,27 @@ const setupUploadButton = () => {
                     } else { // all set
                         document.location.hash = ''
                         renderMessage((formData.get('file') as any).name, "me", chat, 'file-icon', false);
+
+                        if(jsonData['collection-visibility']) {
+                            const menuLink = document.getElementById('menuLink');
+                            if(menuLink) {
+                                const textNode = menuLink.firstChild! as HTMLElement;
+                                textNode.textContent = jsonData['collection-name'];
+                                const collectionType = jsonData['collection-visibility'] === 'public' ? 'common' : 'user'
+                                const subMenu = document.getElementById(`menu-collection-${collectionType}`)
+                                if(subMenu) {
+                                    const button = document.createElement('a')
+                                    button.className = 'mode-button'
+                                    button.href = '#';
+                                    button.textContent = jsonData['collection-name'];
+                                    button.id = jsonData['collection-name'];
+                                    subMenu.appendChild(button);
+                                    const curUrl = new URL(window.location.href);
+                                    curUrl.searchParams.set('collection', jsonData['collection-name']);
+                                }
+                            }
+                        }
+
                     }
                 })
                 .catch((_error) => {

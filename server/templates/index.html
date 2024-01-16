@@ -3,7 +3,7 @@
 
 {% block extra_header %}
 <div class="header-inner">
-    {% if common_collections %}
+    {% if collections %}
         <!-- Trigger link -->
         <a href="#" id="menuLink">Chat<span>&nbsp;</span><span class="chevron-down"></span></a>
 
@@ -12,10 +12,22 @@
             <a href="#" class="mode-button" id="mode-chat">Chat</a>
 
             <hr>
-            <strong>Common collections</strong><br>
-            {% for item in common_collections %}
-                <a href="#" class="mode-button" id="{{ item }}">{{ item }}</a>
-            {% endfor %}
+            <div id="menu-collection-common">
+                <strong>Common collections</strong><br>
+                {% if collections['common'] %}
+                    {% for c in collections['common'] %}
+                        <a href="#" class="mode-button" id="{{ c }}">{{ c }}</a>
+                    {% endfor %}
+                {% endif %}
+            </div>
+            <div id="menu-collection-user">
+                <strong>User collections</strong><br>
+                {% if collections['user'] %}
+                    {% for u in collections['user'] %}
+                        <a href="#" class="mode-button" id="{{ u }}">{{ u }}</a>
+                    {% endfor %}
+                {% endif %}
+            </div>
         </div>
     {% endif %}
 

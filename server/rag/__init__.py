@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Tuple, Literal, Optional
+from typing import List, Tuple, Literal, Optional, Dict
 from urllib.parse import urlparse, parse_qs
 
 from flask import Request
@@ -45,22 +45,21 @@ def rag_context(docs: List[Document]) -> str:
     return context_string
 
 
-def get_available_collections(username: str = None) -> List[Tuple[Literal['common', 'user'], str]]:
+def get_available_collections(username: str = None) -> Dict[Literal['common', 'user'], List[str]]:
     common_dir = Path(RAG_DATA_DIR) / Path('common')
 
-    common_collections = list_directories(common_dir)
+    collections = dict(common=[], user=[])
 
-    collections = []
-
-    for collection in common_collections:
+    for collection in list_directories(common_dir):
         # indices = find_files(common_dir / collection, '.faiss')
-        collections.append(('common', collection))
+        collections['common'].append(collection)
 
     if username:
         user_dir = Path(RAG_DATA_DIR) / Path('user') / Path(username)
         if not os.path.exists(user_dir):
             os.mkdir(user_dir)
-        _user_collections = list_directories(user_dir)
+        for collection in list_directories(user_dir):
+            collections['user'].append(collection)
 
     return collections
 
@@ -72,13 +71,13 @@ def create_or_open_collection(index_name: str, username: Optional[str], public: 
 
     if public:
         data_dir = Path(RAG_DATA_DIR) / Path('common')
-        public_with_this_name_exists = any(index_name == b for a, b in collections if a == 'common')
+        public_with_this_name_exists = index_name in collections['common']
         if public_with_this_name_exists:
             return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS), data_dir / index_name
         # otherwise we will create a new DB
     else:
         data_dir = Path(RAG_DATA_DIR) / Path('user') / Path(username)
-        private_with_this_name_exists = any(index_name == b for a, b in collections if a != 'common')
+        private_with_this_name_exists = index_name in collections['user']
         if private_with_this_name_exists:
             return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS), data_dir / index_name
         # otherwise we will create a new DB
