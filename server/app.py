@@ -16,7 +16,7 @@ from flask import Flask, render_template, request, session, Response, abort, red
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
-
+from llama_cpp import get_llama_default_parameters
 from flask_session import Session
 from urllib.parse import urlparse
 from rag import rag_context, RAG_NUM_DOCS, \
@@ -93,7 +93,7 @@ parser.add_argument("--system-name", type=str, help="SYSTEM name in chat complet
 parser.add_argument("--stop", type=str, help="the end of response in chat completions(default: '</s>')",
                     default="\\nUSER:")
 parser.add_argument("--llama-api", type=str,
-                    help="Set the address of server.cpp in llama.cpp(default: http://127.0.0.1:8080)",
+                    help="Set the address of server.cpp in llama_cpp(default: http://127.0.0.1:8080)",
                     default='http://127.0.0.1:8080')
 parser.add_argument("--api-key", type=str, help="Set the api key to allow only few user(default: NULL)", default="")
 parser.add_argument("--host", type=str, help="Set the ip address to listen.(default: 127.0.0.1)", default='127.0.0.1')
@@ -214,7 +214,7 @@ def get_llama_parameters():
         anti_prompt=USER,
         system_prompt_prefix=SYSTEM,
     )
-    data = _get_llama_default_parameters(data)
+    data = get_llama_default_parameters(data)
     if isinstance(data['stop'], list):
         data['stop'] = ','.join(data['stop'])
     return data
@@ -376,7 +376,7 @@ def upload():
 @login_required
 @app.route('/embeddings', methods=["POST"])
 def embeddings():
-    # This returns the embeddings from the llama.cpp model, this is NOT the same as embeddings for RAG
+    # This returns the embeddings from the llama_cpp model, this is NOT the same as embeddings for RAG
     data = request.get_json()
     if 'content' not in data:
         abort(400)
@@ -386,7 +386,7 @@ def embeddings():
 
 
 def get_llama_cpp_embeddings(data):
-    # This returns the embeddings from the llama.cpp model, this is NOT the same as embeddings for RAG
+    # This returns the embeddings from the llama_cpp model, this is NOT the same as embeddings for RAG
     data = requests.request(method="POST",
                             url=urllib.parse.urljoin(args.llama_api, "/embedding"),
                             data=json.dumps(data),
@@ -493,7 +493,7 @@ def get_input():
 
     prompt = make_prompt(hist, system_prompt, text, prompt_template)
 
-    post_data = _get_llama_default_parameters(data)
+    post_data = get_llama_default_parameters(data)
 
     post_data['prompt'] = prompt
 
@@ -558,7 +558,7 @@ def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: in
         # This is called query transform
         query_gen_str = """Provide a better search query for a search engine to answer the given question. Question: {query}\nAnswer:"""
 
-        post_data = _get_llama_default_parameters({})
+        post_data = get_llama_default_parameters({})
         post_data['stream'] = False
         post_data['prompt'] = query_gen_str.format(query=query)
 
@@ -673,54 +673,6 @@ def make_prompt(hist, system_prompt, text, prompt_template):
 
 def hash_username(username):
     return hashlib.sha256(username.encode()).hexdigest()[0:8]  # 8 character is OK
-
-
-def _get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, Any]:
-    default_params = {
-        'cache_prompt': True,
-        'frequency_penalty': 0,  # Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled)
-        'prompt_template': 'mixtral',
-        'grammar': '',
-        'min_p': 0.1,  # The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
-        'image_data': [],
-        'mirostat': 0,  # Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
-        'mirostat_tau': 5,
-        'mirostat_eta': 0.1,
-        'n_predict': 2048,
-        'n_probs': 0,  #
-        'presence_penalty': 0,  # Repeat alpha presence penalty (default: 0.0, 0.0 = disabled)
-        'repeat_last_n': 256,  # Last n tokens to consider for penalizing repetition (default: 256, 0 = disabled, -1 = ctx-size)
-        'repeat_penalty': 1.1,  # Control the repetition of token sequences in the generated text (default: 1.1, 1.0 = disabled)
-        'stop': ['</s>', 'Llama:', 'User:', '<|endoftext|>', '<|im_end|>'],
-        'stream': True,
-        'temperature': 0.7,
-        'tfs_z': 1,  # Enable tail free sampling with parameter z (default: 1.0, 1.0 = disabled).
-        'top_k': 40,  # Limit the next token selection to the K most probable tokens (default: 40, 0 = disabled).
-        'top_p': 0.5,  # Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
-        'typical_p': 1,  # Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).
-    }
-    params = dict(default_params)
-    # 'slot_id': 0 or 1
-    params.update(params_from_post)
-    # ensure relevant parameters are not empty, this may lead to a crash otherwise on ./server
-    for key in ['frequency_penalty',
-                'min_p',
-                'mirostat',
-                'mirostat_tau',
-                'mirostat_eta',
-                'n_predict',
-                'n_probs',
-                'presence_penalty',
-                'repeat_last_n',
-                'repeat_penalty',
-                'temperature',
-                'tfs_z',
-                'top_k',
-                'top_p',
-                'typical_p']:
-        if params[key] == "" or type(params[key] == str):  # ensure int
-            params[key] = default_params[key]
-    return params
 
 
 if __name__ == '__main__':
