@@ -317,12 +317,12 @@ def upload():
             collection_visibility = request.form['collection-visibility']
             username = session.get('username')
 
-            index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "on")
+            index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "public")
 
             if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
 
                 # Todo: Check if doc is already in the index
-
+                # This is actually not that easy, so not done for the moment. Hey: You give me shit, I give you shit
                 text_splitter = RecursiveCharacterTextSplitter(
                     separators=[r'(?<=[^A-Z].[.?]) +(?=[A-Z])'],
                     # Set a really small chunk size, just to show.
