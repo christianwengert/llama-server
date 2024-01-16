@@ -580,7 +580,7 @@ def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: in
                                       ])
         results = ranker.rerank(rerankrequest)
         reranked_docs = []
-        for r in results:
+        for r in results[:num_docs]:
             reranked_docs.append(Document(page_content=r['text'], metadata=r['meta']))
 
 
