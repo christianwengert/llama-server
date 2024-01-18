@@ -14,7 +14,7 @@ import requests
 import scipdf  # is in scipdf-parser package
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
-from langchain.text_splitter import RecursiveCharacterTextSplitter
+from langchain.text_splitter import RecursiveCharacterTextSplitter, TextSplitter, Language, MarkdownTextSplitter
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
 from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER
@@ -214,6 +214,29 @@ def index():
     return redirect(url_for('c', token=new_url))
 
 
+def get_text_splitter(destination: str) -> TextSplitter:
+    _, extension = os.path.splitext(destination)
+    if is_source_code_file(destination):
+        # noinspection PyUnresolvedReferences
+        language_dict = {f'.{member.value}': member.value for member in Language}
+        language = language_dict.get(extension, Language.CPP.value)
+        # RecursiveCharacterTextSplitter.get_separators_for_language(language)  # todo this is not very perfect
+        text_splitter = RecursiveCharacterTextSplitter.from_language(
+            language=language, chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
+        )
+        return text_splitter
+    if extension == '.md':
+        text_splitter = MarkdownTextSplitter(
+            chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
+        )
+        return text_splitter
+
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
+    )
+    return text_splitter
+
+
 @login_required
 @app.route('/upload', methods=["POST"])
 def upload():
@@ -282,7 +305,6 @@ def upload():
             index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "public")
 
             if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
-
                 # Todo: Check if doc is already in the index
                 # This is actually not that easy, so not done for the moment. Hey: You give me shit, I give you shit
                 text_splitter = RecursiveCharacterTextSplitter(
@@ -293,11 +315,6 @@ def upload():
                     length_function=len,
                     is_separator_regex=True,
                 )
-                # docs = [
-                #     Document(page_content=f'{parsed_pdf_document["title"]}\n\n{parsed_pdf_document["authors"]}',
-                #              metadatas = [dict(file=file.filename, position='header')]
-                #     )
-                # ]
                 text = f"Title: {parsed_pdf_document['title']}\n\nAbstract:\n{parsed_pdf_document['abstract']}"
                 docs = text_splitter.create_documents([text], metadatas=[dict(file=file.filename, position='abstract')])
                 sections_with_titles = [section['heading'] + '\n\n' + section['text'] for section in parsed_pdf_document['sections']]
@@ -309,21 +326,12 @@ def upload():
                 return_args['collection-visibility'] = collection_visibility
 
             else:
-
-                # todo
-                # from langchain.text_splitter import (
-                #     Language,
-                #     RecursiveCharacterTextSplitter,
-                #
-                # )
-                # from langchain.text_splitter import MarkdownHeaderTextSplitter
-                # You can also see the separators used for a given language
-                # RecursiveCharacterTextSplitter.get_separators_for_language(Language.PYTHON)
-                # python_splitter = RecursiveCharacterTextSplitter.from_language(
-                #     language=Language.PYTHON, chunk_size=50, chunk_overlap=0
-                # )
-                # python_docs = python_splitter.create_documents([PYTHON_CODE])
-                pass
+                text_splitter = get_text_splitter(destination)
+                docs = text_splitter.create_documents([contents], metadatas=[dict(file=file.filename)])
+                index.add_documents(docs)
+                index.save_local(index_path)
+                return_args['collection-name'] = collection_name
+                return_args['collection-visibility'] = collection_visibility
         else:
             if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
                 return jsonify({"error": f"Too many tokens: {n_tokens}. Maximum tokens allows: {MAX_NUM_TOKENS_FOR_INLINE_CONTEXT}"})
