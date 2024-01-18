@@ -23,7 +23,7 @@ from urllib.parse import urlparse
 from rag import rag_context, RAG_NUM_DOCS, \
     get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE
 from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
-    get_mime_type, is_json, is_importable
+    get_mime_type, is_json, is_importable, find_files
 from utils.timestamp_formatter import categorize_timestamp
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
@@ -258,40 +258,10 @@ def upload():
         destination = os.path.join(base_folder, file.filename)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         file.save(destination)
-        parsed_pdf_document = None  # special handling for pdfs
 
-        error = None
-        if is_archive(destination):
-
-            success = extract_archive(file.filename, destination)  # this will always be put into a collection?
-            if not success:
-                return jsonify({"error": "Could not extract the contents of this archive."})
-
-            return jsonify({"error": "Archives are not supported yet. If you need this, open a Github Issue."})
-
-        elif is_pdf(destination):
-            parsed_pdf_document = parse_pdf_with_grobid(destination)
-            contents = make_pdf_prompt(parsed_pdf_document)
-
-        elif is_source_code_file(destination):
-            with open(destination, 'r') as f:
-                contents = f.read()
-            # source_code_language = Language.PYTHON  # Todo
-
-        elif is_json(destination):
-            with open(destination, 'r') as f:
-                contents = f.read()
-
-        elif is_text_file(destination):
-            with open(destination, 'r') as f:
-                contents = f.read()
-
-        elif is_sqlite(destination):
-            return jsonify({"error": "sqlite Databases are not supported yet. If you need this, open a Github Issue. Or try the raw SQL text queries."})
-
-        else:
-            mime_type = get_mime_type(destination)
-            return jsonify({"error": f"Unknown file type {mime_type}. If you need this, open a Github Issue."})
+        contents, parsed_pdf_document, error = extract_contents(destination)
+        if error:
+            return jsonify(error)
 
         tokens = get_tokens(contents)
 
@@ -342,6 +312,52 @@ def upload():
             ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
     ret_val = {**{"status": "OK"}, **return_args}
     return jsonify(ret_val)  # redirect done in JS
+
+
+def extract_contents(destination: str) -> Tuple[str, Optional[Dict], Dict[str, str]]:
+    contents = None
+    parsed_pdf_document = None  # special handling for pdfs
+    error = None
+    if is_archive(destination):
+        filename = destination
+        destination, _ = os.path.splitext(destination)
+        success = extract_archive(filename, destination)  # this will always be put into a collection?
+        if not success:
+            error = {"error": "Could not extract the contents of this archive."}
+        else:
+            # get all files inside the extracted folder
+            files = find_files(destination, '')
+
+            res = []
+            for f in files:
+                res.append(extract_contents(f))
+
+
+            error = {"error": "Archives are not supported yet. If you need this, open a Github Issue."}
+
+    elif is_pdf(destination):
+        parsed_pdf_document = parse_pdf_with_grobid(destination)
+        contents = make_pdf_prompt(parsed_pdf_document)
+
+    elif is_source_code_file(destination):
+        with open(destination, 'r') as f:
+            contents = f.read()
+
+    elif is_json(destination):
+        with open(destination, 'r') as f:
+            contents = f.read()
+
+    elif is_text_file(destination):
+        with open(destination, 'r') as f:
+            contents = f.read()
+
+    elif is_sqlite(destination):
+        error = {"error": "sqlite Databases are not supported yet. If you need this, open a Github Issue. Or try the raw SQL text queries."}
+
+    else:
+        mime_type = get_mime_type(destination)
+        error = {"error": f"Unknown file type {mime_type}. If you need this, open a Github Issue."}
+    return contents, parsed_pdf_document, error
 
 
 # @login_required

@@ -105,15 +105,18 @@ def extract_archive(filename: str, destination: str) -> Optional[Dict[str, Any]]
     # Check if the file exists
     if not os.path.isfile(filename):
         return False
-
+    # filename = os.path.basename(filename)
     try:
         # Determine the archive type based on the file extension
         if filename.endswith('.tar'):
             untar(filename, 'r', destination)
+            return True
         elif filename.endswith('.tgz') or filename.endswith('.tar.gz'):
             untar(filename, 'r:gz', destination)
+            return True
         elif filename.endswith('.zip'):
             unzip(filename, 'r', destination)
+            return True
         else:
             return False
     except (zipfile.BadZipFile, tarfile.ReadError, gzip.BadGzipFile) as _e:
