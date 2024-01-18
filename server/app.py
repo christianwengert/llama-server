@@ -10,7 +10,8 @@ from json import JSONDecodeError
 from pathlib import Path
 from typing import Dict, Optional, Union, Tuple, List
 import requests
-import scipdf
+# noinspection PyPackageRequirements
+import scipdf  # is in scipdf-parser package
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
 from langchain.text_splitter import RecursiveCharacterTextSplitter
