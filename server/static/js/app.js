@@ -50088,6 +50088,14 @@
           msg.content = Array.from(fileSet).join(", ");
           renderButtons = false;
         }
+        if (msg.collection) {
+          const url2 = new URL(window.location.href);
+          url2.searchParams.set("collection", msg.collection);
+          history.replaceState({}, "", url2);
+          const menuLink = document.getElementById("menuLink");
+          const textNode = menuLink.firstChild;
+          textNode.textContent = msg.collection;
+        }
         const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
         const msgDiv = document.getElementById(ident);
         const inner = msgDiv.getElementsByClassName("inner-message")[0];
@@ -50338,7 +50346,6 @@
         const input = elem;
         const parent = input.parentElement;
         const help = parent.nextElementSibling;
-        console.log(help);
         if (input.value.trim() === "") {
           help.classList.add("warning");
         } else {

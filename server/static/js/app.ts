@@ -290,6 +290,7 @@ const loadHistory = () => {
         file: string
     }
     type Message = {
+        collection: string;
         metadata: Array<Metadata>;
         role: string;
         content: string;
@@ -366,6 +367,16 @@ const loadHistory = () => {
                 msg.content = Array.from(fileSet).join(', ')
                 // msg.content = msg.metadata.filename;
                 renderButtons = false;
+            }
+            if(msg.collection) {
+                const url = new URL(window.location.href);
+                // Update the search parameter
+                url.searchParams.set('collection', msg.collection);
+                // Change the location object without reloading the page
+                history.replaceState({}, '', url);
+                const menuLink = document.getElementById('menuLink')!;
+                const textNode = menuLink.firstChild! as HTMLElement;
+                textNode.textContent = msg.collection;
             }
 
             const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
@@ -729,15 +740,12 @@ const setupSettingsMustBeSet = () => {
             const input =  elem as HTMLInputElement;
             const parent = input.parentElement as HTMLDivElement;
             const help = parent.nextElementSibling as HTMLDivElement;
-            console.log(help)
+
             if (input.value.trim() === '') {
-                // Handle empty input, e.g., show a message, add a warning class, etc.
                 help.classList.add('warning');
             } else {
-                // Remove warning if the input is not empty
                 help.classList.remove('warning');
             }
-            // todo: show in settings-button? disable submit button?
         });
     };
 

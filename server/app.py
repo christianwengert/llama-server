@@ -443,7 +443,10 @@ def get_input():
     # Add context if asked
     context, metadata = make_context(text, token, vector_store)
     if context:
-        hist['items'].append(dict(role=USER, content=f'This is the context: {context}', metadata=metadata))
+        item = dict(role=USER, content=f'This is the context: {context}', metadata=metadata)
+        if collection:
+            item['collection'] = collection
+        hist['items'].append(item)
         hist['items'].append(dict(role=ASSISTANT, content='OK'))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token, None)  # remove it, it is now part of the history
 
@@ -527,7 +530,7 @@ def transform_query(query: str, use_llm=False) -> str:
 
 def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: int = RAG_NUM_DOCS) -> Tuple[Optional[str], List[Dict]]:
     context = None
-    metadata = None
+    metadata = []
     if vector_store:
         query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
         docs = search_and_rerank_docs(num_docs, query, vector_store)
