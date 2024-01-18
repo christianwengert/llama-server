@@ -102,7 +102,7 @@ def create_or_open_collection(index_name: str, username: Optional[str], public: 
 
 
 def load_collection(collection: str, username: str) -> Optional[FAISS]:
-    collections = get_available_collections()
+    collections = get_available_collections(username)
 
     for key in ['user', 'common']:  # first check for same name user!
         for name in collections[key]:

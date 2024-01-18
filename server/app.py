@@ -258,12 +258,15 @@ def upload():
         destination = os.path.join(base_folder, file.filename)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         file.save(destination)
-        # contents = ""  # Set it to empty to avoid breaking if some garbage is uploaded
-        parsed_pdf_document = None
-        # source_code_language = None
+        parsed_pdf_document = None  # special handling for pdfs
 
+        error = None
         if is_archive(destination):
-            extract_archive(file.filename, destination)  # this will always be put into a collection?
+
+            success = extract_archive(file.filename, destination)  # this will always be put into a collection?
+            if not success:
+                return jsonify({"error": "Could not extract the contents of this archive."})
+
             return jsonify({"error": "Archives are not supported yet. If you need this, open a Github Issue."})
 
         elif is_pdf(destination):
