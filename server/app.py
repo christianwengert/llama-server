@@ -9,7 +9,6 @@ from functools import wraps
 from json import JSONDecodeError
 from typing import Dict, Optional, Tuple, List
 import requests
-
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
 from langchain.text_splitter import RecursiveCharacterTextSplitter
@@ -20,6 +19,7 @@ from rag import get_available_collections, load_collection, get_collection_from_
     get_text_splitter, extract_contents, get_context_from_rag
 from utils.filesystem import is_archive, extract_archive, find_files
 from utils.timestamp_formatter import categorize_timestamp
+
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
 

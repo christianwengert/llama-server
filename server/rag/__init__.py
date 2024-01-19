@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union
 from urllib.parse import urlparse, parse_qs
 
+# noinspection PyPackageRequirements
 import scipdf
 from flask import Request
 from langchain.text_splitter import TextSplitter, Language, RecursiveCharacterTextSplitter, MarkdownTextSplitter
