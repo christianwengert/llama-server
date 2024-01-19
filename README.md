@@ -7,6 +7,9 @@
 - in the directory: 
   - `PYTHONPATH=<path>/server python3 server/app.py`
 - Independently start the llama.cpp server
+  - `./server -m ~/Downloads/models/dolphin-2.6-mixtral-8x7b.Q6_K.gguf  --threads 8 -ngl 100 -c 32768 --cont-batching --parallel 1 -b 128`
+- Independently start the GROBID docker image and expose it
+  - `docker run --rm --init --ulimit core=0 -p 8070:8070 grobid/grobid:0.8.0`
 
 ## Build Javascript from typescript
 ```
@@ -15,6 +18,9 @@ npm run build
 npm run build_mini
 ```
 
+# Todos
+- Get rid of langchain
+- 
 
 
 # 
