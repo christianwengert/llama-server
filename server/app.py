@@ -7,23 +7,18 @@ import tempfile
 import urllib
 from functools import wraps
 from json import JSONDecodeError
-from pathlib import Path
-from typing import Dict, Optional, Union, Tuple, List
+from typing import Dict, Optional, Tuple, List
 import requests
-# noinspection PyPackageRequirements
-import scipdf  # is in scipdf-parser package
+
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
-from langchain.text_splitter import RecursiveCharacterTextSplitter, TextSplitter, Language, MarkdownTextSplitter
-from langchain_community.vectorstores.faiss import FAISS
-from langchain_core.documents import Document
+from langchain.text_splitter import RecursiveCharacterTextSplitter
 from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER
 from flask_session import Session
 from urllib.parse import urlparse
-from rag import rag_context, RAG_NUM_DOCS, \
-    get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE
-from utils.filesystem import is_archive, extract_archive, is_pdf, is_text_file, is_sqlite, is_source_code_file, \
-    get_mime_type, is_json, is_importable, find_files
+from rag import get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE, \
+    get_text_splitter, extract_contents, get_context_from_rag
+from utils.filesystem import is_archive, extract_archive, find_files
 from utils.timestamp_formatter import categorize_timestamp
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
@@ -180,61 +175,12 @@ def c(token):
                            )
 
 
-def parse_pdf_with_grobid(filename: Union[str, Path]) -> Dict:
-    if not os.path.exists(filename):
-        raise FileNotFoundError()
-    import time
-    start = time.time()
-    document = scipdf.parse_pdf_to_dict(filename)  # return dictionary
-    end = time.time()
-    print(f'Processed document in {end - start} seconds')
-    return document
-
-
-def make_pdf_prompt(article: Dict):
-    prompt_text = "The following is an article on which I will ask questions. After processing this article, acknowledge the following with OK."
-    prompt_text += f"# {article['title']}\n\n"
-    prompt_text += f"## authors: {article['authors']}\n\n"
-    prompt_text += f"## abstract: {article['abstract']}\n\n"
-
-    for section in article['sections']:
-        prompt_text += f"## {section['heading']}\n"
-        prompt_text += section['text']
-
-    for _reference in article['references']:
-        pass  # todo
-    return prompt_text
-
-
 @app.route("/")
 @login_required
 def index():
     # Just create a new session
     new_url = secrets.token_hex(16)
     return redirect(url_for('c', token=new_url))
-
-
-def get_text_splitter(destination: str) -> TextSplitter:
-    _, extension = os.path.splitext(destination)
-    if is_source_code_file(destination):
-        # noinspection PyUnresolvedReferences
-        language_dict = {f'.{member.value}': member.value for member in Language}
-        language = language_dict.get(extension, Language.CPP.value)
-        # RecursiveCharacterTextSplitter.get_separators_for_language(language)  # todo this is not very perfect
-        text_splitter = RecursiveCharacterTextSplitter.from_language(
-            language=language, chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
-        )
-        return text_splitter
-    if extension == '.md':
-        text_splitter = MarkdownTextSplitter(
-            chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
-        )
-        return text_splitter
-
-    text_splitter = RecursiveCharacterTextSplitter(
-        chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
-    )
-    return text_splitter
 
 
 @login_required
@@ -337,57 +283,6 @@ def prepare_files(base_folder: str, files: List) -> Tuple[Dict[str, str], List[s
             # add this file
             files_to_process.append(destination)
     return error, files_to_process
-
-
-def extract_contents(destination: str) -> Tuple[str, Optional[Dict], Dict[str, str]]:
-    contents = None
-    parsed_pdf_document = None  # special handling for pdfs
-    error = None
-    if is_pdf(destination):
-        parsed_pdf_document = parse_pdf_with_grobid(destination)
-        contents = make_pdf_prompt(parsed_pdf_document)
-
-    elif is_source_code_file(destination):
-        with open(destination, 'r') as f:
-            contents = f.read()
-
-    elif is_json(destination):
-        with open(destination, 'r') as f:
-            contents = f.read()
-
-    elif is_text_file(destination):
-        with open(destination, 'r') as f:
-            contents = f.read()
-
-    elif is_sqlite(destination):
-        error = {"error": "sqlite Databases are not supported yet. If you need this, open a Github Issue. Or try the raw SQL text queries."}
-
-    else:
-        mime_type = get_mime_type(destination)
-        error = {"error": f"Unknown file type {mime_type}. If you need this, open a Github Issue."}
-    return contents, parsed_pdf_document, error
-
-
-# @login_required
-# @app.route('/embeddings', methods=["POST"])
-# def embeddings():
-#     # This returns the embeddings from the llama_cpp model, this is NOT the same as embeddings for RAG
-#     data = request.get_json()
-#     if 'content' not in data:
-#         abort(400)
-#     if len(data) > 1:
-#         abort(400)
-#     return get_llama_cpp_embeddings(data)
-
-
-# def get_llama_cpp_embeddings(data):
-#     # This returns the embeddings from the llama_cpp model, this is NOT the same as embeddings for RAG
-#     data = requests.request(method="POST",
-#                             url=urllib.parse.urljoin(args.llama_api, "/embedding"),
-#                             data=json.dumps(data),
-#                             )
-#     data_json = data.json()
-#     return data_json
 
 
 def get_tokens(text):
@@ -562,71 +457,6 @@ def transform_query(query: str, use_llm=False) -> str:
                                 data=json.dumps(post_data),
                                 stream=False)
     return response.json()['content'].strip()
-
-
-def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: int = RAG_NUM_DOCS) -> Tuple[Optional[str], List[Dict]]:
-    context = None
-    metadata = []
-    if vector_store:
-        query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
-        docs = search_and_rerank_docs(num_docs, query, vector_store)
-        context, metadata = rag_context(docs)
-    return context, metadata
-
-
-def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
-    if is_importable('flashrank'):
-        rawdocs = vector_store.similarity_search(query, k=num_docs * 2)  #
-        # noinspection PyPackageRequirements
-        from flashrank import RerankRequest, Ranker
-        ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
-        rerankrequest = RerankRequest(query=query,
-                                      passages=[
-                                          {"meta": d.metadata, "text": d.page_content} for d in rawdocs
-                                      ])
-        results = ranker.rerank(rerankrequest)
-        docs = []
-        for r in results[:num_docs]:
-            docs.append(Document(page_content=r['text'], metadata=r['meta']))
-    else:
-        print('no flashrank available')
-        docs = vector_store.similarity_search(query, k=num_docs)  #
-    return docs
-    # Other ideas:
-    # HyDe
-    # from langchain.chains import HypotheticalDocumentEmbedder
-    #
-    # Rerank with LLM
-    #
-    # if rerank:
-    #     reranked_docs = []
-    #     rerank_post_data = _get_llama_default_parameters(data)
-    #
-    #     rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
-    #     rerank_post_data['stream'] = False
-    #
-    #     # re-rank documents
-    #
-    #     for d in docs:
-    #         formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=query, context=d.page_content)
-    #
-    #         rerank_post_data['prompt'] = formatted_prompt
-    #
-    #         rr_data = requests.request(method="POST",
-    #                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
-    #                                    data=json.dumps(rerank_post_data),
-    #                                    stream=False)
-    #
-    #         rr_response = rr_data.json()
-    #         print(rr_response.get('content'))
-    #         # todo: Logic here
-    #         if 'YES' == rr_response.get('content').strip():
-    #             reranked_docs.append(d)
-    #     # answer = test(llm, reranked_docs, question)
-    #     # print(answer)
-    #     if reranked_docs:
-    #         context = rag_context(reranked_docs)
-    # else:
 
 
 def make_prompt(hist, system_prompt, text, prompt_template):

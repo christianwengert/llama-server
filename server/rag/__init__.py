@@ -1,14 +1,18 @@
 import os
 from pathlib import Path
-from typing import List, Tuple, Optional, Dict
+from typing import List, Tuple, Optional, Dict, Union
 from urllib.parse import urlparse, parse_qs
 
+import scipdf
 from flask import Request
+from langchain.text_splitter import TextSplitter, Language, RecursiveCharacterTextSplitter, MarkdownTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
 
-from utils.filesystem import list_directories
+from app import transform_query
+from utils.filesystem import list_directories, is_source_code_file, is_pdf, is_json, is_text_file, is_sqlite, \
+    get_mime_type, is_importable
 
 RAG_CHUNK_SIZE = 2048
 RAG_DATA_DIR = os.path.dirname(__file__) + '/../../data'
@@ -123,3 +127,146 @@ def get_collection_from_query(request: Request) -> str:
         if collections and len(collections) == 1:
             collection = collections[0]  # Just take one, there should not be more
     return collection
+
+
+def get_text_splitter(destination: str) -> TextSplitter:
+    _, extension = os.path.splitext(destination)
+    if is_source_code_file(destination):
+        # noinspection PyUnresolvedReferences
+        language_dict = {f'.{member.value}': member.value for member in Language}
+        language = language_dict.get(extension, Language.CPP.value)
+        # RecursiveCharacterTextSplitter.get_separators_for_language(language)  # todo this is not very perfect
+        text_splitter = RecursiveCharacterTextSplitter.from_language(
+            language=language, chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
+        )
+        return text_splitter
+    if extension == '.md':
+        text_splitter = MarkdownTextSplitter(
+            chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
+        )
+        return text_splitter
+
+    text_splitter = RecursiveCharacterTextSplitter(
+        chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
+    )
+    return text_splitter
+
+
+def extract_contents(destination: str) -> Tuple[str, Optional[Dict], Dict[str, str]]:
+    contents = None
+    parsed_pdf_document = None  # special handling for pdfs
+    error = None
+    if is_pdf(destination):
+        parsed_pdf_document = parse_pdf_with_grobid(destination)
+        contents = make_pdf_prompt(parsed_pdf_document)
+
+    elif is_source_code_file(destination):
+        with open(destination, 'r') as f:
+            contents = f.read()
+
+    elif is_json(destination):
+        with open(destination, 'r') as f:
+            contents = f.read()
+
+    elif is_text_file(destination):
+        with open(destination, 'r') as f:
+            contents = f.read()
+
+    elif is_sqlite(destination):
+        error = {"error": "sqlite Databases are not supported yet. If you need this, open a Github Issue. Or try the raw SQL text queries."}
+
+    else:
+        mime_type = get_mime_type(destination)
+        error = {"error": f"Unknown file type {mime_type}. If you need this, open a Github Issue."}
+    return contents, parsed_pdf_document, error
+
+
+def parse_pdf_with_grobid(filename: Union[str, Path]) -> Dict:
+    if not os.path.exists(filename):
+        raise FileNotFoundError()
+    import time
+    start = time.time()
+    document = scipdf.parse_pdf_to_dict(filename)  # return dictionary
+    end = time.time()
+    print(f'Processed document in {end - start} seconds')
+    return document
+
+
+def make_pdf_prompt(article: Dict):
+    prompt_text = "The following is an article on which I will ask questions. After processing this article, acknowledge the following with OK."
+    prompt_text += f"# {article['title']}\n\n"
+    prompt_text += f"## authors: {article['authors']}\n\n"
+    prompt_text += f"## abstract: {article['abstract']}\n\n"
+
+    for section in article['sections']:
+        prompt_text += f"## {section['heading']}\n"
+        prompt_text += section['text']
+
+    for _reference in article['references']:
+        pass  # todo
+    return prompt_text
+
+
+def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: int = RAG_NUM_DOCS) -> Tuple[Optional[str], List[Dict]]:
+    context = None
+    metadata = []
+    if vector_store:
+        query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
+        docs = search_and_rerank_docs(num_docs, query, vector_store)
+        context, metadata = rag_context(docs)
+    return context, metadata
+
+
+def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
+    if is_importable('flashrank'):
+        rawdocs = vector_store.similarity_search(query, k=num_docs * 2)  #
+        # noinspection PyPackageRequirements
+        from flashrank import RerankRequest, Ranker
+        ranker = Ranker(model_name="ms-marco-MultiBERT-L-12")
+        rerankrequest = RerankRequest(query=query,
+                                      passages=[
+                                          {"meta": d.metadata, "text": d.page_content} for d in rawdocs
+                                      ])
+        results = ranker.rerank(rerankrequest)
+        docs = []
+        for r in results[:num_docs]:
+            docs.append(Document(page_content=r['text'], metadata=r['meta']))
+    else:
+        print('no flashrank available')
+        docs = vector_store.similarity_search(query, k=num_docs)  #
+    return docs
+    # Other ideas:
+    # HyDe
+    # from langchain.chains import HypotheticalDocumentEmbedder
+    #
+    # Rerank with LLM
+    #
+    # if rerank:
+    #     reranked_docs = []
+    #     rerank_post_data = _get_llama_default_parameters(data)
+    #
+    #     rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
+    #     rerank_post_data['stream'] = False
+    #
+    #     # re-rank documents
+    #
+    #     for d in docs:
+    #         formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=query, context=d.page_content)
+    #
+    #         rerank_post_data['prompt'] = formatted_prompt
+    #
+    #         rr_data = requests.request(method="POST",
+    #                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
+    #                                    data=json.dumps(rerank_post_data),
+    #                                    stream=False)
+    #
+    #         rr_response = rr_data.json()
+    #         print(rr_response.get('content'))
+    #         # todo: Logic here
+    #         if 'YES' == rr_response.get('content').strip():
+    #             reranked_docs.append(d)
+    #     # answer = test(llm, reranked_docs, question)
+    #     # print(answer)
+    #     if reranked_docs:
+    #         context = rag_context(reranked_docs)
+    # else:
