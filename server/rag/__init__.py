@@ -1,6 +1,6 @@
 import os
 from pathlib import Path
-from typing import List, Tuple, Literal, Optional, Dict
+from typing import List, Tuple, Optional, Dict
 from urllib.parse import urlparse, parse_qs
 
 from flask import Request
@@ -54,7 +54,7 @@ def rag_contex_stackexchange(docs: List[Document]) -> str:
     return context_string
 
 
-def get_available_collections(username: str = None) -> Dict[Literal['common', 'user'], List[str]]:
+def get_available_collections(username: str = None) -> Dict[str, List[str]]:
     common_dir = Path(RAG_DATA_DIR) / Path('common')
 
     collections = dict(common=[], user=[])

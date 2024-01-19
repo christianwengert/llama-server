@@ -2,7 +2,8 @@ import gzip
 import importlib
 import os
 import tarfile
-from typing import List, Dict, Any, Optional
+from pathlib import Path
+from typing import List, Union
 import magic
 import zipfile
 
@@ -16,7 +17,7 @@ def find_files(directory: str, extension: str) -> List[str]:
     return result
 
 
-def list_directories(directory: str) -> List[str]:
+def list_directories(directory: Union[str, Path]) -> List[str]:
     result = []
     for file in os.listdir(directory):
         if os.path.isdir(os.path.join(directory, file)):
@@ -101,7 +102,7 @@ def is_archive(filename: str) -> bool:
     return mime_type in ['application/x-tar', 'application/gzip', 'application/zip']
 
 
-def extract_archive(filename: str, destination: str) -> Optional[Dict[str, Any]]:
+def extract_archive(filename: str, destination: str) -> bool:
     # Check if the file exists
     if not os.path.isfile(filename):
         return False
@@ -123,12 +124,12 @@ def extract_archive(filename: str, destination: str) -> Optional[Dict[str, Any]]
         return False
 
 
-def untar(filename: str, mode: str, destination: str) -> bool:
+def untar(filename: str, mode: str, destination: str):
     with tarfile.open(filename, mode=mode) as archive:
         archive.extractall(path=destination, members=archive.getmembers())
 
 
-def unzip(filename: str, mode: str, destination: str) -> bool:
+def unzip(filename: str, mode: str, destination: str):
     with zipfile.ZipFile(filename, mode=mode) as archive:
         archive.extractall(path=destination)
 

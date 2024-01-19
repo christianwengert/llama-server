@@ -303,7 +303,7 @@ def upload():
 
     else:
         context = ""
-        for content, parsed_pdf_document in contents:
+        for _, content, _ in contents:
             tokens = get_tokens(content)
             n_tokens += len(tokens.get('tokens', []))
             context += f"{content}\n\n"
@@ -322,7 +322,7 @@ def prepare_files(base_folder: str, files: List) -> Tuple[Dict[str, str], List[s
     error = None
     for file in files:
         if not file.filename:
-            error = jsonify({"error": "You must provide a file."})
+            error = {"error": "You must provide a file."}
         destination = os.path.join(base_folder, file.filename)
         os.makedirs(os.path.dirname(destination), exist_ok=True)
         file.save(destination)
