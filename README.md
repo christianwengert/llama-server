@@ -1,3 +1,15 @@
+# Another local GPT UI
+
+Uses existing backends (now llama.cpp) but brings: 
+
+- retrieval augmented generation
+- search
+- context
+- audio to llm (separate branch)
+
+
+
+
 # Installation
 
 - Checkout or download zip.
