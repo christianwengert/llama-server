@@ -49930,6 +49930,12 @@
     if (uploadButton) {
       uploadButton.addEventListener("click", (e) => {
         e.preventDefault();
+        const existingErrorMessage = document.querySelector("[data-error-message]");
+        if (existingErrorMessage) {
+          if (existingErrorMessage.dataset.errorMessage) {
+            delete existingErrorMessage.dataset.errorMessage;
+          }
+        }
         const formElement = document.getElementById("upload-form");
         const fileInput = formElement.querySelector("#file");
         const parentDiv = fileInput.parentElement;
