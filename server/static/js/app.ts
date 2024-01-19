@@ -150,6 +150,14 @@ const setupUploadButton = () => {
         uploadButton.addEventListener('click', (e) => {
             e.preventDefault();
 
+            const existingErrorMessage = document.querySelector('[data-error-message]') as HTMLElement;
+            if (existingErrorMessage) {
+                if (existingErrorMessage.dataset.errorMessage) {
+                    delete existingErrorMessage.dataset.errorMessage
+                }
+            }
+
+
             const formElement = document.getElementById("upload-form") as HTMLFormElement;
             const fileInput = formElement.querySelector('#file')! as HTMLInputElement;
             const parentDiv = fileInput.parentElement!;
