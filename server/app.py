@@ -252,31 +252,33 @@ def upload():
     use_collection = collection_selector != ''
     return_args = {}
 
-    for file in files:
-        if not file.filename:
-            return jsonify({"error": "You must provide a file."})
-        destination = os.path.join(base_folder, file.filename)
-        os.makedirs(os.path.dirname(destination), exist_ok=True)
-        file.save(destination)
+    n_tokens = 0
 
-        contents, parsed_pdf_document, error = extract_contents(destination)
+    # first check if any of the files is an archive
+    # if this is the case, append it to files
+    error, files_to_process = prepare_files(base_folder, files)
+    if error:
+        return jsonify(error)
+
+    contents = []
+    # Now loop over the files and extract the contents
+    for destination in files_to_process:
+        content, parsed_pdf_document, error = extract_contents(destination)
         if error:
             return jsonify(error)
+        contents.append((destination, content, parsed_pdf_document))
 
-        tokens = get_tokens(contents)
+    if use_collection:
 
-        n_tokens = len(tokens.get('tokens', []))  # todo: show this info to the user.
+        collection_name = request.form['collection-name']
+        if not collection_name:
+            return jsonify({"error": f"You just provide a name for the collection."})
+        collection_visibility = request.form.get('collection-visibility', 'private')
+        username = session.get('username')
 
-        if use_collection:
-
-            collection_name = request.form['collection-name']
-            if not collection_name:
-                return jsonify({"error": f"You just provide a name for the collection."})
-            collection_visibility = request.form.get('collection-visibility', 'private')
-            username = session.get('username')
-
-            index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "public")
-
+        index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "public")
+        for destination, content, parsed_pdf_document in contents:
+            filename = os.path.basename(destination)
             if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
                 # Todo: Check if doc is already in the index
                 # This is actually not that easy, so not done for the moment. Hey: You give me shit, I give you shit
@@ -289,9 +291,9 @@ def upload():
                     is_separator_regex=True,
                 )
                 text = f"Title: {parsed_pdf_document['title']}\n\nAbstract:\n{parsed_pdf_document['abstract']}"
-                docs = text_splitter.create_documents([text], metadatas=[dict(file=file.filename, position='abstract')])
+                docs = text_splitter.create_documents([text], metadatas=[dict(file=filename, position='abstract')])
                 sections_with_titles = [section['heading'] + '\n\n' + section['text'] for section in parsed_pdf_document['sections']]
-                docs.extend(text_splitter.create_documents(sections_with_titles, metadatas=[dict(file=file.filename, position='section')] * len(sections_with_titles)))
+                docs.extend(text_splitter.create_documents(sections_with_titles, metadatas=[dict(file=filename, position='section')] * len(sections_with_titles)))
                 # Ok now we have all docs and metadata
                 index.add_documents(docs)
                 index.save_local(index_path)
@@ -300,42 +302,55 @@ def upload():
 
             else:
                 text_splitter = get_text_splitter(destination)
-                docs = text_splitter.create_documents([contents], metadatas=[dict(file=file.filename)])
+                docs = text_splitter.create_documents([content], metadatas=[dict(file=filename)])
                 index.add_documents(docs)
                 index.save_local(index_path)
                 return_args['collection-name'] = collection_name
                 return_args['collection-visibility'] = collection_visibility
-        else:
-            if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
-                return jsonify({"error": f"Too many tokens: {n_tokens}. Maximum tokens allows: {MAX_NUM_TOKENS_FOR_INLINE_CONTEXT}"})
-            token = session.get('token')
-            ADDITIONAL_CONTEXT[token] = dict(contents=contents, filename=file.filename)
+
+    else:
+        context = ""
+        for content, parsed_pdf_document in contents:
+            tokens = get_tokens(content)
+            n_tokens += len(tokens.get('tokens', []))
+            context += f"{content}\n\n"
+        if n_tokens > MAX_NUM_TOKENS_FOR_INLINE_CONTEXT:
+            return jsonify(
+                {"error": f"Too many tokens: {n_tokens}. Maximum tokens allows: {MAX_NUM_TOKENS_FOR_INLINE_CONTEXT}"})
+        token = session.get('token')
+        ADDITIONAL_CONTEXT[token] = dict(contents=context, filename=files[0].filename)
+
     ret_val = {**{"status": "OK"}, **return_args}
     return jsonify(ret_val)  # redirect done in JS
+
+
+def prepare_files(base_folder: str, files: List) -> Tuple[Dict[str, str], List[str]]:
+    files_to_process = []
+    error = None
+    for file in files:
+        if not file.filename:
+            error = jsonify({"error": "You must provide a file."})
+        destination = os.path.join(base_folder, file.filename)
+        os.makedirs(os.path.dirname(destination), exist_ok=True)
+        file.save(destination)
+        if is_archive(destination):
+            # add all
+            filename = destination
+            destination, _ = os.path.splitext(destination)
+            if extract_archive(filename, destination):
+                files = find_files(destination, '')
+                files_to_process.extend(files)
+        else:
+            # add this file
+            files_to_process.append(destination)
+    return error, files_to_process
 
 
 def extract_contents(destination: str) -> Tuple[str, Optional[Dict], Dict[str, str]]:
     contents = None
     parsed_pdf_document = None  # special handling for pdfs
     error = None
-    if is_archive(destination):
-        filename = destination
-        destination, _ = os.path.splitext(destination)
-        success = extract_archive(filename, destination)  # this will always be put into a collection?
-        if not success:
-            error = {"error": "Could not extract the contents of this archive."}
-        else:
-            # get all files inside the extracted folder
-            files = find_files(destination, '')
-
-            res = []
-            for f in files:
-                res.append(extract_contents(f))
-
-
-            error = {"error": "Archives are not supported yet. If you need this, open a Github Issue."}
-
-    elif is_pdf(destination):
+    if is_pdf(destination):
         parsed_pdf_document = parse_pdf_with_grobid(destination)
         contents = make_pdf_prompt(parsed_pdf_document)
 
