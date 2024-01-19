@@ -280,11 +280,8 @@ def upload():
         for destination, content, parsed_pdf_document in contents:
             filename = os.path.basename(destination)
             if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
-                # Todo: Check if doc is already in the index
-                # This is actually not that easy, so not done for the moment. Hey: You give me shit, I give you shit
                 text_splitter = RecursiveCharacterTextSplitter(
                     separators=[r'(?<=[^A-Z].[.?]) +(?=[A-Z])'],
-                    # Set a really small chunk size, just to show.
                     chunk_size=RAG_CHUNK_SIZE,
                     chunk_overlap=0,
                     length_function=len,
@@ -294,19 +291,15 @@ def upload():
                 docs = text_splitter.create_documents([text], metadatas=[dict(file=filename, position='abstract')])
                 sections_with_titles = [section['heading'] + '\n\n' + section['text'] for section in parsed_pdf_document['sections']]
                 docs.extend(text_splitter.create_documents(sections_with_titles, metadatas=[dict(file=filename, position='section')] * len(sections_with_titles)))
-                # Ok now we have all docs and metadata
-                index.add_documents(docs)
-                index.save_local(index_path)
-                return_args['collection-name'] = collection_name
-                return_args['collection-visibility'] = collection_visibility
 
             else:
                 text_splitter = get_text_splitter(destination)
                 docs = text_splitter.create_documents([content], metadatas=[dict(file=filename)])
-                index.add_documents(docs)
-                index.save_local(index_path)
-                return_args['collection-name'] = collection_name
-                return_args['collection-visibility'] = collection_visibility
+            # Ok now we have all docs and metadata
+            index.add_documents(docs)
+            index.save_local(index_path)
+            return_args['collection-name'] = collection_name
+            return_args['collection-visibility'] = collection_visibility
 
     else:
         context = ""
