@@ -1,8 +1,11 @@
+import json
 import os
+import urllib
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union
 from urllib.parse import urlparse, parse_qs
 
+import requests
 # noinspection PyPackageRequirements
 import scipdf
 from flask import Request
@@ -11,7 +14,8 @@ from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
 
-from app import transform_query
+from llama_cpp import get_llama_default_parameters, LLAMA_API
+
 from utils.filesystem import list_directories, is_source_code_file, is_pdf, is_json, is_text_file, is_sqlite, \
     get_mime_type, is_importable
 
@@ -271,3 +275,18 @@ def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
     #     if reranked_docs:
     #         context = rag_context(reranked_docs)
     # else:
+
+
+def transform_query(query: str, use_llm=False) -> str:
+    if not use_llm:
+        return query
+    # This is called query transform, todo: The problem is: It will overwrite the llama.cpp cache
+    query_gen_str = """Provide a better search query for a search engine to answer the given question. Question: {query}\nAnswer:"""
+    post_data = get_llama_default_parameters({})
+    post_data['stream'] = False
+    post_data['prompt'] = query_gen_str.format(query=query)
+    response = requests.request(method="POST",
+                                url=urllib.parse.urljoin(LLAMA_API, "/completion"),
+                                data=json.dumps(post_data),
+                                stream=False)
+    return response.json()['content'].strip()
