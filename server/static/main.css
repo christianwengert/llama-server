@@ -614,12 +614,6 @@ li:hover .delete-history-item {
     align-items: center;
 }
 
-.param-help {
-    margin-bottom: 1.5rem !important;
-    color: rgba(106, 115, 125, 0.64);
-    /*color: rgba(93, 65, 178, 0.5);*/
-    font-size: smaller;
-}
 
 .popup-form div > label {
     display: inline-block;
@@ -635,9 +629,15 @@ li:hover .delete-history-item {
     border-radius: 5px;
     background-color: white;
 }
+.popup-form div > input[type=checkbox] {
+    /*width: 20px;*/
+    margin-left: 0;
+    min-width: 0;
+}
 
 .popup-form div > select {
     height: 32px;
+    text-align: left;
 
 }
 
@@ -687,7 +687,7 @@ li:hover .delete-history-item {
 
 .popup .close {
     position: absolute;
-    top: 20px;
+    top: 10px;
     right: 10px;
     /*transition: all 200ms;*/
     font-size: 30px;
@@ -805,7 +805,7 @@ input[type="number"]::-webkit-outer-spin-button {
     position: absolute;
     background-color: white;
     border: 1px solid lightgray;
-    border-radius: 8px;
+    border-radius: 5px;
     min-width: 160px;
     left: calc(var(--sidebar-width) + 10% - 32px);
     /*box-shadow: 0 8px 16px 0 rgba(0,0,0,0.2);*/
@@ -820,6 +820,7 @@ input[type="number"]::-webkit-outer-spin-button {
     display: block;
     line-height: 32px;
 }
+
 #menu hr {
     border: 0;
     border-bottom: 1px solid lightgray;
@@ -1011,17 +1012,96 @@ input[type="number"]::-webkit-outer-spin-button {
     inset -2px 0 0
 }
 
-#record {
+
+.gg-attachment {
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    width: 14px;
+    height: 14px;
+    border: 2px solid;
+    border-top: 0;
+    border-bottom-left-radius: 100px;
+    border-bottom-right-radius: 100px;
+
+    margin-top: 11px
+}
+
+.gg-attachment::after,
+.gg-attachment::before {
+    content: "";
+    display: block;
+    box-sizing: border-box;
+    position: absolute;
+    border-radius: 3px;
+    border: 2px solid
+}
+
+.gg-attachment::after {
+    border-bottom: 0;
+    border-top-left-radius: 100px;
+    border-top-right-radius: 100px;
+    right: -2px;
+    width: 10px;
+    height: 14px;
+    bottom: 8px
+}
+
+.gg-attachment::before {
+    width: 6px;
+    height: 12px;
+    border-top: 0;
+    border-bottom-left-radius: 100px;
+    border-bottom-right-radius: 100px;
+    left: 2px;
+    bottom: 4px
+}
+
+
+#extra-input-buttons {
+    /*border: 1px solid red;*/
+    position: absolute;
+    /*left: calc(10% - 80px);*/
+    right: calc(90% + 5px);
+    top: 4px;
+    display: flex;
+    justify-content: center;
+}
+
+#extra-input-buttons button, #extra-input-buttons a {
     border: none;
     background-color: unset;
-    height: 32px;
-    width: 32px;
-    margin: 0;
-    padding: 0;
-    position: absolute;
-    top: 4px;
-    left: calc(10% - 40px);
+    padding: 5px;
+    cursor: pointer;
+    color: black !important;
 }
+
+#translate-button {
+
+    /*border: none;*/
+    /*background-color: unset;*/
+    /*height: 28px;*/
+    /*width: 28px;*/
+    /*margin: 0;*/
+    /*padding: 0;*/
+    /*position: absolute;*/
+    /*top: 4px;*/
+    /*left: calc(10% - 40px);*/
+}
+
+#record {
+    margin-top: 4px;
+    /*border: none;*/
+    /*background-color: unset;*/
+    /*height: 28px;*/
+    /*width: 28px;*/
+    /*margin: 0;*/
+    /*padding: 0;*/
+    /*position: absolute;*/
+    /*top: 4px;*/
+    /*left: calc(10% - 40px);*/
+}
+
 #record:disabled {
     display: block;
     opacity: 0.5;
@@ -1039,7 +1119,91 @@ details {
     margin-top: 8px;
     margin-bottom: 24px;
 }
+
 summary {
     cursor: pointer;
     margin-bottom: 8px;
+}
+
+div.warning input {
+    border: 1px solid red; /* Example to highlight the field in error */
+    /*position: relative;*/
+
+}
+div.warning:after {
+    content: attr(data-error-message);
+    color: red; /* Text color of the error message */
+    display: block;
+}
+
+.d-block {
+    display: block !important;
+}
+.d-none {
+    display: none !important;
+}
+.param-help {
+    margin-bottom: 1.5rem !important;
+    color: rgba(106, 115, 125, 0.64);
+    /*color: rgba(93, 65, 178, 0.5);*/
+    font-size: smaller;
+    display: block !important;
+}
+.file-icon {
+    /*display: inline-block;*/
+    border: 1px solid #e0e0e0;
+    background-color: rgb(252, 252, 253);
+    border-radius: 5px;
+    /*position: relative;*/
+    height: 32px;
+    line-height: 24px;
+    padding-top: 2px;
+    padding-bottom: 2px;
+    margin-top: 5px;
+}
+.file-icon:before {
+    content: "";
+    background-image: url(data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjQiIGhlaWdodD0iMjQiIHZpZXdCb3g9IjAgMCAyNCAyNCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KICA8cGF0aCBkPSJNMTQgMEMxNi43NjE0IDAgMTkgMi4yMzg1OCAxOSA1VjE3QzE5IDIwLjg2NiAxNS44NjYgMjQgMTIgMjRDOC4xMzQwMSAyNCA1IDIwLjg2NiA1IDE3VjlIN1YxN0M3IDE5Ljc2MTQgOS4yMzg1OCAyMiAxMiAyMkMxNC43NjE0IDIyIDE3IDE5Ljc2MTQgMTcgMTdWNUMxNyAzLjM0MzE1IDE1LjY1NjkgMiAxNCAyQzEyLjM0MzEgMiAxMSAzLjM0MzE1IDExIDVWMTdDMTEgMTcuNTUyMyAxMS40NDc3IDE4IDEyIDE4QzEyLjU1MjMgMTggMTMgMTcuNTUyMyAxMyAxN1Y2SDE1VjE3QzE1IDE4LjY1NjkgMTMuNjU2OSAyMCAxMiAyMEMxMC4zNDMxIDIwIDkgMTguNjU2OSA5IDE3VjVDOSAyLjIzODU4IDExLjIzODYgMCAxNCAwWiIgZmlsbD0iY3VycmVudENvbG9yIi8+Cjwvc3ZnPg==);
+    width: 24px;
+    height: 24px;
+    display: inline-block;
+    /*position: absolute;*/
+}
+
+#upload-button:disabled {
+    display: inline-block;
+/*}*/
+
+
+/*button[disabled] .spinner {*/
+/*    display: inline-block;*/
+/*    border: 2px solid rgba(255, 255, 255, 0.3);*/
+/*    border-top: 2px solid #fff;*/
+/*    border-radius: 50%;*/
+/*    width: 14px;*/
+/*    height: 14px;*/
+/*    animation: spin 1s linear infinite;*/
+}
+.spinner {
+    display: none;
+    border: 3px solid rgba(255, 255, 255, 0.3); /* Light grey border */
+    border-top: 3px solid blue; /* Blue top border */
+    border-radius: 50%;
+    width: 14px;
+    height: 14px;
+    animation: spin 2s linear infinite; /* Animation applied here */
+}
+
+button:disabled .spinner {
+    display: inline-block;
+    /* More styles for visible spinner */
+}
+
+button:disabled {
+    /* Optional: Styles to indicate the button is disabled */
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }

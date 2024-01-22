@@ -4,17 +4,20 @@
         <a class="close" href="#">&times;</a>
         <div class="scroll-content">
             <div>
-                <p>
-                    You can add context to the current prompt either by just adding a file (must be shorter than ~1500
+                <div>
+                    You can add context to the current prompt either by just adding a file (must be shorter than ~{{num_words}}
                     words). Once uploaded you can simply chat with the bot by referring to the 'context'.
+                    <br><br>
                     <strong>Example</strong>: Summarize / Translate the context
-                </p>
-
-                <p>
-                    If you want to add several documents or larger files or being able to reuse an uploaded file, you
-                    can add it to a collection.
-                    <strong>TODO</strong>
-                </p>
+                </div>
+                <br>
+                <div>
+                    If you want to add several documents or larger files or being able to reuse an
+                    uploaded file, you can add it to a collection. Then, a retrieval augmented generation
+                    algorithm will try to fetch the most relevant parts of the document or files and put them
+                    into the context.
+                </div>
+                <br>
             </div>
             <br>
             <form id="upload-form" class="popup-form">
@@ -23,27 +26,66 @@
                     <input id="file" name="file" type="file" required>
                 </div>
                 <div class="param-help">
-                    Single documents or zip-archives.
+                    Single documents (*.txt, *.pdf, *.doc, *.rtf, *.sqlite, and of course code files).
+                    Archives will be unpacked on the server and if small enough will be added to the context.
                 </div>
 
                 <div>
                     <label for="collection-selector">Collection</label>
                     <select id="collection-selector" name="collection-selector">
-                        <option value="None">None, just use file in the current context</option>
-                        <option value="New" disabled>New collection</option>
-                        <option value="iacr" disabled>IACR</option>
+                        <option value="">None, just use file in the current context</option>
+                        <option value="New">New collection</option>
+                        {% if collections['common'] %}
+                            <optgroup label="Public">
+                            {% for my_item in collections['common'] %}
+                                <option value="my_item">{{my_item}}</option>-->
+                            {% endfor %}
+                            </optgroup>
+                        {% endif %}
+                        {% if collections['user'] %}
+                            <optgroup label="User">
+                            {% for my_item in collections['user'] %}
+                                <option value="my_item">{{my_item}}</option>-->
+                            {% endfor %}
+                            </optgroup>
+                        {% endif %}
                     </select>
                 </div>
-
                 <div class="param-help">
-                    Todo
+                    A collection is required if the input exceeds the models context or if
+                    you want to be able to query many files at once.
+                    <br><br>
+                    In this case, the content of the files is being chunked and stored in a database. When using
+                    the collection, the most similar chunks are retrieved and placed into the context.
+                    <br><br>
+                    For more information, see "Retrieval Augmented Generation" (RAG).
+                </div>
+                <div class="block">
+                    <div>
+                        <label for="collection-name">Collection name</label>
+                        <input type="text" placeholder="Please provide a name" required="required" id="collection-name"
+                               name="collection-name">
+                    </div>
+                    <div class="param-help">
+                        Provide a name for your collection.
+                    </div>
+                </div>
+                <div class="block">
+                    <div>
+                        <label for="collection-visibility">Public</label>
+                        <input type="checkbox" required="required" id="collection-visibility"
+                               name="collection-visibility" value="public">
+                    </div>
+                    <div class="param-help">
+                        Make this collection available for other users.
+                    </div>
                 </div>
                 <div>
                     <button id="upload-button" class="ml-auto">
                         Upload
+                        <span class="spinner"></span>
                     </button>
                 </div>
-
             </form>
         </div>
     </div>

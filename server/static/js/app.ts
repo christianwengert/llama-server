@@ -12,6 +12,7 @@ const getFormDataAsJSON = (formId: string): Record<string, string | number | boo
     const formData: Record<string, string | number | boolean> = {};
 
     if (form) {
+        // @ts-ignore
         for (const [key, value] of new FormData(form).entries()) {
             if (value === 'true') {
                 formData[key] = true;
@@ -72,13 +73,12 @@ const handleEditAction = (e: MouseEvent) => {
 //     handleVoteAction(e, 'down')
 // };
 
-const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement): string => {
+const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement, innerMessageExtraClass?: string, renderButtons: boolean = true): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
 
     const messageDiv = document.createElement('div');
     messageDiv.className = `message from-${direction}`;
     messageDiv.id = ident;
-
 
     const messageExtra = document.createElement('div')
     messageExtra.className = 'message-header'
@@ -87,45 +87,49 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
 
     const innerMessageDiv = document.createElement('div');
     innerMessageDiv.className = 'inner-message';
+    if (innerMessageExtraClass) {
+        innerMessageDiv.classList.add(innerMessageExtraClass)
+    }
     innerMessageDiv.textContent = message;
     messageDiv.appendChild(innerMessageDiv);
+    if (renderButtons) {
+        if (direction === 'me') {
+            const editButtonDiv = document.createElement('div');
+            editButtonDiv.className = 'edit-button';
+            const editLink = document.createElement('a');
+            editLink.href = '/edit/';
+            editLink.id = `edit-${ident}`;
+            editLink.textContent = 'Edit';
+            editButtonDiv.appendChild(editLink);
 
-    if (direction === 'me') {
-        const editButtonDiv = document.createElement('div');
-        editButtonDiv.className = 'edit-button';
-        const editLink = document.createElement('a');
-        editLink.href = '/edit/';
-        editLink.id = `edit-${ident}`;
-        editLink.textContent = 'Edit';
-        editButtonDiv.appendChild(editLink);
+            editLink.addEventListener('click', handleEditAction)
 
-        editLink.addEventListener('click', handleEditAction)
-
-        messageDiv.appendChild(editButtonDiv);
+            messageDiv.appendChild(editButtonDiv);
+        }
+        // else {
+        // const voteButtonDiv = document.createElement('div');
+        // voteButtonDiv.className = 'edit-button';
+        // const upvoteLink = document.createElement('a');
+        // upvoteLink.href = '/upvote/';
+        // upvoteLink.id = `upvote-${ident}`;
+        // upvoteLink.textContent = '➞';
+        // voteButtonDiv.appendChild(upvoteLink);
+        //
+        //
+        // const downvoteLink = document.createElement('a');
+        // downvoteLink.href = '/downvote/';
+        // downvoteLink.id = `downvote-${ident}`;
+        // downvoteLink.textContent = '➞';
+        // voteButtonDiv.appendChild(downvoteLink);
+        //
+        // messageDiv.appendChild(voteButtonDiv);
+        //
+        // upvoteLink.addEventListener('click', handleUpvoteAction);
+        // downvoteLink.addEventListener('click', handleDownvoteAction);
+        //
+        //
+        // }
     }
-    // else {
-    // const voteButtonDiv = document.createElement('div');
-    // voteButtonDiv.className = 'edit-button';
-    // const upvoteLink = document.createElement('a');
-    // upvoteLink.href = '/upvote/';
-    // upvoteLink.id = `upvote-${ident}`;
-    // upvoteLink.textContent = '➞';
-    // voteButtonDiv.appendChild(upvoteLink);
-    //
-    //
-    // const downvoteLink = document.createElement('a');
-    // downvoteLink.href = '/downvote/';
-    // downvoteLink.id = `downvote-${ident}`;
-    // downvoteLink.textContent = '➞';
-    // voteButtonDiv.appendChild(downvoteLink);
-    //
-    // messageDiv.appendChild(voteButtonDiv);
-    //
-    // upvoteLink.addEventListener('click', handleUpvoteAction);
-    // downvoteLink.addEventListener('click', handleDownvoteAction);
-    //
-    //
-    // }
     chat.appendChild(messageDiv);
     return ident;
 };
@@ -141,25 +145,111 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
 
 
 const setupUploadButton = () => {
-    const uploadButton = document.getElementById('upload-button')
+    const uploadButton = document.getElementById('upload-button') as HTMLButtonElement;
     if (uploadButton) {
         uploadButton.addEventListener('click', (e) => {
             e.preventDefault();
 
+            const existingErrorMessage = document.querySelector('[data-error-message]') as HTMLElement;
+            if (existingErrorMessage) {
+                if (existingErrorMessage.dataset.errorMessage) {
+                    delete existingErrorMessage.dataset.errorMessage
+                }
+            }
+
+
             const formElement = document.getElementById("upload-form") as HTMLFormElement;
+            const fileInput = formElement.querySelector('#file')! as HTMLInputElement;
+            const parentDiv = fileInput.parentElement!;
+            const help = parentDiv.nextElementSibling! as HTMLElement;
 
             // Create a new FormData object
             const formData = new FormData(formElement);
-
+            const chat = document.getElementById('chat')!;
+            uploadButton.disabled = true;
             fetch("/upload",
                 {
                     body: formData,
                     method: "post"
-                }).then(() => {
-                document.location.hash = ''
-            });
+                }).then((response) => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                    return response.json();
+                }).then((jsonData) => {
+                    // Process the JSON data here
+                    console.log(jsonData);
+                    help.classList.remove('warning')
+                    if(jsonData.error) {
+                        help.dataset.errorMessage = jsonData['error']
+                        help.classList.add('warning')
+                    } else { // all set
+                        document.location.hash = ''
+                        renderMessage((formData.get('file') as any).name, "me", chat, 'file-icon', false);
+
+                        if(jsonData['collection-visibility']) {
+                            const menuLink = document.getElementById('menuLink');
+                            if(menuLink) {
+                                const textNode = menuLink.firstChild! as HTMLElement;
+                                textNode.textContent = jsonData['collection-name'];
+                                const collectionType = jsonData['collection-visibility'] === 'public' ? 'common' : 'user'
+                                const subMenu = document.getElementById(`menu-collection-${collectionType}`)
+                                if(subMenu) {
+                                    const button = document.createElement('a')
+                                    button.className = 'mode-button'
+                                    button.href = '#';
+                                    button.textContent = jsonData['collection-name'];
+                                    button.id = jsonData['collection-name'];
+                                    subMenu.appendChild(button);
+                                    // Get the current URL
+                                    const url = new URL(window.location.href);
+                                    // Update the search parameter
+                                    url.searchParams.set('collection', jsonData['collection-name']);
+                                    // Change the location object without reloading the page
+                                    history.replaceState({}, '', url);
+                                }
+                            }
+                        }
+
+                    }
+                })
+                .catch((_error) => {
+                    // Handle errors or display a message to the user
+                    help.classList.add('warning', 'warning-file-upload-failed')
+                })
+                .finally(() => {
+                    uploadButton.disabled = false;
+                });
         })
     }
+
+    const collectionSelector = document.getElementById('collection-selector') as HTMLSelectElement;
+    const collectionName = document.getElementById('collection-name') as HTMLInputElement;
+    const collectionVisibility = document.getElementById('collection-visibility') as HTMLInputElement;
+
+    if (collectionSelector && collectionName && collectionVisibility) {
+        const outerName = collectionName.closest('.block')!;
+        const outerVisibility = collectionVisibility.closest('.block')!;
+        const eventHandler = (event?: Event) => {
+            if(event) {
+                event.preventDefault();
+            }
+            if(collectionSelector.value === "New")
+            {
+                outerName.className = 'd-block';
+                outerVisibility.className = 'd-block';
+                collectionName.value = "";
+                collectionVisibility.checked = false;
+            } else {
+                outerName.className = 'd-none'
+                outerVisibility.className = 'd-none'
+            }
+        }
+        collectionSelector.addEventListener('change', eventHandler)
+        eventHandler();  // set it for starter
+    }
+
+
 };
 
 
@@ -168,14 +258,14 @@ const highlightCode = (inner: HTMLElement) => {
     const convertMarkdownToHTML = (mdString: string) => {
         // Replace triple backtick code blocks
         const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-        mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+        mdString = mdString.replace(codeBlockRegex, (_match, lang, code) => {
             const language = lang || 'bash';
             return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
         });
 
         // Replace inline code
         const inlineCodeRegex = /`([^`]+)`/g;
-        mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+        mdString = mdString.replace(inlineCodeRegex, (_match, code) => {
             return `<code class="inline">${escapeHTML(code)}</code>`;
         });
         // highlight inline **Title**
@@ -204,7 +294,12 @@ const highlightCode = (inner: HTMLElement) => {
 };
 
 const loadHistory = () => {
+    type Metadata = {
+        file: string
+    }
     type Message = {
+        collection: string;
+        metadata: Array<Metadata>;
         role: string;
         content: string;
     }
@@ -270,17 +365,34 @@ const loadHistory = () => {
         if (chat.children.length > 0) {
             return;  // not necessary to do anything, it is rendered already
         }
-
         item.items.forEach((msg, index) => {
             const direction = index % 2 === 0 ? "me" : "them";
-            const ident = renderMessage(msg.content, direction, chat)
+            let innerMessageExtraClass: string|undefined = undefined;
+            let renderButtons: boolean = true;
+            if(msg.metadata) {
+                innerMessageExtraClass = "file-icon";
+                const fileSet = new Set(msg.metadata.map(item => item.file));
+                msg.content = Array.from(fileSet).join(', ')
+                // msg.content = msg.metadata.filename;
+                renderButtons = false;
+            }
+            if(msg.collection) {
+                const url = new URL(window.location.href);
+                // Update the search parameter
+                url.searchParams.set('collection', msg.collection);
+                // Change the location object without reloading the page
+                history.replaceState({}, '', url);
+                const menuLink = document.getElementById('menuLink')!;
+                const textNode = menuLink.firstChild! as HTMLElement;
+                textNode.textContent = msg.collection;
+            }
 
-            const msgDiv = document.getElementById(ident)
+            const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
+
+            const msgDiv = document.getElementById(ident);
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
-            // if (direction === 'them') {
             highlightCode(inner);  // highlight both directions
-            // }
         })
     }
     const index = document.location.pathname.indexOf('/c/')
@@ -299,7 +411,7 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
 };
 
 
-function setClipboardHandler() {
+const setClipboardHandler = () => {
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
 
@@ -322,7 +434,7 @@ function setClipboardHandler() {
             });
         }
     });
-}
+};
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -343,6 +455,18 @@ function getInputHandler(inputElement: HTMLElement) {
         const messages = Array.from(chat.children)
         pruneHistoryIndex = messages.indexOf(message);
         removeAllChildrenAfterIndex(chat, pruneHistoryIndex)
+    }
+
+    type TimingInfo = {
+        predicted_per_token_ms: number;
+
+    }
+    type ReturnMessage = {
+        content: string;
+        model: any;
+        timings: TimingInfo;
+        stop: boolean;
+
     }
 
 
@@ -395,11 +519,12 @@ function getInputHandler(inputElement: HTMLElement) {
                 while ((end = buffer.indexOf(separator, start)) !== -1) {
                     let message = buffer.substring(start, end);
                     start = end + separator.length; // skip past the delimiter
-                    let jsonMessage;
+                    let jsonMessage: ReturnMessage;
                     try {
                         jsonMessage = JSON.parse(message);
                     } catch (e) {
-                        console.log(e)
+                        console.log(e, message);  // this would happen if the separator is part of the prompt!!!
+                        break;
                     }
 
                     if (jsonMessage.stop === true) {
@@ -434,6 +559,9 @@ function getInputHandler(inputElement: HTMLElement) {
             });
 
             xhr.onload = function () {
+
+                console.log(buffer)
+
                 if (isMainInput) {
                     inputElement.contentEditable = "true";
                 }
@@ -521,36 +649,67 @@ function setupMenu() {
 
     const menu = document.getElementById('menu')!;
 
+    const key = 'collection'
+
+    // Get the current location and parse it into a URL object
+    const curUrl = new URL(window.location.href);
+
     menuLink.addEventListener('click', function (event) {
         menu.classList.toggle('hidden');
         event.preventDefault();
     });
 
+    // hide menu
     window.addEventListener('click', function (event) {
         let target = event.target! as HTMLElement;
         if (!menu.contains(target) && target !== menuLink) {
             menu.classList.add('hidden');
         }
-        // todo: close popup when out of reach
-        // const targetElement = document.getElementById('element');
     });
 
 
+    // get and set current mode
+    const selectedMode = curUrl.searchParams.get(key);
+    // @ts-ignore
     for (let elem of document.getElementsByClassName('mode-button')) {
-        elem.addEventListener('click', (e) => {
+        elem.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault()
             const target = e.target! as HTMLElement;
             menu.classList.toggle('hidden');
-            if (target.id === 'mode-chat') {
-                textNode.textContent = 'Chat';
-                return
-            }
-            if (target.id === 'mode-stackexchange') {
-                textNode.textContent = 'Stackexchange';
-                return
+
+            const updateUrlParam = (term: string) => {
+                // Add or update the 'q' parameter in the query string
+                if (!curUrl.searchParams.has(key)) {
+                    curUrl.searchParams.append(key, term); // Append a new search param if it doesn't exist
+                } else {
+                    curUrl.searchParams.set(key, term); // Overwrite the existing search param with the new value
+                }
+                // Update the URL in the browser
+                window.history.pushState({}, '', curUrl.href);
             }
 
+            if (target.id === 'mode-chat') {
+                textNode.textContent = 'Chat';
+                updateUrlParam('')
+                return
+            }
+            // if (target.id === 'mode-stackexchange') {
+            // const vals = target.id.split('-')
+            // console.log(vals)
+
+
+            textNode.textContent = target.id.replace('-', '/');
+            updateUrlParam(target.id)
+                // return
+            // }
+
         })
+        //update current selection
+        if(selectedMode && elem.id === selectedMode) {
+            // console.log('sekect ', elem)
+            (elem as HTMLAnchorElement).click();
+            menu.classList.add('hidden');
+        }
     }
 }
 
@@ -576,6 +735,34 @@ const setupEscapeButtonForPopups = () => {
 };
 
 
+const setupSettingsMustBeSet = () => {
+    let form = document.getElementById('settings-form');
+    if(!form) {
+        return
+    }
+    const inputs = form.querySelectorAll('input[required]')
+
+    const validateInput = () => {
+
+        inputs.forEach(elem => {
+            const input =  elem as HTMLInputElement;
+            const parent = input.parentElement as HTMLDivElement;
+            const help = parent.nextElementSibling as HTMLDivElement;
+
+            if (input.value.trim() === '') {
+                help.classList.add('warning');
+            } else {
+                help.classList.remove('warning');
+            }
+        });
+    };
+
+    inputs.forEach(input => {
+        input.addEventListener('input', validateInput);
+    });
+    validateInput();
+};
+
 const main = () => {
 
     setupMenu(); // Menu on top left
@@ -591,6 +778,7 @@ const main = () => {
 
     setupEscapeButtonForPopups();
 
+    setupSettingsMustBeSet();
 };
 
 main()

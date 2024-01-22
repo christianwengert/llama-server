@@ -49886,7 +49886,7 @@
     selection.addRange(range);
     inner.addEventListener("keypress", getInputHandler(inner));
   };
-  var renderMessage = (message, direction, chat) => {
+  var renderMessage = (message, direction, chat, innerMessageExtraClass, renderButtons = true) => {
     const ident = (Math.random() + 1).toString(36).substring(2);
     const messageDiv = document.createElement("div");
     messageDiv.className = `message from-${direction}`;
@@ -49897,18 +49897,23 @@
     messageExtra.innerText = direction === "me" ? "You" : "Assistant";
     const innerMessageDiv = document.createElement("div");
     innerMessageDiv.className = "inner-message";
+    if (innerMessageExtraClass) {
+      innerMessageDiv.classList.add(innerMessageExtraClass);
+    }
     innerMessageDiv.textContent = message;
     messageDiv.appendChild(innerMessageDiv);
-    if (direction === "me") {
-      const editButtonDiv = document.createElement("div");
-      editButtonDiv.className = "edit-button";
-      const editLink = document.createElement("a");
-      editLink.href = "/edit/";
-      editLink.id = `edit-${ident}`;
-      editLink.textContent = "Edit";
-      editButtonDiv.appendChild(editLink);
-      editLink.addEventListener("click", handleEditAction);
-      messageDiv.appendChild(editButtonDiv);
+    if (renderButtons) {
+      if (direction === "me") {
+        const editButtonDiv = document.createElement("div");
+        editButtonDiv.className = "edit-button";
+        const editLink = document.createElement("a");
+        editLink.href = "/edit/";
+        editLink.id = `edit-${ident}`;
+        editLink.textContent = "Edit";
+        editButtonDiv.appendChild(editLink);
+        editLink.addEventListener("click", handleEditAction);
+        messageDiv.appendChild(editButtonDiv);
+      }
     }
     chat.appendChild(messageDiv);
     return ident;
@@ -49925,29 +49930,100 @@
     if (uploadButton) {
       uploadButton.addEventListener("click", (e) => {
         e.preventDefault();
+        const existingErrorMessage = document.querySelector("[data-error-message]");
+        if (existingErrorMessage) {
+          if (existingErrorMessage.dataset.errorMessage) {
+            delete existingErrorMessage.dataset.errorMessage;
+          }
+        }
         const formElement = document.getElementById("upload-form");
+        const fileInput = formElement.querySelector("#file");
+        const parentDiv = fileInput.parentElement;
+        const help = parentDiv.nextElementSibling;
         const formData = new FormData(formElement);
+        const chat = document.getElementById("chat");
+        uploadButton.disabled = true;
         fetch(
           "/upload",
           {
             body: formData,
             method: "post"
           }
-        ).then(() => {
-          document.location.hash = "";
+        ).then((response) => {
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          return response.json();
+        }).then((jsonData) => {
+          console.log(jsonData);
+          help.classList.remove("warning");
+          if (jsonData.error) {
+            help.dataset.errorMessage = jsonData["error"];
+            help.classList.add("warning");
+          } else {
+            document.location.hash = "";
+            renderMessage(formData.get("file").name, "me", chat, "file-icon", false);
+            if (jsonData["collection-visibility"]) {
+              const menuLink = document.getElementById("menuLink");
+              if (menuLink) {
+                const textNode = menuLink.firstChild;
+                textNode.textContent = jsonData["collection-name"];
+                const collectionType = jsonData["collection-visibility"] === "public" ? "common" : "user";
+                const subMenu = document.getElementById(`menu-collection-${collectionType}`);
+                if (subMenu) {
+                  const button = document.createElement("a");
+                  button.className = "mode-button";
+                  button.href = "#";
+                  button.textContent = jsonData["collection-name"];
+                  button.id = jsonData["collection-name"];
+                  subMenu.appendChild(button);
+                  const url = new URL(window.location.href);
+                  url.searchParams.set("collection", jsonData["collection-name"]);
+                  history.replaceState({}, "", url);
+                }
+              }
+            }
+          }
+        }).catch((_error) => {
+          help.classList.add("warning", "warning-file-upload-failed");
+        }).finally(() => {
+          uploadButton.disabled = false;
         });
       });
+    }
+    const collectionSelector = document.getElementById("collection-selector");
+    const collectionName = document.getElementById("collection-name");
+    const collectionVisibility = document.getElementById("collection-visibility");
+    if (collectionSelector && collectionName && collectionVisibility) {
+      const outerName = collectionName.closest(".block");
+      const outerVisibility = collectionVisibility.closest(".block");
+      const eventHandler = (event) => {
+        if (event) {
+          event.preventDefault();
+        }
+        if (collectionSelector.value === "New") {
+          outerName.className = "d-block";
+          outerVisibility.className = "d-block";
+          collectionName.value = "";
+          collectionVisibility.checked = false;
+        } else {
+          outerName.className = "d-none";
+          outerVisibility.className = "d-none";
+        }
+      };
+      collectionSelector.addEventListener("change", eventHandler);
+      eventHandler();
     }
   };
   var highlightCode = (inner) => {
     const convertMarkdownToHTML = (mdString) => {
       const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-      mdString = mdString.replace(codeBlockRegex, (match, lang, code) => {
+      mdString = mdString.replace(codeBlockRegex, (_match, lang, code) => {
         const language = lang || "bash";
         return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
       });
       const inlineCodeRegex = /`([^`]+)`/g;
-      mdString = mdString.replace(inlineCodeRegex, (match, code) => {
+      mdString = mdString.replace(inlineCodeRegex, (_match, code) => {
         return `<code class="inline">${escapeHTML(code)}</code>`;
       });
       return mdString;
@@ -50010,7 +50086,23 @@
       }
       item.items.forEach((msg, index2) => {
         const direction = index2 % 2 === 0 ? "me" : "them";
-        const ident = renderMessage(msg.content, direction, chat);
+        let innerMessageExtraClass = void 0;
+        let renderButtons = true;
+        if (msg.metadata) {
+          innerMessageExtraClass = "file-icon";
+          const fileSet = new Set(msg.metadata.map((item2) => item2.file));
+          msg.content = Array.from(fileSet).join(", ");
+          renderButtons = false;
+        }
+        if (msg.collection) {
+          const url2 = new URL(window.location.href);
+          url2.searchParams.set("collection", msg.collection);
+          history.replaceState({}, "", url2);
+          const menuLink = document.getElementById("menuLink");
+          const textNode = menuLink.firstChild;
+          textNode.textContent = msg.collection;
+        }
+        const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
         const msgDiv = document.getElementById(ident);
         const inner = msgDiv.getElementsByClassName("inner-message")[0];
         highlightCode(inner);
@@ -50028,7 +50120,7 @@
       parentElement.removeChild(parentElement.lastChild);
     }
   };
-  function setClipboardHandler() {
+  var setClipboardHandler = () => {
     document.addEventListener("click", (event) => {
       const target = event.target;
       if (target.matches(".code-header > .copy")) {
@@ -50044,7 +50136,7 @@
         });
       }
     });
-  }
+  };
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
     let isMainInput = inputElement === mainInput;
@@ -50103,7 +50195,8 @@
             try {
               jsonMessage = JSON.parse(message);
             } catch (e2) {
-              console.log(e2);
+              console.log(e2, message);
+              break;
             }
             if (jsonMessage.stop === true) {
               const timings = jsonMessage.timings;
@@ -50130,6 +50223,7 @@
           console.log("error: " + e2);
         });
         xhr.onload = function() {
+          console.log(buffer);
           if (isMainInput) {
             inputElement.contentEditable = "true";
           }
@@ -50193,6 +50287,8 @@
     }
     const textNode = menuLink.firstChild;
     const menu = document.getElementById("menu");
+    const key = "collection";
+    const curUrl = new URL(window.location.href);
     menuLink.addEventListener("click", function(event) {
       menu.classList.toggle("hidden");
       event.preventDefault();
@@ -50203,20 +50299,32 @@
         menu.classList.add("hidden");
       }
     });
+    const selectedMode = curUrl.searchParams.get(key);
     for (let elem of document.getElementsByClassName("mode-button")) {
       elem.addEventListener("click", (e) => {
         e.preventDefault();
         const target = e.target;
         menu.classList.toggle("hidden");
+        const updateUrlParam = (term) => {
+          if (!curUrl.searchParams.has(key)) {
+            curUrl.searchParams.append(key, term);
+          } else {
+            curUrl.searchParams.set(key, term);
+          }
+          window.history.pushState({}, "", curUrl.href);
+        };
         if (target.id === "mode-chat") {
           textNode.textContent = "Chat";
+          updateUrlParam("");
           return;
         }
-        if (target.id === "mode-stackexchange") {
-          textNode.textContent = "Stackexchange";
-          return;
-        }
+        textNode.textContent = target.id.replace("-", "/");
+        updateUrlParam(target.id);
       });
+      if (selectedMode && elem.id === selectedMode) {
+        elem.click();
+        menu.classList.add("hidden");
+      }
     }
   }
   function setupTextInput() {
@@ -50233,6 +50341,29 @@
       }
     });
   };
+  var setupSettingsMustBeSet = () => {
+    let form = document.getElementById("settings-form");
+    if (!form) {
+      return;
+    }
+    const inputs = form.querySelectorAll("input[required]");
+    const validateInput = () => {
+      inputs.forEach((elem) => {
+        const input = elem;
+        const parent = input.parentElement;
+        const help = parent.nextElementSibling;
+        if (input.value.trim() === "") {
+          help.classList.add("warning");
+        } else {
+          help.classList.remove("warning");
+        }
+      });
+    };
+    inputs.forEach((input) => {
+      input.addEventListener("input", validateInput);
+    });
+    validateInput();
+  };
   var main = () => {
     setupMenu();
     setupResetSettingsButton();
@@ -50242,6 +50373,7 @@
     loadHistory();
     setClipboardHandler();
     setupEscapeButtonForPopups();
+    setupSettingsMustBeSet();
   };
   main();
 })();
