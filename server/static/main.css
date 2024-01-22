@@ -1068,6 +1068,10 @@ input[type="number"]::-webkit-outer-spin-button {
     justify-content: center;
 }
 
+#record.recording {
+    color: red !important;
+}
+
 #extra-input-buttons button, #extra-input-buttons a {
     border: none;
     background-color: unset;
@@ -1107,9 +1111,7 @@ input[type="number"]::-webkit-outer-spin-button {
     opacity: 0.5;
 }
 
-.recording {
-    color: red;
-}
+
 
 #record > i {
     margin: auto;
