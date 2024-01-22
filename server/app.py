@@ -1,4 +1,3 @@
-import argparse
 import hashlib
 import json
 import os
@@ -45,29 +44,6 @@ app.config['SESSION_PERMANENT'] = True  # Persist sessions across restarts
 app.config["PERMANENT_SESSION_LIFETIME"] = 30 * 24 * 60 * 60  # 30 days
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 Session(app)
-
-
-# todo remove all of this
-parser = argparse.ArgumentParser(
-    description="An example of using server.cpp with a similar API to OAI. It must be used together with server.cpp.")
-parser.add_argument("--chat-prompt", type=str,
-                    help="the top prompt in chat completions(default: 'A chat between a curious user and an artificial intelligence assistant. The assistant follows the given rules no matter what.\\n')",
-                    default='A chat between a curious user and an artificial intelligence assistant. The assistant follows the given rules no matter what.\\n')
-parser.add_argument("--user-name", type=str, help="USER name in chat completions(default: '\\nUSER: ')",
-                    default="\\nUSER: ")
-parser.add_argument("--ai-name", type=str, help="ASSISTANT name in chat completions(default: '\\nASSISTANT: ')",
-                    default="\\nASSISTANT: ")
-parser.add_argument("--system-name", type=str, help="SYSTEM name in chat completions(default: '\\nASSISTANT's RULE: ')",
-                    default="\\nASSISTANT's RULE: ")
-parser.add_argument("--stop", type=str, help="the end of response in chat completions(default: '</s>')",
-                    default="\\nUSER:")
-parser.add_argument("--llama-api", type=str,
-                    help="Set the address of server.cpp in llama_cpp(default: http://127.0.0.1:8080)",
-                    default='http://127.0.0.1:8080')
-parser.add_argument("--api-key", type=str, help="Set the api key to allow only few user(default: NULL)", default="")
-parser.add_argument("--host", type=str, help="Set the ip address to listen.(default: 127.0.0.1)", default='127.0.0.1')
-parser.add_argument("--port", type=int, help="Set the port to listen.(default: 8081)", default=8081)
-args = parser.parse_args()
 
 
 def login_required(f):
@@ -291,7 +267,7 @@ def prepare_files(base_folder: str, files: List) -> Tuple[Dict[str, str], List[s
 
 def get_tokens(text):
     data = requests.request(method="POST",
-                            url=urllib.parse.urljoin(args.llama_api, "/tokenize"),
+                            url=urllib.parse.urljoin(LLAMA_API, "/tokenize"),
                             data=json.dumps(dict(content=text)),
                             )
     data_json = data.json()
@@ -396,7 +372,7 @@ def get_input():
 
     def generate():
         data = requests.request(method="POST",
-                                url=urllib.parse.urljoin(args.llama_api, "/completion"),
+                                url=urllib.parse.urljoin(LLAMA_API, "/completion"),
                                 data=json.dumps(post_data),
                                 stream=True)
 
@@ -446,21 +422,6 @@ def get_context_from_upload(token: str) -> Tuple[Optional[str], List[Dict]]:
     metadata = dict(file=context.get('filename', None))
     contents = context.get('contents', None)
     return contents, [metadata]
-
-
-def transform_query(query: str, use_llm=False) -> str:
-    if not use_llm:
-        return query
-    # This is called query transform, todo: The problem is: It will overwrite the llama.cpp cache
-    query_gen_str = """Provide a better search query for a search engine to answer the given question. Question: {query}\nAnswer:"""
-    post_data = get_llama_default_parameters({})
-    post_data['stream'] = False
-    post_data['prompt'] = query_gen_str.format(query=query)
-    response = requests.request(method="POST",
-                                url=urllib.parse.urljoin(args.llama_api, "/completion"),
-                                data=json.dumps(post_data),
-                                stream=False)
-    return response.json()['content'].strip()
 
 
 def make_prompt(hist, system_prompt, text, prompt_template):

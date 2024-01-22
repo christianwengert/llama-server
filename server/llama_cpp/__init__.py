@@ -1,5 +1,8 @@
 from typing import Dict, Any
 
+LLAMA_API = 'http://127.0.0.1:8080'
+
+
 SYSTEM = 'system'
 ASSISTANT = 'assistant'
 USER = 'user'
