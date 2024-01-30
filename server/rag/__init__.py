@@ -30,7 +30,14 @@ RAG_RERANKING_YESNO_GRAMMAR = r'''
 '''
 RAG_NUM_DOCS = 5
 
-RAG_EMBEDDINGS = HuggingFaceEmbeddings(model_name='BAAI/bge-large-en-v1.5',
+
+RAG_MODEL = 'BAAI/bge-large-en-v1.5'
+# RAG_MODEL = 'intfloat/multilingual-e5-large'
+# Each input text should start with "query: " or "passage: ", even for non-English texts.
+# For tasks other than retrieval, you can simply use the "query: " prefix.
+# see also here: DO I need query: https://huggingface.co/intfloat/e5-large-v2
+
+RAG_EMBEDDINGS = HuggingFaceEmbeddings(model_name=RAG_MODEL,
                                        encode_kwargs={'normalize_embeddings': True}  # set True to compute cosine similarity
                                        )
 

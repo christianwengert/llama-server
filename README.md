@@ -1,13 +1,11 @@
 # Another local GPT UI
 
-Uses existing backends (now llama.cpp) but brings: 
+This is a user interface for your browser written in Python with the idea to provide a minimal 
+UI for chat with local LLMs using llama.cpp featuring Retrieval Augmented Generation (RAG) and audio input using
+whisper.cpp.
 
-- retrieval augmented generation
-- search
-- context
-- audio to llm (separate branch)
-
-
+The UI offers simple user identification without password authentication. This mainly serves to have
+a history with each user.
 
 
 # Installation
@@ -37,27 +35,45 @@ npm run build_mini
 - 
 
 
-# 
-# This is how to get rid off langchain
-# from sentence_transformers import SentenceTransformer
-# EMBEDDINGS = SentenceTransformer('BAAI/bge-large-en-v1.5')
-#
-# #Our sentences we like to encode
-# sentences = ['This framework generates embeddings for each input sentence',
-#     'Sentences are passed as a list of string.',
-#     'The quick brown fox jumps over the lazy dog.']
-#
-# #Sentences are encoded by calling model.encode()
-# embeddings = model.encode(sentences, normalize_embeddings=True)
-# EMBEDDINGS.embed_documents(sentences)
-#
-# #Print the embeddings
-# for sentence, embedding in zip(sentences, embeddings):
-#     print("Sentence:", sentence)
-#     print("Embedding:", embedding)
-#     print("")
+[//]: # (# )
+
+[//]: # (# This is how to get rid off langchain)
+
+[//]: # (# from sentence_transformers import SentenceTransformer)
+
+[//]: # (# EMBEDDINGS = SentenceTransformer&#40;'BAAI/bge-large-en-v1.5'&#41;)
+
+[//]: # (#)
+
+[//]: # (# #Our sentences we like to encode)
+
+[//]: # (# sentences = ['This framework generates embeddings for each input sentence',)
+
+[//]: # (#     'Sentences are passed as a list of string.',)
+
+[//]: # (#     'The quick brown fox jumps over the lazy dog.'])
+
+[//]: # (#)
+
+[//]: # (# #Sentences are encoded by calling model.encode&#40;&#41;)
+
+[//]: # (# embeddings = model.encode&#40;sentences, normalize_embeddings=True&#41;)
+
+[//]: # (# EMBEDDINGS.embed_documents&#40;sentences&#41;)
+
+[//]: # (#)
+
+[//]: # (# #Print the embeddings)
+
+[//]: # (# for sentence, embedding in zip&#40;sentences, embeddings&#41;:)
+
+[//]: # (#     print&#40;"Sentence:", sentence&#41;)
+
+[//]: # (#     print&#40;"Embedding:", embedding&#41;)
+
+[//]: # (#     print&#40;""&#41;)
 
 
-CMAKE_ARGS="-DLLAMA_METAL=on -DBUILD_SHARED_LIBS=on" FORCE_CMAKE=1 python setup.py develop
+[//]: # (CMAKE_ARGS="-DLLAMA_METAL=on -DBUILD_SHARED_LIBS=on" FORCE_CMAKE=1 python setup.py develop)
 
-transformers:  pip install -e .
+[//]: # (transformers:  pip install -e .)
