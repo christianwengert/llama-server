@@ -291,7 +291,7 @@ def get_tokens(text):
 #     prompt = title_prompt + 'Conversation:\n' + history
 #
 #     data = requests.request(method="POST",
-#                             url=urllib.parse.urljoin(args.llama_api, "/completion"),
+#                             url=urllib.parse.urljoin(LLAMA_API, "/completion"),
 #                             data=json.dumps(dict(prompt=prompt)),
 #                             stream=True)
 
