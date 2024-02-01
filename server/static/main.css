@@ -1150,7 +1150,7 @@ div.warning:after {
     display: block !important;
 }
 .file-icon {
-    /*display: inline-block;*/
+    display: flex;
     border: 1px solid #e0e0e0;
     background-color: rgb(252, 252, 253);
     border-radius: 5px;
