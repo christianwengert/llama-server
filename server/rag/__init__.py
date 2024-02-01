@@ -19,6 +19,7 @@ from llama_cpp import get_llama_default_parameters, LLAMA_API
 from utils.filesystem import list_directories, is_source_code_file, is_pdf, is_json, is_text_file, is_sqlite, \
     get_mime_type, is_importable
 
+
 RAG_CHUNK_SIZE = 2048
 RAG_DATA_DIR = os.path.dirname(__file__) + '/../../data'
 RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
@@ -30,8 +31,9 @@ RAG_RERANKING_YESNO_GRAMMAR = r'''
 '''
 RAG_NUM_DOCS = 5
 
-
+# RAG_DEFAULT_MODEL = 'BAAI/bge-m3'
 RAG_MODEL = 'BAAI/bge-large-en-v1.5'
+# RAG_MODEL = 'BAAI/bge-large-en-v1.5'
 # RAG_MODEL = 'intfloat/multilingual-e5-large'
 # Each input text should start with "query: " or "passage: ", even for non-English texts.
 # For tasks other than retrieval, you can simply use the "query: " prefix.
@@ -243,6 +245,10 @@ def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
         docs = []
         for r in results[:num_docs]:
             docs.append(Document(page_content=r['text'], metadata=r['meta']))
+    # elif is_importable('FlagEmbedding'):
+    #     print('using flashembedding reranker')
+    #     docs = vector_store.similarity_search(query, k=num_docs)  #
+    #     reranker = FlagReranker('BAAI/bge-reranker-large')
     else:
         print('no flashrank available')
         docs = vector_store.similarity_search(query, k=num_docs)  #
