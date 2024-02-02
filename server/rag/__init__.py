@@ -31,8 +31,8 @@ RAG_RERANKING_YESNO_GRAMMAR = r'''
 '''
 RAG_NUM_DOCS = 5
 
-# RAG_DEFAULT_MODEL = 'BAAI/bge-m3'
-RAG_MODEL = 'BAAI/bge-large-en-v1.5'
+RAG_MODEL = 'BAAI/bge-m3'
+# RAG_MODEL = 'BAAI/bge-large-en-v1.5'
 # RAG_MODEL = 'BAAI/bge-large-en-v1.5'
 # RAG_MODEL = 'intfloat/multilingual-e5-large'
 # Each input text should start with "query: " or "passage: ", even for non-English texts.
@@ -225,14 +225,14 @@ def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: in
     context = None
     metadata = []
     if vector_store:
-        query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
+        # query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
         docs = search_and_rerank_docs(num_docs, query, vector_store)
         context, metadata = rag_context(docs)
     return context, metadata
 
 
 def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
-    if is_importable('flashrank'):
+    if is_importable('flashrank') and False:
         rawdocs = vector_store.similarity_search(query, k=num_docs * 2)  #
         # noinspection PyPackageRequirements
         from flashrank import RerankRequest, Ranker
@@ -245,49 +245,24 @@ def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
         docs = []
         for r in results[:num_docs]:
             docs.append(Document(page_content=r['text'], metadata=r['meta']))
-    # elif is_importable('FlagEmbedding'):
-    #     print('using flashembedding reranker')
-    #     docs = vector_store.similarity_search(query, k=num_docs)  #
-    #     reranker = FlagReranker('BAAI/bge-reranker-large')
+        return docs
+
+    elif is_importable('FlagEmbedding'):
+        from FlagEmbedding import FlagReranker
+        reranker = FlagReranker('BAAI/bge-reranker-large')
+        print('using flag reranker')
+        rawdocs = vector_store.similarity_search(query, k=num_docs * 2)
+        queries = []
+        for d in rawdocs:
+            queries.append([query, d.page_content])
+        scores = reranker.compute_score(queries)
+        sorted_docs = sorted(zip(scores, rawdocs), reverse=True)
+        return [b for a, b in sorted_docs[:num_docs]]
+
     else:
         print('no flashrank available')
         docs = vector_store.similarity_search(query, k=num_docs)  #
-    return docs
-    # Other ideas:
-    # HyDe
-    # from langchain.chains import HypotheticalDocumentEmbedder
-    #
-    # Rerank with LLM
-    #
-    # if rerank:
-    #     reranked_docs = []
-    #     rerank_post_data = _get_llama_default_parameters(data)
-    #
-    #     rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
-    #     rerank_post_data['stream'] = False
-    #
-    #     # re-rank documents
-    #
-    #     for d in docs:
-    #         formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=query, context=d.page_content)
-    #
-    #         rerank_post_data['prompt'] = formatted_prompt
-    #
-    #         rr_data = requests.request(method="POST",
-    #                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
-    #                                    data=json.dumps(rerank_post_data),
-    #                                    stream=False)
-    #
-    #         rr_response = rr_data.json()
-    #         print(rr_response.get('content'))
-    #         # todo: Logic here
-    #         if 'YES' == rr_response.get('content').strip():
-    #             reranked_docs.append(d)
-    #     # answer = test(llm, reranked_docs, question)
-    #     # print(answer)
-    #     if reranked_docs:
-    #         context = rag_context(reranked_docs)
-    # else:
+        return docs
 
 
 def transform_query(query: str, use_llm=False) -> str:
