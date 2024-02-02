@@ -198,7 +198,7 @@ def upload():
         collection_visibility = request.form.get('collection-visibility', 'private')
         username = session.get('username')
 
-        index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "public")
+        index, index_path, hashed_index_name = create_or_open_collection(collection_name, username, collection_visibility == "public")
         for destination, content, parsed_pdf_document in contents:
             filename = os.path.basename(destination)
             if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
@@ -221,6 +221,7 @@ def upload():
             index.add_documents(docs)
             index.save_local(index_path)
             return_args['collection-name'] = collection_name
+            return_args['collection-hashed-name'] = hashed_index_name
             return_args['collection-visibility'] = collection_visibility
 
     else:

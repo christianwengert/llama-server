@@ -49978,7 +49978,7 @@
                   button.id = jsonData["collection-name"];
                   subMenu.appendChild(button);
                   const url = new URL(window.location.href);
-                  url.searchParams.set("collection", jsonData["collection-name"]);
+                  url.searchParams.set("collection", jsonData["collection-hashed-name"]);
                   history.replaceState({}, "", url);
                 }
               }
@@ -50318,7 +50318,7 @@
           updateUrlParam("");
           return;
         }
-        textNode.textContent = target.id.replace("-", "/");
+        textNode.textContent = target.textContent;
         updateUrlParam(target.id);
       });
       if (selectedMode && elem.id === selectedMode) {

@@ -204,7 +204,7 @@ const setupUploadButton = () => {
                                     // Get the current URL
                                     const url = new URL(window.location.href);
                                     // Update the search parameter
-                                    url.searchParams.set('collection', jsonData['collection-name']);
+                                    url.searchParams.set('collection', jsonData['collection-hashed-name']);
                                     // Change the location object without reloading the page
                                     history.replaceState({}, '', url);
                                 }
@@ -698,7 +698,7 @@ function setupMenu() {
             // console.log(vals)
 
 
-            textNode.textContent = target.id.replace('-', '/');
+            textNode.textContent = target.textContent;
             updateUrlParam(target.id)
                 // return
             // }
