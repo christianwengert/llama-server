@@ -1,5 +1,7 @@
+import hashlib
 import json
 import os
+import time
 import urllib
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union
@@ -96,6 +98,9 @@ def create_or_open_collection(index_name: str, username: Optional[str], public: 
     # Check if index exists already
     collections = get_available_collections(username)
 
+    current_time = str(time.time_ns())  # Ensure uniqueness even with same filenames
+    hashed_index_name = hashlib.sha256((index_name + current_time).encode()).hexdigest()[:32]
+
     if public:
         data_dir = Path(RAG_DATA_DIR) / Path('common')
         public_with_this_name_exists = index_name in collections['common']
@@ -116,6 +121,10 @@ def create_or_open_collection(index_name: str, username: Optional[str], public: 
     # noinspection PyProtectedMember,PyUnresolvedReferences
     index.delete([list(index.docstore._dict.keys())[0]])  # Empty again, this is
     index.save_local(path)
+
+    with open(path / 'config.json', 'w') as f:
+        json.dump(dict(model=RAG_MODEL, name=index_name, hashed_name=hashed_index_name), f)
+
     return index, path
 
 
