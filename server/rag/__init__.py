@@ -140,8 +140,8 @@ def load_collection(collection: str, username: str) -> Optional[FAISS]:
     collections = get_available_collections(username)
 
     for key in ['user', 'common']:  # first check for same name user!
-        for name in collections[key]:
-            if name == collection:
+        for item in collections[key]:
+            if collection == item.get('hashed_name'):
                 data_dir = RAG_DATA_DIR / Path(key)
                 if key == 'user':
                     data_dir = data_dir / Path(username)
