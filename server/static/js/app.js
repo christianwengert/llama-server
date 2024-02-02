@@ -50100,7 +50100,12 @@
           history.replaceState({}, "", url2);
           const menuLink = document.getElementById("menuLink");
           const textNode = menuLink.firstChild;
-          textNode.textContent = msg.collection;
+          const collectionLink = document.querySelector(`a[id="${msg.collection}"]`);
+          if (collectionLink) {
+            textNode.textContent = collectionLink.textContent;
+          } else {
+            console.log("Problems setting the collection name");
+          }
         }
         const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
         const msgDiv = document.getElementById(ident);
@@ -50364,8 +50369,20 @@
     });
     validateInput();
   };
+  var setupCollectionDeletion = () => {
+    window.addEventListener("click", function(event) {
+      let target = event.target;
+      if (target.classList.contains("delete-collection-item")) {
+        event.preventDefault();
+        const collectionToDelete = target.previousElementSibling.id;
+        const url = `/delete/collection/${collectionToDelete}`;
+        fetch(url).then(() => {
+          document.location.pathname = "/";
+        });
+      }
+    });
+  };
   var main = () => {
-    setupMenu();
     setupResetSettingsButton();
     setupScrollButton();
     setupUploadButton();
@@ -50374,6 +50391,8 @@
     setClipboardHandler();
     setupEscapeButtonForPopups();
     setupSettingsMustBeSet();
+    setupMenu();
+    setupCollectionDeletion();
   };
   main();
 })();

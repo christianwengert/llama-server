@@ -6,6 +6,7 @@ import tempfile
 import urllib
 from functools import wraps
 from json import JSONDecodeError
+from pathlib import Path
 from typing import Dict, Optional, Tuple, List
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
@@ -14,8 +15,9 @@ from langchain.text_splitter import RecursiveCharacterTextSplitter
 from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER
 from flask_session import Session
 from urllib.parse import urlparse
-from rag import get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE, \
-    get_text_splitter, extract_contents, get_context_from_rag
+from rag import get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, \
+    RAG_CHUNK_SIZE, \
+    get_text_splitter, extract_contents, get_context_from_rag, RAG_DATA_DIR
 from utils.filesystem import is_archive, extract_archive, find_files
 from utils.timestamp_formatter import categorize_timestamp
 
@@ -73,6 +75,28 @@ def login():
     return render_template('login.html',
                            name=os.environ.get("CHAT_NAME", "local")
                            )
+
+
+@login_required
+@app.route("/delete/collection/<path:collection>")
+def remove_collection(collection):
+    username = session.get('username')
+    collections = get_available_collections(username)
+
+    for key in ['common', 'user']:
+        for item in collections[key]:
+            if item.get('hashed_name') == collection:
+
+                path = Path(RAG_DATA_DIR) / Path(f'user/{username}' if key == 'user' else 'common') / Path(collection)
+                path = os.path.normpath(path)
+                if path.startswith(RAG_DATA_DIR) and os.path.exists(path):
+                    os.remove(path + '/config.json')
+                    os.remove(path + '/index.faiss')
+                    os.remove(path + '/index.pkl')
+                    os.rmdir(path)
+                return jsonify({})
+    abort(404)
+    #
 
 
 @login_required
@@ -192,9 +216,12 @@ def upload():
 
     if use_collection:
 
-        collection_name = request.form['collection-name']
+        collection_name = request.form.get('collection-name')
+        collection_selector = request.form.get('collection-selector')
+        if not collection_name and not collection_selector:
+            return jsonify({"error": f"You must provide a name for the collection."})
         if not collection_name:
-            return jsonify({"error": f"You just provide a name for the collection."})
+            collection_name = collection_selector
         collection_visibility = request.form.get('collection-visibility', 'private')
         username = session.get('username')
 

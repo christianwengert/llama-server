@@ -38,14 +38,14 @@
                         {% if collections['common'] %}
                             <optgroup label="Public">
                             {% for my_item in collections['common'] %}
-                                <option value="my_item">{{my_item}}</option>-->
+                                <option value="{{my_item.get('hashed_name')}}">{{my_item.get('name')}}</option>-->
                             {% endfor %}
                             </optgroup>
                         {% endif %}
                         {% if collections['user'] %}
                             <optgroup label="User">
                             {% for my_item in collections['user'] %}
-                                <option value="my_item">{{my_item}}</option>-->
+                                <option value="{{my_item.get('hashed_name')}}">{{my_item.get('name')}}</option>-->
                             {% endfor %}
                             </optgroup>
                         {% endif %}

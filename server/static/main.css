@@ -566,6 +566,30 @@ li:hover .delete-history-item {
     visibility: visible; /* Show the button when the li element is hovered */
 }
 
+
+
+.delete-collection-item {
+    margin-left: auto;
+    border: none;
+    background-color: unset;
+    color: rgb(183, 183, 193);
+    cursor: pointer;
+    font-size: 1.2rem;
+    opacity: 0.5;
+
+}
+
+.delete-collection-item {
+    visibility: hidden; /* Initially hide the button */
+}
+
+div.menu-collection-link-container:hover .delete-collection-item {
+    visibility: visible; /* Show the button when the li element is hovered */
+}
+
+
+
+
 /*.vote-buttons-div {*/
 /*    display: flex;*/
 /*    justify-content: flex-end;*/
@@ -1141,6 +1165,9 @@ div.warning:after {
 }
 .d-none {
     display: none !important;
+}
+.menu-collection-link-container {
+    display: flex !important;
 }
 .param-help {
     margin-bottom: 1.5rem !important;

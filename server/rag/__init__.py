@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import os
 import time
 import urllib
@@ -23,7 +24,7 @@ from utils.filesystem import list_directories, is_source_code_file, is_pdf, is_j
 
 
 RAG_CHUNK_SIZE = 2048
-RAG_DATA_DIR = os.path.dirname(__file__) + '/../../data'
+RAG_DATA_DIR = os.path.abspath(os.path.dirname(__file__) + '/../../data')
 RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
 RAG_RERANKING_YESNO_GRAMMAR = r'''
     root ::= answer
@@ -33,7 +34,7 @@ RAG_RERANKING_YESNO_GRAMMAR = r'''
 '''
 RAG_NUM_DOCS = 5
 
-RAG_MODEL = 'BAAI/bge-m3'
+RAG_DEFAULT_MODEL = 'BAAI/bge-m3'
 # RAG_MODEL = 'BAAI/bge-large-en-v1.5'
 # RAG_MODEL = 'BAAI/bge-large-en-v1.5'
 # RAG_MODEL = 'intfloat/multilingual-e5-large'
@@ -41,9 +42,12 @@ RAG_MODEL = 'BAAI/bge-m3'
 # For tasks other than retrieval, you can simply use the "query: " prefix.
 # see also here: DO I need query: https://huggingface.co/intfloat/e5-large-v2
 
-RAG_EMBEDDINGS = HuggingFaceEmbeddings(model_name=RAG_MODEL,
-                                       encode_kwargs={'normalize_embeddings': True}  # set True to compute cosine similarity
-                                       )
+
+def get_embeddings(model_name: str) -> HuggingFaceEmbeddings:
+    return HuggingFaceEmbeddings(model_name=model_name,
+                                 encode_kwargs={
+                                     'normalize_embeddings': True  # set True to compute cosine similarity
+                                 })
 
 
 def rag_context(docs: List[Document]) -> Tuple[str, List[Dict]]:
@@ -111,27 +115,30 @@ def create_or_open_collection(index_name: str, username: Optional[str], public: 
 
     if public:
         data_dir = Path(RAG_DATA_DIR) / Path('common')
-        public_with_this_name_exists = index_name in collections['common']
-        if public_with_this_name_exists:
-            return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS), data_dir / hashed_index_name, hashed_index_name
+        for item in collections['user']:
+            if index_name == item.get('hashed_name'):
+                embeddings = get_embeddings(item.get('model'))
+                return FAISS.load_local(data_dir / index_name, embeddings), data_dir / hashed_index_name, hashed_index_name
         # otherwise we will create a new DB
     else:
         data_dir = Path(RAG_DATA_DIR) / Path('user') / Path(username)
-        private_with_this_name_exists = index_name in collections['user']
-        if private_with_this_name_exists:
-            return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS), data_dir / hashed_index_name, hashed_index_name
+        for item in collections['user']:
+            if index_name == item.get('hashed_name'):
+                embeddings = get_embeddings(item.get('model'))
+                return FAISS.load_local(data_dir / index_name, embeddings), data_dir / hashed_index_name, hashed_index_name
+
         # otherwise we will create a new DB
 
     path = data_dir / hashed_index_name
     doc = Document(page_content="")  # We need to create a doc to initialize the docstore, then we gonna delete it again
-    index = FAISS.from_documents([doc], RAG_EMBEDDINGS)
+    index = FAISS.from_documents([doc], get_embeddings(RAG_DEFAULT_MODEL))
     # Todo: This is langchain stuff, too lazy to do it differently
     # noinspection PyProtectedMember,PyUnresolvedReferences
     index.delete([list(index.docstore._dict.keys())[0]])  # Empty again, this is
     index.save_local(path)
 
     with open(path / 'config.json', 'w') as f:
-        json.dump(dict(model=RAG_MODEL, name=index_name, hashed_name=hashed_index_name), f)
+        json.dump(dict(model=RAG_DEFAULT_MODEL, name=index_name, hashed_name=hashed_index_name), f)
 
     return index, path, hashed_index_name
 
@@ -145,7 +152,16 @@ def load_collection(collection: str, username: str) -> Optional[FAISS]:
                 data_dir = RAG_DATA_DIR / Path(key)
                 if key == 'user':
                     data_dir = data_dir / Path(username)
-                return FAISS.load_local(data_dir / Path(collection), RAG_EMBEDDINGS)
+
+                # noinspection PyBroadException
+                try:
+                    with open(data_dir / Path(collection) / 'config.json', 'r') as f:
+                        data = json.load(f)
+                    embeddings = get_embeddings(data.get('model'))
+                    return FAISS.load_local(data_dir / Path(collection), embeddings)
+                except Exception as _e:
+                    logging.warning(f'Found a problem loading the collection: {_e}')
+                    return None
     return None
 
 
@@ -219,7 +235,7 @@ def parse_pdf_with_grobid(filename: Union[str, Path]) -> Dict:
     start = time.time()
     document = scipdf.parse_pdf_to_dict(filename)  # return dictionary
     end = time.time()
-    print(f'Processed document in {end - start} seconds')
+    logging.info(f'Processed document in {end - start} seconds')
     return document
 
 
@@ -267,7 +283,7 @@ def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
     elif is_importable('FlagEmbedding'):
         from FlagEmbedding import FlagReranker
         reranker = FlagReranker('BAAI/bge-reranker-large')
-        print('using flag reranker')
+        logging.info('Using flag reranker')
         rawdocs = vector_store.similarity_search(query, k=num_docs * 2)
         queries = []
         for d in rawdocs:
@@ -277,7 +293,7 @@ def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
         return [b for a, b in sorted_docs[:num_docs]]
 
     else:
-        print('no flashrank available')
+        logging.warning('no flashrank available')
         docs = vector_store.similarity_search(query, k=num_docs)  #
         return docs
 

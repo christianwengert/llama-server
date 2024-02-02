@@ -16,7 +16,10 @@
                 <strong>Common collections</strong><br>
                 {% if collections['common'] %}
                     {% for c in collections['common'] %}
-                        <a href="#" class="mode-button" id="{{ c.get('hashed_name') }}">{{ c.get('name') }}</a>
+                        <div class="menu-collection-link-container">
+                            <a href="#" class="mode-button" id="{{ c.get('hashed_name') }}">{{ c.get('name') }}</a>
+                            <button class="delete-collection-item">×</button>
+                        </div>
                     {% endfor %}
                 {% endif %}
             </div>
@@ -24,7 +27,10 @@
                 <strong>User collections</strong><br>
                 {% if collections['user'] %}
                     {% for u in collections['user'] %}
-                        <a href="#" class="mode-button" id="{{ u.get('hashed_name') }}">{{ u.get('name') }}</a>
+                        <div class="menu-collection-link-container">
+                            <a href="#" class="mode-button" id="{{ u.get('hashed_name') }}">{{ u.get('name') }}</a>
+                            <button class="delete-collection-item">×</button>
+                        </div>
                     {% endfor %}
                 {% endif %}
             </div>
