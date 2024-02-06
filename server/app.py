@@ -12,7 +12,8 @@ import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER
+from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER, \
+    get_default_props_from_llamacpp
 from flask_session import Session
 from urllib.parse import urlparse
 from rag import get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, \
@@ -22,7 +23,15 @@ from utils.filesystem import is_archive, extract_archive, find_files
 from utils.timestamp_formatter import categorize_timestamp
 
 
-MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
+MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 20000
+# noinspection PyBroadException
+try:
+    props = get_default_props_from_llamacpp()
+    num_slots = props.get('num_slots', 1)
+    n_ctx = props.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
+    MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
+except Exception:
+    pass
 
 
 SEPARATOR = '~~~~'
@@ -163,7 +172,6 @@ def c(token):
 
     username = session.get('username')
     collections = get_available_collections(username)
-    # common_collections = [b for a, b in collections if a == 'common']
 
     return render_template('index.html',
                            collections=collections,

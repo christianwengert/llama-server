@@ -289,6 +289,8 @@ def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
         for d in rawdocs:
             queries.append([query, d.page_content])
         scores = reranker.compute_score(queries)
+        if not isinstance(scores, list):
+            scores = [scores]
         sorted_docs = sorted(zip(scores, rawdocs), reverse=True)
         return [b for a, b in sorted_docs[:num_docs]]
 
