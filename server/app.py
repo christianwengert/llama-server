@@ -12,7 +12,8 @@ import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER
+from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER, \
+    get_default_props_from_llamacpp
 from flask_session import Session
 from urllib.parse import urlparse
 from rag import get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, \
@@ -23,6 +24,12 @@ from utils.timestamp_formatter import categorize_timestamp
 
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
+# noinspection PyBroadException
+try:
+    props = get_default_props_from_llamacpp()
+    MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = props.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
+except Exception:
+    pass
 
 
 SEPARATOR = '~~~~'
