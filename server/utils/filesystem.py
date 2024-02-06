@@ -1,5 +1,6 @@
 import gzip
 import importlib
+import logging
 import os
 import tarfile
 from pathlib import Path
@@ -53,7 +54,7 @@ def is_json(filename: str) -> bool:
             mime = magic.from_buffer(f.read(), mime=True)
         return 'application/json' in mime or 'application/javascript' in mime
     except Exception as e:
-        print(f"Error occurred while checking file type: {e}")
+        logging.error(f"Error occurred while checking file type: {e}")
         return False
 
 
@@ -63,7 +64,7 @@ def is_sqlite(filename: str) -> bool:
             mime = magic.from_buffer(f.read(), mime=True)
         return 'application/vnd.sqlite3' in mime or 'application/x-sqlite3' in mime
     except Exception as e:
-        print(f"Error occurred while checking file type: {e}")
+        logging.error(f"Error occurred while checking file type: {e}")
         return False
 
 
@@ -73,7 +74,7 @@ def is_text_file(filename: str) -> bool:
             mime = magic.from_buffer(f.read(), mime=True)
         return mime.startswith("text/")
     except Exception as e:
-        print(f"Error occurred while checking file type: {e}")
+        logging.error(f"Error occurred while checking file type: {e}")
         return False
 
 
@@ -83,7 +84,7 @@ def is_pdf(filename: str) -> bool:
             mime = magic.from_buffer(f.read(), mime=True)
         return "application/pdf" in mime
     except Exception as e:
-        print(f"Error occurred while checking file type: {e}")
+        logging.error(f"Error occurred while checking file type: {e}")
         return False
 
 

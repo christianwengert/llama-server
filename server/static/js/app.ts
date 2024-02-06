@@ -207,7 +207,7 @@ const setupUploadButton = () => {
                                     // Get the current URL
                                     const url = new URL(window.location.href);
                                     // Update the search parameter
-                                    url.searchParams.set('collection', jsonData['collection-name']);
+                                    url.searchParams.set('collection', jsonData['collection-hashed-name']);
                                     // Change the location object without reloading the page
                                     history.replaceState({}, '', url);
                                 }
@@ -387,7 +387,13 @@ const loadHistory = () => {
                 history.replaceState({}, '', url);
                 const menuLink = document.getElementById('menuLink')!;
                 const textNode = menuLink.firstChild! as HTMLElement;
-                textNode.textContent = msg.collection;
+
+                const collectionLink = document.querySelector(`a[id="${msg.collection}"]`)
+                if (collectionLink) {
+                    textNode.textContent = collectionLink.textContent;
+                } else {
+                    console.log('Problems setting the collection name')
+                }
             }
 
             const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
@@ -701,7 +707,7 @@ function setupMenu() {
             // console.log(vals)
 
 
-            textNode.textContent = target.id.replace('-', '/');
+            textNode.textContent = target.textContent;
             updateUrlParam(target.id)
                 // return
             // }
@@ -764,6 +770,20 @@ const setupSettingsMustBeSet = () => {
         input.addEventListener('input', validateInput);
     });
     validateInput();
+};
+
+const setupCollectionDeletion = () => {
+    window.addEventListener('click', function (event) {
+        let target = event.target! as HTMLElement;
+        if(target.classList.contains('delete-collection-item')) {
+            event.preventDefault()
+            const collectionToDelete = target.previousElementSibling!.id;
+            const url = `/delete/collection/${collectionToDelete}`;
+            fetch(url).then(() => {
+                document.location.pathname = '/';  // new session
+            })
+        }
+    });
 };
 
 
@@ -892,11 +912,9 @@ const setupAudio = () => {
     }
 };
 
-
-
 const main = () => {
 
-    setupMenu(); // Menu on top left
+
     setupResetSettingsButton(); // Reset Settings
     setupScrollButton(); // Scroll Button
     setupUploadButton() //
@@ -910,6 +928,10 @@ const main = () => {
     setupEscapeButtonForPopups();
 
     setupSettingsMustBeSet();
+
+    setupMenu(); // Menu on top left
+
+    setupCollectionDeletion();
 
     setupAudio()
 };

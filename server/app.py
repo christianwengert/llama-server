@@ -6,21 +6,32 @@ import tempfile
 import urllib
 from functools import wraps
 from json import JSONDecodeError
+from pathlib import Path
 from typing import Dict, Optional, Tuple, List
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context, send_from_directory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
-from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER
+from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER, \
+    get_default_props_from_llamacpp
 from flask_session import Session
 from urllib.parse import urlparse
-from rag import get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, RAG_CHUNK_SIZE, \
-    get_text_splitter, extract_contents, get_context_from_rag
+from rag import get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, \
+    RAG_CHUNK_SIZE, \
+    get_text_splitter, extract_contents, get_context_from_rag, RAG_DATA_DIR
 from utils.filesystem import is_archive, extract_archive, find_files
 from utils.timestamp_formatter import categorize_timestamp
 
 
-MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
+MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 20000
+# noinspection PyBroadException
+try:
+    props = get_default_props_from_llamacpp()
+    num_slots = props.get('num_slots', 1)
+    n_ctx = props.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
+    MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
+except Exception:
+    pass
 
 
 SEPARATOR = '~~~~'
@@ -73,6 +84,28 @@ def login():
     return render_template('login.html',
                            name=os.environ.get("CHAT_NAME", "local")
                            )
+
+
+@login_required
+@app.route("/delete/collection/<path:collection>")
+def remove_collection(collection):
+    username = session.get('username')
+    collections = get_available_collections(username)
+
+    for key in ['common', 'user']:
+        for item in collections[key]:
+            if item.get('hashed_name') == collection:
+
+                path = Path(RAG_DATA_DIR) / Path(f'user/{username}' if key == 'user' else 'common') / Path(collection)
+                path = os.path.normpath(path)
+                if path.startswith(RAG_DATA_DIR) and os.path.exists(path):
+                    os.remove(path + '/config.json')
+                    os.remove(path + '/index.faiss')
+                    os.remove(path + '/index.pkl')
+                    os.rmdir(path)
+                return jsonify({})
+    abort(404)
+    #
 
 
 @login_required
@@ -143,7 +176,6 @@ def c(token):
 
     username = session.get('username')
     collections = get_available_collections(username)
-    # common_collections = [b for a, b in collections if a == 'common']
 
     return render_template('index.html',
                            collections=collections,
@@ -196,13 +228,16 @@ def upload():
 
     if use_collection:
 
-        collection_name = request.form['collection-name']
+        collection_name = request.form.get('collection-name')
+        collection_selector = request.form.get('collection-selector')
+        if not collection_name and not collection_selector:
+            return jsonify({"error": f"You must provide a name for the collection."})
         if not collection_name:
-            return jsonify({"error": f"You just provide a name for the collection."})
+            collection_name = collection_selector
         collection_visibility = request.form.get('collection-visibility', 'private')
         username = session.get('username')
 
-        index, index_path = create_or_open_collection(collection_name, username, collection_visibility == "public")
+        index, index_path, hashed_index_name = create_or_open_collection(collection_name, username, collection_visibility == "public")
         for destination, content, parsed_pdf_document in contents:
             filename = os.path.basename(destination)
             if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
@@ -225,6 +260,7 @@ def upload():
             index.add_documents(docs)
             index.save_local(index_path)
             return_args['collection-name'] = collection_name
+            return_args['collection-hashed-name'] = hashed_index_name
             return_args['collection-visibility'] = collection_visibility
 
     else:

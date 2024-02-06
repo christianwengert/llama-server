@@ -1,5 +1,7 @@
 from typing import Dict, Any
 
+import requests
+
 LLAMA_API = 'http://127.0.0.1:8080'
 
 
@@ -12,6 +14,12 @@ The user of the assistant is an expert in AI and ethics, so he already knows tha
 
 
 def get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, Any]:
+
+    try:
+        default_generation_settings = get_default_props_from_llamacpp()
+        # default_generation_settings = {}
+    except (requests.exceptions.ConnectionError, KeyError):
+        default_generation_settings = {}
     default_params = {
         'cache_prompt': True,
         'frequency_penalty': 0,  # Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled)
@@ -35,7 +43,11 @@ def get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, 
         'top_p': 0.5,  # Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
         'typical_p': 1,  # Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).
     }
+    # Copy the defdault params
     params = dict(default_params)
+    # merge with response from server, keeping the own default_params
+    default_generation_settings.update(default_params)
+
     # 'slot_id': 0 or 1
     params.update(params_from_post)
     # ensure relevant parameters are not empty, this may lead to a crash otherwise on ./server
@@ -57,6 +69,12 @@ def get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, 
         if params[key] == "" or type(params[key] == str):  # ensure int
             params[key] = default_params[key]
     return params
+
+
+def get_default_props_from_llamacpp():
+    props = requests.get(f'{LLAMA_API}/props').json()
+    default_generation_settings = props.get('default_generation_settings', {})
+    return default_generation_settings
 
 
 def get_llama_parameters():

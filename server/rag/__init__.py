@@ -1,5 +1,8 @@
+import hashlib
 import json
+import logging
 import os
+import time
 import urllib
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union
@@ -19,8 +22,9 @@ from llama_cpp import get_llama_default_parameters, LLAMA_API
 from utils.filesystem import list_directories, is_source_code_file, is_pdf, is_json, is_text_file, is_sqlite, \
     get_mime_type, is_importable
 
+
 RAG_CHUNK_SIZE = 2048
-RAG_DATA_DIR = os.path.dirname(__file__) + '/../../data'
+RAG_DATA_DIR = os.path.abspath(os.path.dirname(__file__) + '/../../data')
 RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
 RAG_RERANKING_YESNO_GRAMMAR = r'''
     root ::= answer
@@ -30,16 +34,20 @@ RAG_RERANKING_YESNO_GRAMMAR = r'''
 '''
 RAG_NUM_DOCS = 5
 
-
-RAG_MODEL = 'BAAI/bge-large-en-v1.5'
+RAG_DEFAULT_MODEL = 'BAAI/bge-m3'
+# RAG_MODEL = 'BAAI/bge-large-en-v1.5'
+# RAG_MODEL = 'BAAI/bge-large-en-v1.5'
 # RAG_MODEL = 'intfloat/multilingual-e5-large'
 # Each input text should start with "query: " or "passage: ", even for non-English texts.
 # For tasks other than retrieval, you can simply use the "query: " prefix.
 # see also here: DO I need query: https://huggingface.co/intfloat/e5-large-v2
 
-RAG_EMBEDDINGS = HuggingFaceEmbeddings(model_name=RAG_MODEL,
-                                       encode_kwargs={'normalize_embeddings': True}  # set True to compute cosine similarity
-                                       )
+
+def get_embeddings(model_name: str) -> HuggingFaceEmbeddings:
+    return HuggingFaceEmbeddings(model_name=model_name,
+                                 encode_kwargs={
+                                     'normalize_embeddings': True  # set True to compute cosine similarity
+                                 })
 
 
 def rag_context(docs: List[Document]) -> Tuple[str, List[Dict]]:
@@ -70,7 +78,7 @@ def rag_contex_stackexchange(docs: List[Document]) -> str:
     return context_string
 
 
-def get_available_collections(username: str = None) -> Dict[str, List[str]]:
+def get_available_collections(username: str = None) -> Dict[str, List[Dict[str, str]]]:
     common_dir = Path(RAG_DATA_DIR) / Path('common')
 
     collections = dict(common=[], user=[])
@@ -84,49 +92,76 @@ def get_available_collections(username: str = None) -> Dict[str, List[str]]:
         if not os.path.exists(user_dir):
             os.mkdir(user_dir)
         for collection in list_directories(user_dir):
-            collections['user'].append(collection)
+
+            # noinspection PyBroadException
+            try:  # Load meta data
+                with open(user_dir / collection / 'config.json', 'r') as f:
+                    data = json.load(f)
+                if collection == data.get('hashed_name'):
+                    collections['user'].append(data)  # just get all metadata at once
+            except Exception as _e:
+                pass
 
     return collections
 
 
-def create_or_open_collection(index_name: str, username: Optional[str], public: Optional[bool]) -> Tuple[FAISS, Path]:
+def create_or_open_collection(index_name: str, username: Optional[str], public: Optional[bool]) -> Tuple[FAISS, Path, str]:
 
     # Check if index exists already
     collections = get_available_collections(username)
 
+    current_time = str(time.time_ns())  # Ensure uniqueness even with same filenames
+    hashed_index_name = hashlib.sha256((index_name + current_time).encode()).hexdigest()[:32]
+
     if public:
         data_dir = Path(RAG_DATA_DIR) / Path('common')
-        public_with_this_name_exists = index_name in collections['common']
-        if public_with_this_name_exists:
-            return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS), data_dir / index_name
+        for item in collections['user']:
+            if index_name == item.get('hashed_name'):
+                embeddings = get_embeddings(item.get('model'))
+                return FAISS.load_local(data_dir / index_name, embeddings), data_dir / hashed_index_name, hashed_index_name
         # otherwise we will create a new DB
     else:
         data_dir = Path(RAG_DATA_DIR) / Path('user') / Path(username)
-        private_with_this_name_exists = index_name in collections['user']
-        if private_with_this_name_exists:
-            return FAISS.load_local(data_dir / index_name, RAG_EMBEDDINGS), data_dir / index_name
+        for item in collections['user']:
+            if index_name == item.get('hashed_name'):
+                embeddings = get_embeddings(item.get('model'))
+                return FAISS.load_local(data_dir / index_name, embeddings), data_dir / hashed_index_name, hashed_index_name
+
         # otherwise we will create a new DB
 
-    path = data_dir / index_name
+    path = data_dir / hashed_index_name
     doc = Document(page_content="")  # We need to create a doc to initialize the docstore, then we gonna delete it again
-    index = FAISS.from_documents([doc], RAG_EMBEDDINGS)
+    index = FAISS.from_documents([doc], get_embeddings(RAG_DEFAULT_MODEL))
     # Todo: This is langchain stuff, too lazy to do it differently
     # noinspection PyProtectedMember,PyUnresolvedReferences
     index.delete([list(index.docstore._dict.keys())[0]])  # Empty again, this is
     index.save_local(path)
-    return index, path
+
+    with open(path / 'config.json', 'w') as f:
+        json.dump(dict(model=RAG_DEFAULT_MODEL, name=index_name, hashed_name=hashed_index_name), f)
+
+    return index, path, hashed_index_name
 
 
 def load_collection(collection: str, username: str) -> Optional[FAISS]:
     collections = get_available_collections(username)
 
     for key in ['user', 'common']:  # first check for same name user!
-        for name in collections[key]:
-            if name == collection:
+        for item in collections[key]:
+            if collection == item.get('hashed_name'):
                 data_dir = RAG_DATA_DIR / Path(key)
                 if key == 'user':
                     data_dir = data_dir / Path(username)
-                return FAISS.load_local(data_dir / Path(collection), RAG_EMBEDDINGS)
+
+                # noinspection PyBroadException
+                try:
+                    with open(data_dir / Path(collection) / 'config.json', 'r') as f:
+                        data = json.load(f)
+                    embeddings = get_embeddings(data.get('model'))
+                    return FAISS.load_local(data_dir / Path(collection), embeddings)
+                except Exception as _e:
+                    logging.warning(f'Found a problem loading the collection: {_e}')
+                    return None
     return None
 
 
@@ -200,7 +235,7 @@ def parse_pdf_with_grobid(filename: Union[str, Path]) -> Dict:
     start = time.time()
     document = scipdf.parse_pdf_to_dict(filename)  # return dictionary
     end = time.time()
-    print(f'Processed document in {end - start} seconds')
+    logging.info(f'Processed document in {end - start} seconds')
     return document
 
 
@@ -223,14 +258,14 @@ def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: in
     context = None
     metadata = []
     if vector_store:
-        query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
+        # query = transform_query(query)  # Do not use, because it clears the cache and we have to process everything again
         docs = search_and_rerank_docs(num_docs, query, vector_store)
         context, metadata = rag_context(docs)
     return context, metadata
 
 
 def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
-    if is_importable('flashrank'):
+    if is_importable('flashrank') and False:
         rawdocs = vector_store.similarity_search(query, k=num_docs * 2)  #
         # noinspection PyPackageRequirements
         from flashrank import RerankRequest, Ranker
@@ -243,45 +278,26 @@ def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
         docs = []
         for r in results[:num_docs]:
             docs.append(Document(page_content=r['text'], metadata=r['meta']))
+        return docs
+
+    elif is_importable('FlagEmbedding'):
+        from FlagEmbedding import FlagReranker
+        reranker = FlagReranker('BAAI/bge-reranker-large')
+        logging.info('Using flag reranker')
+        rawdocs = vector_store.similarity_search(query, k=num_docs * 2)
+        queries = []
+        for d in rawdocs:
+            queries.append([query, d.page_content])
+        scores = reranker.compute_score(queries)
+        if not isinstance(scores, list):
+            scores = [scores]
+        sorted_docs = sorted(zip(scores, rawdocs), reverse=True)
+        return [b for a, b in sorted_docs[:num_docs]]
+
     else:
-        print('no flashrank available')
+        logging.warning('no flashrank available')
         docs = vector_store.similarity_search(query, k=num_docs)  #
-    return docs
-    # Other ideas:
-    # HyDe
-    # from langchain.chains import HypotheticalDocumentEmbedder
-    #
-    # Rerank with LLM
-    #
-    # if rerank:
-    #     reranked_docs = []
-    #     rerank_post_data = _get_llama_default_parameters(data)
-    #
-    #     rerank_post_data['grammar'] = RAG_RERANKING_YESNO_GRAMMAR
-    #     rerank_post_data['stream'] = False
-    #
-    #     # re-rank documents
-    #
-    #     for d in docs:
-    #         formatted_prompt = RAG_RERANKING_TEMPLATE_STRING.format(question=query, context=d.page_content)
-    #
-    #         rerank_post_data['prompt'] = formatted_prompt
-    #
-    #         rr_data = requests.request(method="POST",
-    #                                    url=urllib.parse.urljoin(args.llama_api, "/completion"),
-    #                                    data=json.dumps(rerank_post_data),
-    #                                    stream=False)
-    #
-    #         rr_response = rr_data.json()
-    #         print(rr_response.get('content'))
-    #         # todo: Logic here
-    #         if 'YES' == rr_response.get('content').strip():
-    #             reranked_docs.append(d)
-    #     # answer = test(llm, reranked_docs, question)
-    #     # print(answer)
-    #     if reranked_docs:
-    #         context = rag_context(reranked_docs)
-    # else:
+        return docs
 
 
 def transform_query(query: str, use_llm=False) -> str:
