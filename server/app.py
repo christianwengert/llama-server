@@ -23,11 +23,13 @@ from utils.filesystem import is_archive, extract_archive, find_files
 from utils.timestamp_formatter import categorize_timestamp
 
 
-MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = 20000
+MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 20000
 # noinspection PyBroadException
 try:
     props = get_default_props_from_llamacpp()
-    MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = props.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
+    num_slots = props.get('num_slots', 1)
+    n_ctx = props.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
+    MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
 except Exception:
     pass
 
