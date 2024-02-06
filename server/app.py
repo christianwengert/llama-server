@@ -170,7 +170,6 @@ def c(token):
 
     username = session.get('username')
     collections = get_available_collections(username)
-    # common_collections = [b for a, b in collections if a == 'common']
 
     return render_template('index.html',
                            collections=collections,
