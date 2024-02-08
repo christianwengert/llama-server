@@ -95,7 +95,10 @@ def get_available_collections(username: str = None) -> Dict[str, List[Dict[str, 
 
             # noinspection PyBroadException
             try:  # Load meta data
-                with open(user_dir / collection / 'config.json', 'r') as f:
+                config_file = user_dir / collection / 'config.json'
+                if not config_file.exists():
+                    continue
+                with open(config_file, 'r') as f:
                     data = json.load(f)
                 if collection == data.get('hashed_name'):
                     collections['user'].append(data)  # just get all metadata at once
