@@ -199,7 +199,7 @@ def upload():
 
     files = request.files.getlist('file')
     if len(files) != 1:
-        abort(400)  # todo, maybe one day we will upload more files
+        abort(400)  # maybe one day we will upload more files, now you can simply upload a zip
 
     base_folder = os.path.join(app.config['UPLOAD_FOLDER'], secrets.token_hex(8))
     collection_selector = request.form.get('collection-selector', None)

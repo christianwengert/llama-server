@@ -185,7 +185,6 @@ def get_text_splitter(destination: str) -> TextSplitter:
         # noinspection PyUnresolvedReferences
         language_dict = {f'.{member.value}': member.value for member in Language}
         language = language_dict.get(extension, Language.CPP.value)
-        # RecursiveCharacterTextSplitter.get_separators_for_language(language)  # todo this is not very perfect
         text_splitter = RecursiveCharacterTextSplitter.from_language(
             language=language, chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
         )
