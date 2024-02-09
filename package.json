@@ -4,6 +4,7 @@
     "build_mini": "esbuild server/static/js/app.ts --bundle  --minify --sourcemap --outfile=server/static/js/app.min.js"
   },
   "dependencies": {
+    "@ricky0123/vad-web": "^0.0.13",
     "esbuild": "^0.17.17",
     "highlight.js": "^11.7.0"
   },
