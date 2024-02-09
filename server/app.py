@@ -439,7 +439,8 @@ def make_context(query, token, vector_store) -> Tuple[Optional[str], List[Dict]]
 
     context_from_file, metadata_direct = get_context_from_upload(token)
     if context_from_file:
-        # todo: Add n_keep correctly
+        # solved: Add n_keep correctly, see below
+        # n_keep: Specify the number of tokens from the prompt to retain when the context size is exceeded and tokens need to be discarded. By default, this value is set to 0 (meaning no tokens are kept). Use -1 to retain all tokens from the prompt.
         context_from_file = context_from_file.strip()
         # context += 'Here is some relevant text from the upload:'
         context += context_from_file

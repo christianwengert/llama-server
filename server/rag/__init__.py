@@ -2,7 +2,6 @@ import hashlib
 import json
 import logging
 import os
-import time
 import urllib
 from pathlib import Path
 from typing import List, Tuple, Optional, Dict, Union
@@ -113,22 +112,22 @@ def create_or_open_collection(index_name: str, username: Optional[str], public: 
     # Check if index exists already
     collections = get_available_collections(username)
 
-    current_time = str(time.time_ns())  # Ensure uniqueness even with same filenames
-    hashed_index_name = hashlib.sha256((index_name + current_time).encode()).hexdigest()[:32]
+    # current_time = str(time.time_ns())  # Ensure uniqueness even with same filenames
+    hashed_index_name = hashlib.sha256(index_name.encode()).hexdigest()[:32]
 
     if public:
         data_dir = Path(RAG_DATA_DIR) / Path('common')
         for item in collections['user']:
-            if index_name == item.get('hashed_name'):
+            if hashed_index_name == item.get('hashed_name'):
                 embeddings = get_embeddings(item.get('model'))
-                return FAISS.load_local(data_dir / index_name, embeddings), data_dir / hashed_index_name, hashed_index_name
+                return FAISS.load_local(data_dir / hashed_index_name, embeddings), data_dir / hashed_index_name, hashed_index_name
         # otherwise we will create a new DB
     else:
         data_dir = Path(RAG_DATA_DIR) / Path('user') / Path(username)
         for item in collections['user']:
-            if index_name == item.get('hashed_name'):
+            if hashed_index_name == item.get('hashed_name'):
                 embeddings = get_embeddings(item.get('model'))
-                return FAISS.load_local(data_dir / index_name, embeddings), data_dir / hashed_index_name, hashed_index_name
+                return FAISS.load_local(data_dir / hashed_index_name, embeddings), data_dir / hashed_index_name, hashed_index_name
 
         # otherwise we will create a new DB
 
