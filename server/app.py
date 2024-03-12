@@ -82,7 +82,8 @@ def login():
             return redirect(url_for('index'))
 
     return render_template('login.html',
-                           name=os.environ.get("CHAT_NAME", "local")
+                           name=os.environ.get("CHAT_NAME", "local"),
+                           name2=os.environ.get("CHAT_NAME_2", "GPT")
                            )
 
 
@@ -177,6 +178,7 @@ def c(token):
                            collections=collections,
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
+                           name2=os.environ.get("CHAT_NAME_2", "GPT"),
                            num_words=round(MAX_NUM_TOKENS_FOR_INLINE_CONTEXT * 0.7 / 1000) * 1000,  # show how many tokens we can add to the context
                            git=os.environ.get("CHAT_GIT", "https://github.com/christianwengert/llama-server"),
                            **data
