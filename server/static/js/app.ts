@@ -57,7 +57,7 @@ const handleEditAction = (e: MouseEvent) => {
     selection.addRange(range);
     inner.addEventListener('keypress', getInputHandler(inner))
 }
-// Votint actions
+// Voting actions
 // const handleVoteAction = (e: MouseEvent, index: 'up' | 'down') => {
 //     e.preventDefault();
 //     const target = e.target;
