@@ -46,7 +46,8 @@ def get_embeddings(model_name: str) -> HuggingFaceEmbeddings:
     return HuggingFaceEmbeddings(model_name=model_name,
                                  encode_kwargs={
                                      'normalize_embeddings': True  # set True to compute cosine similarity
-                                 })
+                                 },
+                                 model_kwargs={'device': 'cpu'})
 
 
 def rag_context(docs: List[Document]) -> Tuple[str, List[Dict]]:
