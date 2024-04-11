@@ -476,15 +476,15 @@ def make_prompt(hist, system_prompt, text, prompt_template):
     if prompt_template == 'command-r':
         # <BOS_TOKEN><|START_OF_TURN_TOKEN|><|USER_TOKEN|>{prompt}<|END_OF_TURN_TOKEN|><|START_OF_TURN_TOKEN|><|CHATBOT_TOKEN|>{response}
         prompt = ''
-        prompt += f'<BOS_TOKEN><|START_OF_TURN_TOKEN|>'
+        prompt += f'<|START_OF_TURN_TOKEN|>'  # Omitting <BOS_TOKEN>
         prompt += f'<|USER_TOKEN|>{system_prompt}<|END_OF_TURN_TOKEN|>'
         for line in hist['items']:
             if line['role'] == USER:
-                prompt += f'<|START_OF_TURN_TOKEN|><|USER_TOKEN|>user\n{line["content"]}<|END_OF_TURN_TOKEN|>\n'
+                prompt += f'<|START_OF_TURN_TOKEN|><|USER_TOKEN|>{line["content"]}<|END_OF_TURN_TOKEN|>\n'
             if line['role'] == ASSISTANT:
-                prompt += f'<|CHATBOT_TOKEN|>assistant\n{line["content"]}<|END_OF_TURN_TOKEN|>'
-        prompt += f'<|START_OF_TURN_TOKEN|>user\n{text}<|END_OF_TURN_TOKEN|>'
-        prompt += f'<|CHATBOT_TOKEN|>assistant'
+                prompt += f'<|CHATBOT_TOKEN|>{line["content"]}<|END_OF_TURN_TOKEN|>'
+        prompt += f'<|START_OF_TURN_TOKEN|>{text}<|END_OF_TURN_TOKEN|>'
+        prompt += f'<|CHATBOT_TOKEN|>'
         return prompt
 
     if prompt_template == 'chatml':
