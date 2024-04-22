@@ -35,7 +35,7 @@ def get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, 
         'presence_penalty': 0,  # Repeat alpha presence penalty (default: 0.0, 0.0 = disabled)
         'repeat_last_n': 256,  # Last n tokens to consider for penalizing repetition (default: 256, 0 = disabled, -1 = ctx-size)
         'repeat_penalty': 1.1,  # Control the repetition of token sequences in the generated text (default: 1.1, 1.0 = disabled)
-        'stop': ['</s>', 'Llama:', 'User:', '<|endoftext|>', '<|im_end|>'],
+        'stop': ['</s>', 'Llama:', 'User:', '<|endoftext|>', '<|im_end|>', '<|END_OF_TURN_TOKEN|>', '<|eot_id|>'],
         'stream': True,
         'temperature': 0.7,
         'tfs_z': 1,  # Enable tail free sampling with parameter z (default: 1.0, 1.0 = disabled).
