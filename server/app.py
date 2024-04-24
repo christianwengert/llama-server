@@ -474,6 +474,7 @@ def make_prompt(hist, system_prompt, text, prompt_template):
         return prompt
 
     if prompt_template == 'llama-3':
+        #
         # <|begin_of_text|><|start_header_id|>system<|end_header_id|>
         #
         # {{ system_prompt }}<|eot_id|><|start_header_id|>user<|end_header_id|>
@@ -481,14 +482,14 @@ def make_prompt(hist, system_prompt, text, prompt_template):
         # {{ user_message_1 }}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
         prompt = ''
 
-        prompt += f'<|begin_of_text|><|start_header_id|>system<|end_header_id|>'
-        prompt += f'{system_prompt}<|eot_id|>'  # Omitting <BOS_TOKEN>
+        prompt += f'<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n'
+        prompt += f'{system_prompt}<|eot_id|>'
         for line in hist['items']:
             if line['role'] == USER:
-                prompt += f'<|start_header_id|>user<|end_header_id|>user<|end_header_id|>{line["content"]}<|eot_id|>'
+                prompt += f'<|start_header_id|>user<|end_header_id|>user<|end_header_id|>\n\n{line["content"]}<|eot_id|>'
             if line['role'] == ASSISTANT:
-                prompt += f'<|start_header_id|>assistant<|end_header_id|>{line["content"]}|eot_id|>'
-        prompt += f'<|start_header_id|>user<|end_header_id|>user<|end_header_id|>{text}<|eot_id|>'
+                prompt += f'<|start_header_id|>assistant<|end_header_id|>{line["content"]}<|eot_id|>'
+        prompt += f'<|start_header_id|>user<|end_header_id|>user<|end_header_id|>\n\n{text}<|eot_id|>'
         prompt += f'<|start_header_id|>assistant<|end_header_id|>'
         return prompt
 
