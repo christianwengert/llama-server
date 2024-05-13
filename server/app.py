@@ -24,7 +24,7 @@ from utils.timestamp_formatter import categorize_timestamp
 
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 20000
-MODEL_FILE = None
+MODEL_FILE = 'UNKNOWN'
 # noinspection PyBroadException
 try:
     props = get_default_props_from_llamacpp()
