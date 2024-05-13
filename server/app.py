@@ -24,12 +24,15 @@ from utils.timestamp_formatter import categorize_timestamp
 
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 20000
+MODEL_FILE = None
 # noinspection PyBroadException
 try:
     props = get_default_props_from_llamacpp()
     num_slots = props.get('num_slots', 1)
     n_ctx = props.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
     MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
+    model = props.get('model')
+    MODEL_FILE = os.path.basename(model)
 except Exception:
     pass
 
@@ -368,6 +371,11 @@ def get_input():
     system_prompt = data.pop('system_prompt')
 
     prompt_template = data.pop('prompt_template', 'mixtral')
+    # Use correct template if model is known, this is just to avoid using the wrong one
+    if 'llama-3' in MODEL_FILE.lower():
+        prompt_template = 'llama-3'
+    if 'mixtral' in MODEL_FILE.lower() or 'mistral' in MODEL_FILE.lower():
+        prompt_template = 'mixtral'
 
     hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
