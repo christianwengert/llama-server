@@ -23,7 +23,7 @@ def get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, 
     default_params = {
         'cache_prompt': True,
         'frequency_penalty': 0,  # Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled)
-        'prompt_template': 'mixtral',
+        'prompt_template': 'llama3',
         'grammar': '',
         'min_p': 0.1,  # The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
         'image_data': [],
