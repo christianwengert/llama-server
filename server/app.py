@@ -376,6 +376,8 @@ def get_input():
         prompt_template = 'llama-3'
     if 'mixtral' in MODEL_FILE.lower() or 'mistral' in MODEL_FILE.lower():
         prompt_template = 'mixtral'
+    if 'codestral' in MODEL_FILE.lower():
+        prompt_template = 'codestral'
 
     hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
@@ -468,7 +470,29 @@ def get_context_from_upload(token: str) -> Tuple[Optional[str], List[Dict]]:
 
 
 def make_prompt(hist, system_prompt, text, prompt_template):
-
+    if prompt_template == 'codestral':
+        # <s>[INST] <<SYS>>   llama.cpp should add the <s> (BOS) token automatically
+        # {system_prompt}
+        # <</SYS>>
+        #
+        # {user_prompt} [/INST] {assistant_response} </s><s>[INST] {new_user_prompt} [/INST]
+        prompt = ''
+        prompt += f' [INST] <<SYS>>'
+        prompt += f'{system_prompt}'
+        prompt += '<</SYS>>\n'
+        first = True
+        for line in hist['items']:
+            if line['role'] == USER:
+                if not first:
+                    prompt += '[INST] '
+                first = False
+                prompt += f'{line["content"]} [/INST] '
+            if line['role'] == ASSISTANT:
+                prompt += f'{line["content"]}</s><s>'
+        if not first:
+            prompt += '[INST] '
+        prompt += f'{text} [/INST]'
+        return prompt
     if prompt_template == 'mixtral':
         # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
         prompt = ''
