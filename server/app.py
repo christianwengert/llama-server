@@ -11,6 +11,7 @@ from typing import Dict, Optional, Tuple, List
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
+from jinja2 import Environment, BaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER, \
     get_default_props_from_llamacpp
@@ -415,18 +416,18 @@ def get_input():
         hist["items"] = hist["items"][:prune_history_index]
 
     post_data = get_llama_default_parameters(data)
-    if CHAT_TEMPLATE is not None:
-        url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
-        messages = [{'role': 'system', 'content': system_prompt}]
-        messages += hist['items']
-        messages += [{'role': USER, 'content': text}]
-        post_data = {"model": MODEL_FILE,
-                     "messages": messages}
-    else:
-        prompt = make_prompt(hist, system_prompt, text, prompt_template)
-        post_data = get_llama_default_parameters(data)
-        post_data['prompt'] = prompt
-        url = urllib.parse.urljoin(LLAMA_API, "/completion")
+    # if CHAT_TEMPLATE is not None:
+    #     url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
+    #     messages = [{'role': 'system', 'content': system_prompt}]
+    #     messages += hist['items']
+    #     messages += [{'role': USER, 'content': text}]
+    #     post_data = {"model": MODEL_FILE,
+    #                  "messages": messages}
+    # else:
+    prompt = make_prompt(hist, system_prompt, text, prompt_template)
+    post_data = get_llama_default_parameters(data)
+    post_data['prompt'] = prompt
+    url = urllib.parse.urljoin(LLAMA_API, "/completion")
 
     def generate():
         data = requests.request(method="POST",
@@ -518,7 +519,6 @@ def make_prompt(hist, system_prompt, text, prompt_template):
                 prompt += f'{line["content"]}</s>'
         prompt += f' [INST] {text} [/INST]'
         return prompt
-
     if prompt_template == 'llama-3':
         prompt = ''
         prompt += f'<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n'
@@ -545,14 +545,15 @@ def make_prompt(hist, system_prompt, text, prompt_template):
     #     prompt += f'<|im_start|>assistant'
     #     return prompt
 
-    # messages = [{'role': 'system', 'content': system_prompt}]
-    # messages += hist['items']
-    # messages += [{'role': USER, 'content': text}]
+    messages = [{'role': 'system', 'content': system_prompt}]
+    messages += hist['items']
+    messages += [{'role': USER, 'content': text}]
     # bos_token = "<|begin_of_text|>"
     # eos_token = "<|end_of_text|>"
-    #
-    # rtemplate = Environment(loader=BaseLoader()).from_string(prompt_template)
-    # return rtemplate.render(messages=messages, bos_token=bos_token, eos_token=eos_token)
+    bos_token = ""
+
+    rtemplate = Environment(loader=BaseLoader()).from_string(prompt_template)
+    return rtemplate.render(messages=messages, bos_token=bos_token)
 
 
 def hash_username(username):
