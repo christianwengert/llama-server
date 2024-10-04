@@ -73,8 +73,7 @@ def get_llama_default_parameters(params_from_post: Dict[str, Any]) -> Dict[str, 
 
 def get_default_props_from_llamacpp():
     props = requests.get(f'{LLAMA_API}/props').json()
-    default_generation_settings = props.get('default_generation_settings', {})
-    return default_generation_settings
+    return props
 
 
 def get_llama_parameters():

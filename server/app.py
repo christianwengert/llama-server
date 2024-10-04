@@ -25,16 +25,19 @@ from utils.timestamp_formatter import categorize_timestamp
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 20000
 MODEL_FILE = 'UNKNOWN'
+CHAT_TEMPLATE = None
 # noinspection PyBroadException
 try:
     props = get_default_props_from_llamacpp()
-    num_slots = props.get('num_slots', 1)
-    n_ctx = props.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
+    default_generation_settings = props.get('default_generation_settings', {})
+    num_slots = default_generation_settings.get('num_slots', 1)
+    n_ctx = default_generation_settings.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
     MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
-    model = props.get('model')
+    model = default_generation_settings.get('model')
     MODEL_FILE = os.path.basename(model)
+    CHAT_TEMPLATE = props.get('chat_template', None)
 except Exception:
-    pass
+    raise
 
 
 SEPARATOR = '~~~~'
@@ -379,6 +382,9 @@ def get_input():
     if 'codestral' in MODEL_FILE.lower():
         prompt_template = 'codestral'
 
+    if CHAT_TEMPLATE is not None:  # Override with default
+        prompt_template = CHAT_TEMPLATE
+
     hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
     cache_key = f'{CACHE_DIR}/{history_key}.json'
@@ -408,15 +414,23 @@ def get_input():
     if prune_history_index >= 0:  # remove items if required
         hist["items"] = hist["items"][:prune_history_index]
 
-    prompt = make_prompt(hist, system_prompt, text, prompt_template)
-
     post_data = get_llama_default_parameters(data)
-
-    post_data['prompt'] = prompt
+    if CHAT_TEMPLATE is not None:
+        url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
+        messages = [{'role': 'system', 'content': system_prompt}]
+        messages += hist['items']
+        messages += [{'role': USER, 'content': text}]
+        post_data = {"model": MODEL_FILE,
+                     "messages": messages}
+    else:
+        prompt = make_prompt(hist, system_prompt, text, prompt_template)
+        post_data = get_llama_default_parameters(data)
+        post_data['prompt'] = prompt
+        url = urllib.parse.urljoin(LLAMA_API, "/completion")
 
     def generate():
         data = requests.request(method="POST",
-                                url=urllib.parse.urljoin(LLAMA_API, "/completion"),
+                                url=url,
                                 data=json.dumps(post_data),
                                 stream=True)
 
@@ -506,14 +520,7 @@ def make_prompt(hist, system_prompt, text, prompt_template):
         return prompt
 
     if prompt_template == 'llama-3':
-        #
-        # <|begin_of_text|><|start_header_id|>system<|end_header_id|>
-        #
-        # {{ system_prompt }}<|eot_id|><|start_header_id|>user<|end_header_id|>
-        #
-        # {{ user_message_1 }}<|eot_id|><|start_header_id|>assistant<|end_header_id|>
         prompt = ''
-
         prompt += f'<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n'
         prompt += f'{system_prompt}<|eot_id|>'
         for line in hist['items']:
@@ -525,37 +532,27 @@ def make_prompt(hist, system_prompt, text, prompt_template):
         prompt += f'<|start_header_id|>assistant<|end_header_id|>'
         return prompt
 
-    if prompt_template == 'chatml':
-        # <|im_start|>system
-        # {system_message}<|im_end|>
-        # <|im_start|>user
-        # {prompt}<|im_end|>
-        # <|im_start|>assistant
-        prompt = ''
-        prompt += f'<|im_start|>system\n'
-        prompt += f'{system_prompt}<|im_end|>\n'
-        for line in hist['items']:
-            if line['role'] == USER:
-                prompt += f'<|im_start|>user\n{line["content"]}<|im_end|>\n'
-            if line['role'] == ASSISTANT:
-                prompt += f'<|im_start|>assistant\n{line["content"]}<|im_end|>'
-        prompt += f'<|im_start|>user\n{text}<|im_end|>'
-        prompt += f'<|im_start|>assistant'
-        return prompt
+    # if prompt_template == 'chatml':
+    #     prompt = ''
+    #     prompt += f'<|im_start|>system\n'
+    #     prompt += f'{system_prompt}<|im_end|>\n'
+    #     for line in hist['items']:
+    #         if line['role'] == USER:
+    #             prompt += f'<|im_start|>user\n{line["content"]}<|im_end|>\n'
+    #         if line['role'] == ASSISTANT:
+    #             prompt += f'<|im_start|>assistant\n{line["content"]}<|im_end|>'
+    #     prompt += f'<|im_start|>user\n{text}<|im_end|>'
+    #     prompt += f'<|im_start|>assistant'
+    #     return prompt
 
-    if prompt_template == 'alpaca':
-        # "### Instruction", "### Response"
-        prompt = ''
-
-        prompt += f'{system_prompt}\n'
-        for line in hist['items']:
-            if line['role'] == USER:
-                prompt += f'### User:\n{line["content"]}\n'
-            if line['role'] == ASSISTANT:
-                prompt += f'### Assistant:\n{line["content"]}'
-        prompt += f'### User:\n{text}<|im_end|>'
-        prompt += f'### Assistant:\n'
-        return prompt
+    # messages = [{'role': 'system', 'content': system_prompt}]
+    # messages += hist['items']
+    # messages += [{'role': USER, 'content': text}]
+    # bos_token = "<|begin_of_text|>"
+    # eos_token = "<|end_of_text|>"
+    #
+    # rtemplate = Environment(loader=BaseLoader()).from_string(prompt_template)
+    # return rtemplate.render(messages=messages, bos_token=bos_token, eos_token=eos_token)
 
 
 def hash_username(username):
