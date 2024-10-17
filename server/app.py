@@ -485,72 +485,11 @@ def get_context_from_upload(token: str) -> Tuple[Optional[str], List[Dict]]:
 
 
 def make_prompt(hist, system_prompt, text, prompt_template):
-    if prompt_template == 'codestral':
-        # <s>[INST] <<SYS>>   llama.cpp should add the <s> (BOS) token automatically
-        # {system_prompt}
-        # <</SYS>>
-        #
-        # {user_prompt} [/INST] {assistant_response} </s><s>[INST] {new_user_prompt} [/INST]
-        prompt = ''
-        prompt += f' [INST] <<SYS>>'
-        prompt += f'{system_prompt}'
-        prompt += '<</SYS>>\n'
-        first = True
-        for line in hist['items']:
-            if line['role'] == USER:
-                if not first:
-                    prompt += '[INST] '
-                first = False
-                prompt += f'{line["content"]} [/INST] '
-            if line['role'] == ASSISTANT:
-                prompt += f'{line["content"]}</s><s>'
-        if not first:
-            prompt += '[INST] '
-        prompt += f'{text} [/INST]'
-        return prompt
-    if prompt_template == 'mixtral':
-        # <s>[INST] ${prompt} [/INST] Model answer</s> [INST] Follow-up instruction [/INST]
-        prompt = ''
-        prompt += f' [INST] {system_prompt} [/INST] '
-        for line in hist['items']:
-            if line['role'] == USER:
-                prompt += f' [INST] {line["content"]} [/INST] '
-            if line['role'] == ASSISTANT:
-                prompt += f'{line["content"]}</s>'
-        prompt += f' [INST] {text} [/INST]'
-        return prompt
-    if prompt_template == 'llama-3':
-        prompt = ''
-        prompt += f'<|begin_of_text|><|start_header_id|>system<|end_header_id|>\n\n'
-        prompt += f'{system_prompt}<|eot_id|>'
-        for line in hist['items']:
-            if line['role'] == USER:
-                prompt += f'<|start_header_id|>user<|end_header_id|>user<|end_header_id|>\n\n{line["content"]}<|eot_id|>'
-            if line['role'] == ASSISTANT:
-                prompt += f'<|start_header_id|>assistant<|end_header_id|>{line["content"]}<|eot_id|>'
-        prompt += f'<|start_header_id|>user<|end_header_id|>user<|end_header_id|>\n\n{text}<|eot_id|>'
-        prompt += f'<|start_header_id|>assistant<|end_header_id|>'
-        return prompt
-
-    # if prompt_template == 'chatml':
-    #     prompt = ''
-    #     prompt += f'<|im_start|>system\n'
-    #     prompt += f'{system_prompt}<|im_end|>\n'
-    #     for line in hist['items']:
-    #         if line['role'] == USER:
-    #             prompt += f'<|im_start|>user\n{line["content"]}<|im_end|>\n'
-    #         if line['role'] == ASSISTANT:
-    #             prompt += f'<|im_start|>assistant\n{line["content"]}<|im_end|>'
-    #     prompt += f'<|im_start|>user\n{text}<|im_end|>'
-    #     prompt += f'<|im_start|>assistant'
-    #     return prompt
+    bos_token = ""   # llama.cpp should add this
 
     messages = [{'role': 'system', 'content': system_prompt}]
     messages += hist['items']
     messages += [{'role': USER, 'content': text}]
-    # bos_token = "<|begin_of_text|>"
-    # eos_token = "<|end_of_text|>"
-    bos_token = ""
 
     rtemplate = Environment(loader=BaseLoader()).from_string(prompt_template)
     return rtemplate.render(messages=messages, bos_token=bos_token)
