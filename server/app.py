@@ -3,6 +3,7 @@ import json
 import os
 import secrets
 import tempfile
+import time
 import urllib
 from functools import wraps
 from json import JSONDecodeError
@@ -24,21 +25,25 @@ from utils.filesystem import is_archive, extract_archive, find_files
 from utils.timestamp_formatter import categorize_timestamp
 
 
-MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 20000
+MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 2**15
 MODEL_FILE = 'UNKNOWN'
 CHAT_TEMPLATE = None
-# noinspection PyBroadException
-try:
-    props = get_default_props_from_llamacpp()
-    default_generation_settings = props.get('default_generation_settings', {})
-    num_slots = default_generation_settings.get('num_slots', 1)
-    n_ctx = default_generation_settings.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
-    MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
-    model = default_generation_settings.get('model')
-    MODEL_FILE = os.path.basename(model)
-    CHAT_TEMPLATE = props.get('chat_template', None)
-except Exception:
-    raise
+while True:
+    # noinspection PyBroadException
+    try:
+        props = get_default_props_from_llamacpp()
+        default_generation_settings = props.get('default_generation_settings', {})
+        num_slots = default_generation_settings.get('num_slots', 1)
+        n_ctx = default_generation_settings.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
+        MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
+        model = default_generation_settings.get('model')
+        MODEL_FILE = os.path.basename(model)
+        CHAT_TEMPLATE = props.get('chat_template', None)
+        break
+    except Exception:
+        print("Waiting for llama-server")
+        time.sleep(1)
+        continue
 
 
 SEPARATOR = '~~~~'
