@@ -33,10 +33,10 @@ while True:
     try:
         props = get_default_props_from_llamacpp()
         default_generation_settings = props.get('default_generation_settings', {})
-        num_slots = default_generation_settings.get('num_slots', 1)
+        num_slots = props.get('total_slots', 1)
         n_ctx = default_generation_settings.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
         MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
-        model = default_generation_settings.get('model')
+        model = props.get('model_path')
         MODEL_FILE = os.path.basename(model)
         CHAT_TEMPLATE = props.get('chat_template', None)
         break
@@ -420,7 +420,7 @@ def get_input():
     if prune_history_index >= 0:  # remove items if required
         hist["items"] = hist["items"][:prune_history_index]
 
-    post_data = get_llama_default_parameters(data)
+    # post_data = get_llama_default_parameters(data)
     # if CHAT_TEMPLATE is not None:
     #     url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
     #     messages = [{'role': 'system', 'content': system_prompt}]
