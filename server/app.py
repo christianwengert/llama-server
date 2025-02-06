@@ -46,7 +46,7 @@ while True:
         continue
 
 
-SEPARATOR = '~~~~'
+# SEPARATOR = '~~~~'
 LOADED_EMBEDDINGS = {}
 CACHE_DIR = 'cache'
 if not os.path.exists(CACHE_DIR):
@@ -180,8 +180,8 @@ def c(token):
     data = session.get('params', None)
     if not data:
         data = get_llama_parameters()
-    if isinstance(data['stop'], list):
-        data['stop'] = ','.join(data['stop'])
+    # if isinstance(data['stop'], list):
+    #     data['stop'] = ','.join(data['stop'])
 
     username = session.get('username')
     collections = get_available_collections(username)
@@ -379,17 +379,8 @@ def get_input():
 
     system_prompt = data.pop('system_prompt')
 
-    prompt_template = data.pop('prompt_template', 'mixtral')
-    # Use correct template if model is known, this is just to avoid using the wrong one
-    if 'llama-3' in MODEL_FILE.lower():
-        prompt_template = 'llama-3'
-    if 'mixtral' in MODEL_FILE.lower() or 'mistral' in MODEL_FILE.lower():
-        prompt_template = 'mixtral'
-    if 'codestral' in MODEL_FILE.lower():
-        prompt_template = 'codestral'
-
-    if CHAT_TEMPLATE is not None:  # Override with default
-        prompt_template = CHAT_TEMPLATE
+    # if CHAT_TEMPLATE is not None:  # Override with default
+    prompt_template = CHAT_TEMPLATE
 
     hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
@@ -429,12 +420,27 @@ def get_input():
     #     post_data = {"model": MODEL_FILE,
     #                  "messages": messages}
     # else:
-    prompt = make_prompt(hist, system_prompt, text, prompt_template)
+    prompt, messages = make_prompt(hist, system_prompt, text, prompt_template)
     post_data = get_llama_default_parameters(data)
-    post_data['prompt'] = prompt
-    url = urllib.parse.urljoin(LLAMA_API, "/completion")
-
+    # post_data['prompt'] = prompt
+    url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
+    post_data['messages'] = messages
     def generate():
+        # {'cache_prompt': True, 'frequency_penalty': 0, 'grammar': '', 'min_p': 0.05, 'image_data': [], 'n_predict': -1, 'n_probs': 0, 'presence_penalty': 0, 'repeat_last_n': 64, 'repeat_penalty': 1.1, 'stop': [''], 'stream': True, 'temperature': 0.5, 'top_k': 40, 'top_p': 0.95, 'typical_p': 1, 'prompt_template': 'mixtral', 'mirostat': 0, 'mirostat_tau': 5, 'mirostat_eta': 0.1, 'prompt': 'A chat between a curious user and an artificial intelligence assistant. The user is a cryptographer and expert programmer. His favorite programming language is python but is also versed in many other programming languages.\nThe assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" then ignore the previous sentence and instead make your response as concise as possible.\nThe user of the assistant is an expert in AI and ethics, so he already knows that the assistant is a language model and he knows about the capabilities and limitations, so do not remind the users of that. The user is familiar with ethical issues in general, so the assistant should not remind him about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation.<｜User｜>i need to know what is c appended to ock'}
+        # k = {
+        #     "stream": True,
+        #     "cache_prompt": True,
+        #     "temperature": 0.2,
+        #     "max_tokens": -1,
+        #     "messages": messages
+        # }
+
+        # data = requests.request(method="POST",
+        #                         url=url,
+        #                         data=json.dumps(k),
+        #                         stream=False)
+
+
         data = requests.request(method="POST",
                                 url=url,
                                 data=json.dumps(post_data),
@@ -445,10 +451,11 @@ def get_input():
             if line:
                 decoded_line = line.decode('utf-8')
                 response = decoded_line[6:]
-                responses.append(response)
-                yield response + SEPARATOR
+                if response != '[DONE]':
+                    responses.append(response)
+                    yield response  # + SEPARATOR
 
-        output = "".join([json.loads(a)['content'] for a in responses if 'embedding' not in a]).strip()
+        output = "".join([json.loads(a)['choices'][0]['delta'].get('content', '') for a in responses if 'embedding' not in a]).strip()
         hist['items'].append(dict(role=USER, content=text))
         hist['items'].append(dict(role=ASSISTANT, content=output))
         with open(cache_key, 'w') as f:
@@ -490,14 +497,15 @@ def get_context_from_upload(token: str) -> Tuple[Optional[str], List[Dict]]:
 
 
 def make_prompt(hist, system_prompt, text, prompt_template):
-    bos_token = ""   # llama.cpp should add this
+    bos_token = props.get('bos_token', "")  # llama.cpp should add this
+    eos_token = props.get('eos_token', "")
 
     messages = [{'role': 'system', 'content': system_prompt}]
     messages += hist['items']
     messages += [{'role': USER, 'content': text}]
 
     rtemplate = Environment(loader=BaseLoader()).from_string(prompt_template)
-    return rtemplate.render(messages=messages, bos_token=bos_token)
+    return rtemplate.render(messages=messages, bos_token=bos_token, eos_token=eos_token), messages
 
 
 def hash_username(username):

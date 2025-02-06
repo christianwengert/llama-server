@@ -1,5 +1,4 @@
 
-<!--<textarea id="system_prompt" name="system_prompt">{{system_prompt}}</textarea>-->
 
 <div id="popupSettings" class="overlay">
     <div class="popup">
@@ -8,20 +7,6 @@
         <div class="scroll-content">
 
             <form id="settings-form" class="popup-form">
-                <div>
-                    <label for="n_predict">Predict:</label>
-                    <input required type="number" id="n_predict" name="n_predict" value="{{n_predict}}" placeholder="1024">
-                </div>
-                <div class="param-help">
-                    Set the number of tokens to predict when generating text. Note: May exceed the set limit slightly if the last token is a partial multibyte character. When 0, no tokens will be generated but the prompt is evaluated into the cache. (default: 1024, -1 = infinity).
-                </div>
-<!--                 <div>-->
-<!--                    <label for="n_keep">n_keep:</label>-->
-<!--                    <input type="number" id="n_keep" name="n_keep" value="-1" step="1"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Specify the number of tokens from the initial prompt to retain when the model resets its internal context. By default, this value is set to 0 (meaning no tokens are kept). Use -1 to retain all tokens from the initial prompt.-->
-<!--                </div>-->
                 <div>
                     <label for="temperature">Temperature:</label>
                     <input required type="number" id="temperature" name="temperature" min="0" step="0.01" value="{{temperature}}" placeholder="0.7">
@@ -36,15 +21,6 @@
                 <div class="param-help">
                     The minimum probability for a token to be considered, relative to the probability of the most likely token (default: 0.1, 0.0 = disabled)
                 </div>
-                <!-- Array of Strings -->
-                <div>
-                    <label for="stop">Stop:</label>
-                    <input required type="text" id="stop" name="stop" value="{{stop}}">
-                </div>
-                <div class="param-help">
-                    Specify a JSON array of stopping strings. These words will not be included in the completion, so make sure to add them to the prompt for the next iteration (default: []).
-                </div>
-                <!-- More Numerical Settings -->
                 <div>
                     <label for="repeat_last_n">Repeat last n:</label>
                     <input required type="number" id="repeat_last_n" name="repeat_last_n" value="{{repeat_last_n}}" placeholder="256">
@@ -74,55 +50,6 @@
                     Limit the next token selection to a subset of tokens with a cumulative probability above a threshold P (default: 0.9, 1.0 = disabled).
                 </div>
                 <div>
-                    <label for="prompt_template">Prompt template:</label>
-                    <select id="prompt_template" name="prompt_template" >
-                        <option value="mixtral" {% if prompt_template=='mixtral' %}selected="selected"{% endif %}>Mixtral</option>
-                        <option value="chatml" {% if prompt_template=='chatml' %}selected="selected"{% endif %}>ChatML</option>
-                        <option value="alpaca" {% if prompt_template=='alpaca' %}selected="selected"{% endif %}>Alpaca</option>
-                        <option value="llama-3" {% if prompt_template=='llama-3' %}selected="selected"{% endif %}>llama-3</option>
-                    </select>
-                </div>
-                <div class="param-help">
-                    The prompt template. Depends on the model used.
-                </div>
-<!--                <div>-->
-<!--                    <label for="assistant_name">Assistant name:</label>-->
-<!--                    <input type="text" id="assistant_name" name="assistant_name" value="{{assistant_name}}"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    The bot's name is necessary for each customer to generate the prompt-->
-<!--                </div>-->
-
-
-<!--                <div>-->
-<!--                    <label for="anti_prompt">User prompt prefix:</label>-->
-<!--                    <input type="text" id="anti_prompt" name="anti_prompt" value="{{anti_prompt}}"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Specify the word you want to use to instruct the model to stop-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    <label for="user_prompt_suffix">User prompt suffix:</label>-->
-<!--                    <input type="text" id="user_prompt_suffix" name="user_prompt_suffix" value="{{user_prompt_suffix}}"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Suffix for system prompt-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    <label for="system_prompt_prefix">System prompt prefix:</label>-->
-<!--                    <input type="text" id="system_prompt_prefix" name="system_prompt_prefix" value="{{system_prompt_prefix}}"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Prefix for system prompt-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    <label for="system_prompt_suffix">System Prompt Suffix:</label>-->
-<!--                    <input type="text" id="system_prompt_suffix" name="system_prompt_suffix" value="{{system_prompt_suffix}}"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Suffix for system prompt-->
-<!--                </div>-->
-                <div>
                     <label for="system_prompt">System prompt:</label>
                     <textarea id="system_prompt" name="system_prompt" rows="8">{{system_prompt}}</textarea>
                 </div>
@@ -137,81 +64,6 @@
                     Set grammar for grammar-based sampling (default: no grammar)
                 </div>
 
-                <details>
-                    <summary>
-                        More options
-                    </summary>
-                    <div>
-                    <label for="mirostat">Mirostat:</label>
-                    <input required type="number" id="mirostat" name="mirostat" value="{{mirostat}}" placeholder="0">
-                    </div>
-                    <div class="param-help">
-                        Enable Mirostat sampling, controlling perplexity during text generation (default: 0, 0 = disabled, 1 = Mirostat, 2 = Mirostat 2.0).
-                    </div>
-                    <div>
-                        <label for="mirostat_tau">Mirostat Tau:</label>
-                        <input required type="number" id="mirostat_tau" name="mirostat_tau" step="0.01" value="{{mirostat_tau}}" placeholder="5">
-                    </div>
-                    <div class="param-help">
-                        Set the Mirostat target entropy, parameter tau (default: 5).
-                    </div>
-                    <div>
-                        <label for="mirostat_eta">Mirostat Eta:</label>
-                        <input required type="number" id="mirostat_eta" name="mirostat_eta" step="0.01" value="{{mirostat_eta}}" placeholder="0.1">
-                    </div>
-                    <div class="param-help">
-                        Set the Mirostat learning rate, parameter eta (default: 0.1).
-                    </div>
-
-
-<!--                    <div>-->
-<!--                        <label for="tfs_z">TFS Z:</label>-->
-<!--                        <input type="number" id="tfs_z" name="tfs_z" value="1"><br>-->
-<!--                    </div>-->
-<!--                    <div class="param-help">-->
-<!--                        Enable tail free sampling with parameter z (default: 1.0, 1.0 = disabled).-->
-<!--                    </div>-->
-<!--                    <div>-->
-<!--                        <label for="typical_p">Typical P:</label>-->
-<!--                        <input type="number" id="typical_p" name="typical_p" value="1"><br>-->
-<!--                    </div>-->
-<!--                    <div class="param-help">-->
-<!--                        Enable locally typical sampling with parameter p (default: 1.0, 1.0 = disabled).-->
-<!--                    </div>-->
-<!--                    <div>-->
-<!--                        <label for="presence_penalty">Presence Penalty:</label>-->
-<!--                        <input type="number" id="presence_penalty" name="presence_penalty" value="0"><br>-->
-<!--                    </div>-->
-<!--                    <div class="param-help">-->
-<!--                        Repeat alpha presence penalty (default: 0.0, 0.0 = disabled).-->
-<!--                    </div>-->
-<!--                    <div>-->
-<!--                        <label for="frequency_penalty">Frequency Penalty:</label>-->
-<!--                        <input type="number" id="frequency_penalty" name="frequency_penalty" value="0"><br>-->
-<!--                    </div>-->
-<!--                    <div class="param-help">-->
-<!--                        Repeat alpha frequency penalty (default: 0.0, 0.0 = disabled);-->
-<!--                    </div>-->
-                </details>
-
-<!--                <div>-->
-<!--                    <label for="system_prompt2">System prompt:</label>-->
-<!--                    <textarea id="system_prompt2" name="system_prompt2">{{system_prompt}}</textarea>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-<!--                    Set the system prompt for the conversation-->
-<!--                </div>-->
-<!--                <div>-->
-<!--                    <label for="n_probs">N Probs:</label>-->
-<!--                    <input type="number" id="n_probs" name="n_probs" value="0"><br>-->
-<!--                </div>-->
-<!--                <div class="param-help">-->
-
-<!--                </div>-->
-<!--                <div>-->
-<!--                    &lt;!&ndash; Submit Button &ndash;&gt;-->
-<!--                    <input type="submit" value="Submit">-->
-<!--                </div>-->
                 <div class="param-help">
                     <a href="#" id="reset-settings">Reset Settings</a>
                 </div>

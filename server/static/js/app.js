@@ -50157,6 +50157,31 @@
       pruneHistoryIndex = messages.indexOf(message);
       removeAllChildrenAfterIndex(chat, pruneHistoryIndex);
     }
+    function getAllChunks(responseText) {
+      const trimmed = responseText.trim();
+      if (!trimmed.includes("}{")) {
+        try {
+          return [JSON.parse(trimmed)];
+        } catch (e) {
+          return [];
+        }
+      }
+      const parts = trimmed.split("}{");
+      for (let i = 0; i < parts.length; i++) {
+        if (i > 0)
+          parts[i] = "{" + parts[i];
+        if (i < parts.length - 1)
+          parts[i] = parts[i] + "}";
+      }
+      const allResponses = [];
+      for (const part of parts) {
+        try {
+          allResponses.push(JSON.parse(part));
+        } catch (e) {
+        }
+      }
+      return allResponses;
+    }
     function handleInput(e) {
       if (e.key === "Enter" && e.shiftKey === false) {
         e.preventDefault();
@@ -50176,72 +50201,74 @@
             e2.preventDefault();
             xhr.abort();
             stopButton.disabled = true;
+            inputElement.contentEditable = "true";
           });
         }
         stopButton.disabled = false;
         const ident = renderMessage("", "them", chat);
         const elem = document.getElementById(ident);
-        const inner = elem.querySelector(".inner-message");
-        inner.innerHTML = '<div class="loading"></div>';
+        let inner = elem.querySelector(".inner-message");
+        let textField = inner;
         scrollToBottom();
         xhr.open("POST", "/");
-        let buffer = "";
-        let lastBufferLength = 0;
+        let index = 0;
         xhr.onprogress = function() {
-          const newText = xhr.responseText.substring(lastBufferLength);
-          buffer += newText;
-          lastBufferLength = xhr.responseText.length;
-          let start = 0, end = 0;
-          let separator = "~~~~";
-          while ((end = buffer.indexOf(separator, start)) !== -1) {
-            let message = buffer.substring(start, end);
-            start = end + separator.length;
-            let jsonMessage;
-            try {
-              jsonMessage = JSON.parse(message);
-            } catch (e2) {
-              console.log(e2, message);
-              break;
-            }
-            if (jsonMessage.stop === true) {
-              const timings = jsonMessage.timings;
-              let model = jsonMessage.model;
-              if (model) {
-                model = model.split("/").slice(-1);
+          const chunks = getAllChunks(xhr.responseText);
+          console.log("chunk " + index);
+          while (index < chunks.length) {
+            const chunk = chunks[index];
+            if (chunk) {
+              if (chunk.choices[0].finish_reason === "stop") {
+                const timings = chunk.timings;
+                let model = chunk.model;
+                if (model) {
+                  model = model.split("/").slice(-1);
+                }
+                const timing = document.getElementById("timing-info");
+                timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
+                highlightCode(textField);
+                inputElement.contentEditable = "true";
+                stopButton.disabled = true;
+                loadHistory();
+                inputElement.focus();
+              } else {
+                let chunkContent = chunk.choices[0].delta.content;
+                if (chunkContent == "<think>") {
+                  const details = document.createElement("div");
+                  details.classList.add("think-details");
+                  inner.appendChild(details);
+                  const summary = document.createElement("div");
+                  summary.classList.add("think-title");
+                  summary.innerText = "Thinking";
+                  details.appendChild(summary);
+                  const p = document.createElement("div");
+                  p.classList.add("think-content");
+                  details.appendChild(p);
+                  inner.appendChild(details);
+                  textField = p;
+                  const after = document.createElement("div");
+                  inner.append(after);
+                  inner = after;
+                } else if (chunkContent == "</think>") {
+                  textField = inner;
+                } else {
+                  textField.innerText += chunkContent;
+                }
               }
-              const timing = document.getElementById("timing-info");
-              timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
-              highlightCode(inner);
-              inputElement.focus();
-              break;
-            } else {
-              if (inner.innerText === "") {
-                jsonMessage.content = jsonMessage.content.trim();
-              }
-              inner.innerText += jsonMessage.content;
             }
+            updateScrollButton();
+            index = index + 1;
           }
-          buffer = buffer.substring(start);
-          updateScrollButton();
         };
         xhr.addEventListener("error", function(e2) {
           console.log("error: " + e2);
         });
         xhr.onload = function() {
-          console.log(buffer);
-          if (isMainInput) {
-            inputElement.contentEditable = "true";
-          }
-          setFocusToInputField(mainInput);
-          stopButton.disabled = true;
-          loadHistory();
         };
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         const formData = getFormDataAsJSON("settings-form");
         formData.input = m;
-        formData.stop = formData.stop.split(",");
         formData.pruneHistoryIndex = pruneHistoryIndex;
-        console.log("prune " + pruneHistoryIndex);
         xhr.send(JSON.stringify(formData));
       }
     }

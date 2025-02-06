@@ -172,47 +172,47 @@ const setupUploadButton = () => {
                     body: formData,
                     method: "post"
                 }).then((response) => {
-                    if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
-                    return response.json();
-                }).then((jsonData) => {
-                    // Process the JSON data here
-                    console.log(jsonData);
-                    help.classList.remove('warning')
-                    if(jsonData.error) {
-                        help.dataset.errorMessage = jsonData['error']
-                        help.classList.add('warning')
-                    } else { // all set
-                        document.location.hash = ''
-                        renderMessage((formData.get('file') as any).name, "me", chat, 'file-icon', false);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                return response.json();
+            }).then((jsonData) => {
+                // Process the JSON data here
+                console.log(jsonData);
+                help.classList.remove('warning')
+                if (jsonData.error) {
+                    help.dataset.errorMessage = jsonData['error']
+                    help.classList.add('warning')
+                } else { // all set
+                    document.location.hash = ''
+                    renderMessage((formData.get('file') as any).name, "me", chat, 'file-icon', false);
 
-                        if(jsonData['collection-visibility']) {
-                            const menuLink = document.getElementById('menuLink');
-                            if(menuLink) {
-                                const textNode = menuLink.firstChild! as HTMLElement;
-                                textNode.textContent = jsonData['collection-name'];
-                                const collectionType = jsonData['collection-visibility'] === 'public' ? 'common' : 'user'
-                                const subMenu = document.getElementById(`menu-collection-${collectionType}`)
-                                if(subMenu) {
-                                    const button = document.createElement('a')
-                                    button.className = 'mode-button'
-                                    button.href = '#';
-                                    button.textContent = jsonData['collection-name'];
-                                    button.id = jsonData['collection-name'];
-                                    subMenu.appendChild(button);
-                                    // Get the current URL
-                                    const url = new URL(window.location.href);
-                                    // Update the search parameter
-                                    url.searchParams.set('collection', jsonData['collection-hashed-name']);
-                                    // Change the location object without reloading the page
-                                    history.replaceState({}, '', url);
-                                }
+                    if (jsonData['collection-visibility']) {
+                        const menuLink = document.getElementById('menuLink');
+                        if (menuLink) {
+                            const textNode = menuLink.firstChild! as HTMLElement;
+                            textNode.textContent = jsonData['collection-name'];
+                            const collectionType = jsonData['collection-visibility'] === 'public' ? 'common' : 'user'
+                            const subMenu = document.getElementById(`menu-collection-${collectionType}`)
+                            if (subMenu) {
+                                const button = document.createElement('a')
+                                button.className = 'mode-button'
+                                button.href = '#';
+                                button.textContent = jsonData['collection-name'];
+                                button.id = jsonData['collection-name'];
+                                subMenu.appendChild(button);
+                                // Get the current URL
+                                const url = new URL(window.location.href);
+                                // Update the search parameter
+                                url.searchParams.set('collection', jsonData['collection-hashed-name']);
+                                // Change the location object without reloading the page
+                                history.replaceState({}, '', url);
                             }
                         }
-
                     }
-                })
+
+                }
+            })
                 .catch((_error) => {
                     // Handle errors or display a message to the user
                     help.classList.add('warning', 'warning-file-upload-failed')
@@ -231,11 +231,10 @@ const setupUploadButton = () => {
         const outerName = collectionName.closest('.block')!;
         const outerVisibility = collectionVisibility.closest('.block')!;
         const eventHandler = (event?: Event) => {
-            if(event) {
+            if (event) {
                 event.preventDefault();
             }
-            if(collectionSelector.value === "New")
-            {
+            if (collectionSelector.value === "New") {
                 outerName.className = 'd-block';
                 outerVisibility.className = 'd-block';
                 collectionName.value = "";
@@ -367,16 +366,16 @@ const loadHistory = () => {
         }
         item.items.forEach((msg, index) => {
             const direction = index % 2 === 0 ? "me" : "them";
-            let innerMessageExtraClass: string|undefined = undefined;
+            let innerMessageExtraClass: string | undefined = undefined;
             let renderButtons: boolean = true;
-            if(msg.metadata) {
+            if (msg.metadata) {
                 innerMessageExtraClass = "file-icon";
                 const fileSet = new Set(msg.metadata.map(item => item.file));
                 msg.content = Array.from(fileSet).join(', ')
                 // msg.content = msg.metadata.filename;
                 renderButtons = false;
             }
-            if(msg.collection) {
+            if (msg.collection) {
                 const url = new URL(window.location.href);
                 // Update the search parameter
                 url.searchParams.set('collection', msg.collection);
@@ -463,18 +462,30 @@ function getInputHandler(inputElement: HTMLElement) {
         removeAllChildrenAfterIndex(chat, pruneHistoryIndex)
     }
 
-    type TimingInfo = {
-        predicted_per_token_ms: number;
-
+    function getAllChunks(responseText: string) {
+        const trimmed = responseText.trim();
+        if (!trimmed.includes('}{')) {
+            try {
+                return [JSON.parse(trimmed)];
+            } catch (e) {
+                return [];
+            }
+        }
+        const parts = trimmed.split('}{');
+        for (let i = 0; i < parts.length; i++) {
+            if (i > 0) parts[i] = '{' + parts[i];
+            if (i < parts.length - 1) parts[i] = parts[i] + '}';
+        }
+        const allResponses = [];
+        for (const part of parts) {
+            try {
+                allResponses.push(JSON.parse(part));
+            } catch (e) {
+                // ignore any invalid/incomplete parts
+            }
+        }
+        return allResponses;
     }
-    type ReturnMessage = {
-        content: string;
-        model: any;
-        timings: TimingInfo;
-        stop: boolean;
-
-    }
-
 
     function handleInput(e: KeyboardEvent) {
         if (e.key === 'Enter' && e.shiftKey === false) {
@@ -498,6 +509,7 @@ function getInputHandler(inputElement: HTMLElement) {
                     e.preventDefault();
                     xhr.abort();
                     stopButton.disabled = true;
+                    inputElement.contentEditable = "true";
                 })
             }
 
@@ -505,59 +517,90 @@ function getInputHandler(inputElement: HTMLElement) {
 
             const ident = renderMessage('', 'them', chat)
             const elem = document.getElementById(ident)!;
-            const inner = elem.querySelector('.inner-message')! as HTMLElement;
-            inner.innerHTML = '<div class="loading"></div>'
+            let inner = elem.querySelector('.inner-message')! as HTMLElement;
+            let textField = inner;
+            // inner.innerHTML = '<div class="loading"></div>'
 
             scrollToBottom()
 
             xhr.open('POST', '/');
-
-            let buffer = '';
-            let lastBufferLength = 0; // Keep track of how much we've read
-
+            let index = 0;
             xhr.onprogress = function () {
-                const newText = xhr.responseText.substring(lastBufferLength);
-                buffer += newText;
-                lastBufferLength = xhr.responseText.length; // Update our progress
 
-                let start = 0, end = 0;
-                let separator = "~~~~";
-                while ((end = buffer.indexOf(separator, start)) !== -1) {
-                    let message = buffer.substring(start, end);
-                    start = end + separator.length; // skip past the delimiter
-                    let jsonMessage: ReturnMessage;
-                    try {
-                        jsonMessage = JSON.parse(message);
-                    } catch (e) {
-                        console.log(e, message);  // this would happen if the separator is part of the prompt!!!
-                        break;
+                const chunks = getAllChunks(xhr.responseText);  // do not miss any
+                console.log('chunk ' + index)
+                while (index < chunks.length) {
+
+                    const chunk = chunks[index];
+
+                    if (chunk) {
+                        if (chunk.choices[0].finish_reason === 'stop') {
+
+                            const timings = chunk.timings
+                            let model = chunk.model
+                            if (model) {
+                                model = model.split('/').slice(-1);
+                            }
+
+                            const timing = document.getElementById('timing-info')! as HTMLSpanElement;
+                            timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `
+
+                            // adapt markdown for ```
+                            highlightCode(textField);
+
+                            inputElement.contentEditable = "true";
+
+                            // setFocusToInputField(mainInput);
+                            stopButton.disabled = true;
+                            loadHistory()
+                            inputElement.focus();
+
+                        } else {
+                            let chunkContent = chunk.choices[0].delta.content;
+
+                            if (chunkContent == '<think>') {
+                                const details = document.createElement('div');
+                                details.classList.add('think-details')
+                                inner.appendChild(details);
+                                const summary = document.createElement('div');
+                                summary.classList.add('think-title')
+                                summary.innerText = 'Thinking';
+                                details.appendChild(summary)
+                                const p = document.createElement('div');
+                                p.classList.add('think-content')
+                                // p.classList.add('detail')
+                                details.appendChild(p)
+                                inner.appendChild(details)
+                                // console.log(details)
+                                textField = p;
+                                const after = document.createElement('div');
+                                inner.append(after);
+                                inner = after;
+
+                                // chunkContent = '<details><summary>Thinking</summary>'
+                            } else if (chunkContent == '</think>') {
+                                // chunkContent = '</details>'
+                                textField = inner;
+                            } else {
+                                // const newText = document.createTextNode(chunkContent);
+                                // textField.appendChild(newText)
+                                textField.innerText += chunkContent;
+                            }
+                            // if (index === 0) {
+                            //     inner.innerHTML = '<div class="loading"></div>'
+                            // }
+
+
+                            // if (textField.innerText === "") {
+                            //     textField = chunkContent.trim();
+                            // }
+
+                        }
                     }
 
-                    if (jsonMessage.stop === true) {
-                        const timings = jsonMessage.timings
-                        let model = jsonMessage.model
-                        if (model) {
-                            model = model.split('/').slice(-1);
-                        }
-
-                        const timing = document.getElementById('timing-info')! as HTMLSpanElement;
-                        timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `
-
-                        // adapt markdown for ```
-                        highlightCode(inner);
-
-                        inputElement.focus();
-                        break;
-                    } else {
-                        if (inner.innerText === "") {
-                            jsonMessage.content = jsonMessage.content.trim();
-                        }
-                        inner.innerText += jsonMessage.content;
-                    }
-
+                    updateScrollButton();
+                    index = index + 1;
                 }
-                buffer = buffer.substring(start); // Remove parsed messages from the buffer
-                updateScrollButton();
             };
 
             xhr.addEventListener("error", function (e) {
@@ -566,25 +609,19 @@ function getInputHandler(inputElement: HTMLElement) {
 
             xhr.onload = function () {
 
-                console.log(buffer)
-
-                if (isMainInput) {
-                    inputElement.contentEditable = "true";
-                }
-                setFocusToInputField(mainInput);
-                stopButton.disabled = true;
-                loadHistory()
+                // if (isMainInput) {
+                //     inputElement.contentEditable = "true";
+                // }
+                // setFocusToInputField(mainInput);
+                // stopButton.disabled = true;
+                // loadHistory()
             }
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
             const formData = getFormDataAsJSON('settings-form')
             formData.input = m
 
-            // @ts-ignore
-            formData.stop = formData.stop.split(',')
             formData.pruneHistoryIndex = pruneHistoryIndex
-            console.log('prune ' + pruneHistoryIndex)
-
             xhr.send(JSON.stringify(formData));
         }
     }
@@ -676,8 +713,8 @@ function setupMenu() {
 
     // get and set current mode
     const selectedMode = curUrl.searchParams.get(key);
-    // @ts-ignore
     for (let elem of document.getElementsByClassName('mode-button')) {
+        // @ts-ignore
         elem.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault()
             const target = e.target! as HTMLElement;
@@ -706,12 +743,12 @@ function setupMenu() {
 
             textNode.textContent = target.textContent;
             updateUrlParam(target.id)
-                // return
+            // return
             // }
 
         })
         //update current selection
-        if(selectedMode && elem.id === selectedMode) {
+        if (selectedMode && elem.id === selectedMode) {
             // console.log('sekect ', elem)
             (elem as HTMLAnchorElement).click();
             menu.classList.add('hidden');
@@ -743,7 +780,7 @@ const setupEscapeButtonForPopups = () => {
 
 const setupSettingsMustBeSet = () => {
     let form = document.getElementById('settings-form');
-    if(!form) {
+    if (!form) {
         return
     }
     const inputs = form.querySelectorAll('input[required]')
@@ -751,7 +788,7 @@ const setupSettingsMustBeSet = () => {
     const validateInput = () => {
 
         inputs.forEach(elem => {
-            const input =  elem as HTMLInputElement;
+            const input = elem as HTMLInputElement;
             const parent = input.parentElement as HTMLDivElement;
             const help = parent.nextElementSibling as HTMLDivElement;
 
@@ -772,7 +809,7 @@ const setupSettingsMustBeSet = () => {
 const setupCollectionDeletion = () => {
     window.addEventListener('click', function (event) {
         let target = event.target! as HTMLElement;
-        if(target.classList.contains('delete-collection-item')) {
+        if (target.classList.contains('delete-collection-item')) {
             event.preventDefault()
             const collectionToDelete = target.previousElementSibling!.id;
             const url = `/delete/collection/${collectionToDelete}`;
