@@ -401,11 +401,11 @@ def get_input():
     # Add context if asked
     context, metadata = make_context(text, token, vector_store)
     if context:
-        item = dict(role=USER, content=f'This is the context: {context}', metadata=metadata)
+        item = dict(role=USER, content=f'<context>\n{context}\n</context>', metadata=metadata)
         if collection:
             item['collection'] = collection
         hist['items'].append(item)
-        hist['items'].append(dict(role=ASSISTANT, content='OK'))  # f'{assistant}: OK'
+        hist['items'].append(dict(role=ASSISTANT, content='The context which is in between the <context></context> tags is now available.'))  # f'{assistant}: OK'
         ADDITIONAL_CONTEXT.pop(token, None)  # remove it, it is now part of the history
 
     if prune_history_index >= 0:  # remove items if required
