@@ -50214,6 +50214,7 @@
         const elem = document.getElementById(ident);
         let inner = elem.querySelector(".inner-message");
         let textField = inner;
+        inner.innerHTML = '<div class="loading"></div>';
         scrollToBottom();
         xhr.open("POST", "/");
         let index = 0;
@@ -50240,6 +50241,7 @@
               } else {
                 let chunkContent = chunk.choices[0].delta.content;
                 if (chunkContent == "<think>") {
+                  inner.innerHTML = "";
                   const details = document.createElement("details");
                   details.classList.add("think-details");
                   inner.appendChild(details);
@@ -50255,6 +50257,7 @@
                   textField = p;
                   const after = document.createElement("div");
                   inner.append(after);
+                  after.innerHTML = '<div class="loading"></div>';
                   inner = after;
                 } else if (chunkContent == "</think>") {
                   textField = inner;

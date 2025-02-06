@@ -528,7 +528,7 @@ function getInputHandler(inputElement: HTMLElement) {
             const elem = document.getElementById(ident)!;
             let inner = elem.querySelector('.inner-message')! as HTMLElement;
             let textField = inner;
-            // inner.innerHTML = '<div class="loading"></div>'
+            inner.innerHTML = '<div class="loading"></div>'
 
             scrollToBottom()
 
@@ -570,8 +570,10 @@ function getInputHandler(inputElement: HTMLElement) {
                             let chunkContent = chunk.choices[0].delta.content;
 
                             if (chunkContent == '<think>') {
+                                inner.innerHTML = "";
                                 const details = document.createElement('details');
                                 details.classList.add('think-details')
+
 
                                 inner.appendChild(details);
                                 const summary = document.createElement('summary');
@@ -589,6 +591,7 @@ function getInputHandler(inputElement: HTMLElement) {
                                 const after = document.createElement('div');
                                 // after.classList.add('loading')
                                 inner.append(after);
+                                after.innerHTML = '<div class="loading"></div>'
                                 inner = after;
 
                             } else if (chunkContent == '</think>') {
