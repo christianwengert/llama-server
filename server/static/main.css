@@ -1256,3 +1256,16 @@ details[open] > summary::before {
     content:  url('data:image/svg+xml;base64,PHN2ZwogIHdpZHRoPSIyNCIKICBoZWlnaHQ9IjI0IgogIHZpZXdCb3g9IjAgMCAyNCAyNCIKICBmaWxsPSJub25lIgogIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyIKPgogIDxwYXRoCiAgICBkPSJNNi4zNDMxNyA3Ljc1NzMyTDQuOTI4OTYgOS4xNzE1NEwxMiAxNi4yNDI2TDE5LjA3MTEgOS4xNzE1N0wxNy42NTY5IDcuNzU3MzVMMTIgMTMuNDE0Mkw2LjM0MzE3IDcuNzU3MzJaIgogICAgZmlsbD0iY3VycmVudENvbG9yIgogIC8+Cjwvc3ZnPg==');
 }
 
+.shimmer {
+  /*color: grey;*/
+  display:inline-block;
+  -webkit-mask:linear-gradient(-60deg,#000 30%,#0005,#000 70%) right/300% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 2.5s infinite;
+  /*font-size: 50px;*/
+  /*max-width:200px;*/
+}
+
+ @keyframes shimmer {
+ 100% {-webkit-mask-position:left}
+}

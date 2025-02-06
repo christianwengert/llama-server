@@ -75,7 +75,7 @@ const handleEditAction = (e: MouseEvent) => {
 
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement, innerMessageExtraClass?: string, renderButtons: boolean = true): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
-
+    // let thought = "";
     const messageDiv = document.createElement('div');
     messageDiv.className = `message from-${direction}`;
     messageDiv.id = ident;
@@ -90,7 +90,16 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     if (innerMessageExtraClass) {
         innerMessageDiv.classList.add(innerMessageExtraClass)
     }
-    innerMessageDiv.textContent = message;
+
+    // if we have a <think></think> remove it
+    const regex = /<think>([\s\S]*?)<\/think>([\s\S]*)/;
+    const match = message.match(regex);
+    if(match) {
+        // thought = match[1]
+        message = match[2];
+    }
+    innerMessageDiv.innerText = message.trim();
+
     messageDiv.appendChild(innerMessageDiv);
     if (renderButtons) {
         if (direction === 'me') {
@@ -528,10 +537,11 @@ function getInputHandler(inputElement: HTMLElement) {
             xhr.onprogress = function () {
 
                 const chunks = getAllChunks(xhr.responseText);  // do not miss any
-                console.log('chunk ' + index)
+
                 while (index < chunks.length) {
 
                     const chunk = chunks[index];
+                    console.log('chunk ' + index + " " + chunk.choices[0].delta.content)
 
                     if (chunk) {
                         if (chunk.choices[0].finish_reason === 'stop') {
@@ -554,37 +564,40 @@ function getInputHandler(inputElement: HTMLElement) {
                             stopButton.disabled = true;
                             loadHistory()
                             inputElement.focus();
+                            document.getElementsByClassName('think-title')[0].classList.remove('shimmer')
 
                         } else {
                             let chunkContent = chunk.choices[0].delta.content;
 
                             if (chunkContent == '<think>') {
-                                const details = document.createElement('div');
+                                const details = document.createElement('details');
                                 details.classList.add('think-details')
+
                                 inner.appendChild(details);
-                                const summary = document.createElement('div');
+                                const summary = document.createElement('summary');
                                 summary.classList.add('think-title')
+                                summary.classList.add('shimmer')
                                 summary.innerText = 'Thinking';
                                 details.appendChild(summary)
                                 const p = document.createElement('div');
                                 p.classList.add('think-content')
-                                // p.classList.add('detail')
+
                                 details.appendChild(p)
                                 inner.appendChild(details)
-                                // console.log(details)
+
                                 textField = p;
                                 const after = document.createElement('div');
+                                // after.classList.add('loading')
                                 inner.append(after);
                                 inner = after;
 
-                                // chunkContent = '<details><summary>Thinking</summary>'
                             } else if (chunkContent == '</think>') {
                                 // chunkContent = '</details>'
                                 textField = inner;
                             } else {
                                 // const newText = document.createTextNode(chunkContent);
                                 // textField.appendChild(newText)
-                                textField.innerText += chunkContent;
+                                textField.textContent += chunkContent;
                             }
                             // if (index === 0) {
                             //     inner.innerHTML = '<div class="loading"></div>'

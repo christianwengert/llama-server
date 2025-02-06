@@ -49900,7 +49900,12 @@
     if (innerMessageExtraClass) {
       innerMessageDiv.classList.add(innerMessageExtraClass);
     }
-    innerMessageDiv.textContent = message;
+    const regex = /<think>([\s\S]*?)<\/think>([\s\S]*)/;
+    const match = message.match(regex);
+    if (match) {
+      message = match[2];
+    }
+    innerMessageDiv.innerText = message.trim();
     messageDiv.appendChild(innerMessageDiv);
     if (renderButtons) {
       if (direction === "me") {
@@ -50214,9 +50219,9 @@
         let index = 0;
         xhr.onprogress = function() {
           const chunks = getAllChunks(xhr.responseText);
-          console.log("chunk " + index);
           while (index < chunks.length) {
             const chunk = chunks[index];
+            console.log("chunk " + index + " " + chunk.choices[0].delta.content);
             if (chunk) {
               if (chunk.choices[0].finish_reason === "stop") {
                 const timings = chunk.timings;
@@ -50231,14 +50236,16 @@
                 stopButton.disabled = true;
                 loadHistory();
                 inputElement.focus();
+                document.getElementsByClassName("think-title")[0].classList.remove("shimmer");
               } else {
                 let chunkContent = chunk.choices[0].delta.content;
                 if (chunkContent == "<think>") {
-                  const details = document.createElement("div");
+                  const details = document.createElement("details");
                   details.classList.add("think-details");
                   inner.appendChild(details);
-                  const summary = document.createElement("div");
+                  const summary = document.createElement("summary");
                   summary.classList.add("think-title");
+                  summary.classList.add("shimmer");
                   summary.innerText = "Thinking";
                   details.appendChild(summary);
                   const p = document.createElement("div");
@@ -50252,7 +50259,7 @@
                 } else if (chunkContent == "</think>") {
                   textField = inner;
                 } else {
-                  textField.innerText += chunkContent;
+                  textField.textContent += chunkContent;
                 }
               }
             }
