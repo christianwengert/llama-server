@@ -26,7 +26,6 @@ from utils.timestamp_formatter import categorize_timestamp
 
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 2**15
-MODEL_FILE = 'UNKNOWN'
 CHAT_TEMPLATE = None
 while True:
     # noinspection PyBroadException
@@ -36,8 +35,6 @@ while True:
         num_slots = props.get('total_slots', 1)
         n_ctx = default_generation_settings.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
         MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
-        model = props.get('model_path')
-        MODEL_FILE = os.path.basename(model)
         CHAT_TEMPLATE = props.get('chat_template', None)
         break
     except Exception:
@@ -231,7 +228,10 @@ def upload():
     contents = []
     # Now loop over the files and extract the contents
     for destination in files_to_process:
-        content, parsed_pdf_document, error = extract_contents(destination)
+        try:
+            content, parsed_pdf_document, error = extract_contents(destination)
+        except Exception:
+            continue  # ignore this file
         if error:
             return jsonify(error)
         contents.append((destination, content, parsed_pdf_document))

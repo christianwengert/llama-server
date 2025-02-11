@@ -541,7 +541,7 @@ function getInputHandler(inputElement: HTMLElement) {
                 while (index < chunks.length) {
 
                     const chunk = chunks[index];
-                    console.log('chunk ' + index + " " + chunk.choices[0].delta.content)
+                    // console.log('chunk ' + index + " " + chunk.choices[0].delta.content)
 
                     if (chunk) {
                         if (chunk.choices[0].finish_reason === 'stop') {
@@ -552,8 +552,10 @@ function getInputHandler(inputElement: HTMLElement) {
                                 model = model.split('/').slice(-1);
                             }
 
-                            const timing = document.getElementById('timing-info')! as HTMLSpanElement;
-                            timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `
+                            if (timings) {
+                                const timing = document.getElementById('timing-info')! as HTMLSpanElement;
+                                timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `
+                            }
 
                             // adapt markdown for ```
                             highlightCode(textField);
