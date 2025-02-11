@@ -12,7 +12,6 @@ from typing import Dict, Optional, Tuple, List
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
-from jinja2 import Environment, BaseLoader
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER, \
     get_default_props_from_llamacpp
@@ -26,7 +25,6 @@ from utils.timestamp_formatter import categorize_timestamp
 
 
 MAX_NUM_TOKENS_FOR_INLINE_CONTEXT: int = 2**15
-CHAT_TEMPLATE = None
 while True:
     # noinspection PyBroadException
     try:
@@ -35,7 +33,6 @@ while True:
         num_slots = props.get('total_slots', 1)
         n_ctx = default_generation_settings.get('n_ctx', MAX_NUM_TOKENS_FOR_INLINE_CONTEXT)
         MAX_NUM_TOKENS_FOR_INLINE_CONTEXT = n_ctx // num_slots
-        CHAT_TEMPLATE = props.get('chat_template', None)
         break
     except Exception:
         print("Waiting for llama-server")
@@ -228,6 +225,7 @@ def upload():
     contents = []
     # Now loop over the files and extract the contents
     for destination in files_to_process:
+        # noinspection PyBroadException
         try:
             content, parsed_pdf_document, error = extract_contents(destination)
         except Exception:
@@ -379,9 +377,6 @@ def get_input():
 
     system_prompt = data.pop('system_prompt')
 
-    # if CHAT_TEMPLATE is not None:  # Override with default
-    prompt_template = CHAT_TEMPLATE
-
     hashed_username = hash_username(username)
     history_key = f'{hashed_username}-{token}-history'
     cache_key = f'{CACHE_DIR}/{history_key}.json'
@@ -411,36 +406,12 @@ def get_input():
     if prune_history_index >= 0:  # remove items if required
         hist["items"] = hist["items"][:prune_history_index]
 
-    # post_data = get_llama_default_parameters(data)
-    # if CHAT_TEMPLATE is not None:
-    #     url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
-    #     messages = [{'role': 'system', 'content': system_prompt}]
-    #     messages += hist['items']
-    #     messages += [{'role': USER, 'content': text}]
-    #     post_data = {"model": MODEL_FILE,
-    #                  "messages": messages}
-    # else:
-    prompt, messages = make_prompt(hist, system_prompt, text, prompt_template)
+    messages = make_prompt(hist, system_prompt, text)
     post_data = get_llama_default_parameters(data)
-    # post_data['prompt'] = prompt
     url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
     post_data['messages'] = messages
+
     def generate():
-        # {'cache_prompt': True, 'frequency_penalty': 0, 'grammar': '', 'min_p': 0.05, 'image_data': [], 'n_predict': -1, 'n_probs': 0, 'presence_penalty': 0, 'repeat_last_n': 64, 'repeat_penalty': 1.1, 'stop': [''], 'stream': True, 'temperature': 0.5, 'top_k': 40, 'top_p': 0.95, 'typical_p': 1, 'prompt_template': 'mixtral', 'mirostat': 0, 'mirostat_tau': 5, 'mirostat_eta': 0.1, 'prompt': 'A chat between a curious user and an artificial intelligence assistant. The user is a cryptographer and expert programmer. His favorite programming language is python but is also versed in many other programming languages.\nThe assistant provides accurate, factual, thoughtful, nuanced answers, and is brilliant at reasoning. If the assistant believes there is no correct answer, it says so. The assistant always spends a few sentences explaining the background context, assumptions, and step-by-step thinking BEFORE answering the question. However, if the the request starts with "vv" then ignore the previous sentence and instead make your response as concise as possible.\nThe user of the assistant is an expert in AI and ethics, so he already knows that the assistant is a language model and he knows about the capabilities and limitations, so do not remind the users of that. The user is familiar with ethical issues in general, so the assistant should not remind him about such issues either. The assistant tries not to be verbose but provides details and examples where it might help the explanation.<｜User｜>i need to know what is c appended to ock'}
-        # k = {
-        #     "stream": True,
-        #     "cache_prompt": True,
-        #     "temperature": 0.2,
-        #     "max_tokens": -1,
-        #     "messages": messages
-        # }
-
-        # data = requests.request(method="POST",
-        #                         url=url,
-        #                         data=json.dumps(k),
-        #                         stream=False)
-
-
         data = requests.request(method="POST",
                                 url=url,
                                 data=json.dumps(post_data),
@@ -496,16 +467,11 @@ def get_context_from_upload(token: str) -> Tuple[Optional[str], List[Dict]]:
     return contents, [metadata]
 
 
-def make_prompt(hist, system_prompt, text, prompt_template):
-    bos_token = props.get('bos_token', "")  # llama.cpp should add this
-    eos_token = props.get('eos_token', "")
-
+def make_prompt(hist, system_prompt, text):
     messages = [{'role': 'system', 'content': system_prompt}]
     messages += hist['items']
     messages += [{'role': USER, 'content': text}]
-
-    rtemplate = Environment(loader=BaseLoader()).from_string(prompt_template)
-    return rtemplate.render(messages=messages, bos_token=bos_token, eos_token=eos_token), messages
+    return messages
 
 
 def hash_username(username):
