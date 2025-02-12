@@ -1269,3 +1269,9 @@ details[open] > summary::before {
  @keyframes shimmer {
  100% {-webkit-mask-position:left}
 }
+
+.think-content {
+    padding-left: 10px;
+    border-left: solid 8px rgb(244, 244, 244);
+
+}
