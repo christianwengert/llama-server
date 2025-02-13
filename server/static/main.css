@@ -66,7 +66,7 @@ body {
 /*}*/
 
 .from-them {
-    background-color: rgb(252, 252, 253);
+    /*background-color: rgb(252, 252, 253);*/
 }
 
 /*.from-them:before {*/
@@ -413,8 +413,8 @@ a:visited {
 
 .sidebar {
     padding: 10px;
-    background-color: rgb(32, 33, 35);
-    color: rgb(183, 183, 193);
+    /*background-color: rgb(32, 33, 35);*/
+    /*color: rgb(183, 183, 193);*/
     width: var(--sidebar-width);
     height: 100vh;
     position: fixed;
@@ -422,7 +422,7 @@ a:visited {
     z-index: 2;
     display: flex;
     flex-direction: column;
-
+    border-right: 1px solid rgb(242, 242, 243);
 
     /*opacity: 0.5;*/
 }
@@ -513,9 +513,11 @@ a:visited {
 }
 
 #history a {
-    color: rgb(183, 183, 193);
+    color: rgb(82, 83, 85);
 }
-
+#history a:hover {
+    color: black;
+}
 #history li {
     display: flex;
     align-items: baseline;
