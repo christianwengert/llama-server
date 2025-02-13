@@ -1,6 +1,47 @@
 import hljs from "highlight.js";
 import 'highlight.js/styles/github-dark.css';
+// import CodeMirror from 'codemirror';
+// import * as CodeMirrorNS from 'codemirror';
+// const CodeMirror = (CodeMirrorNS as any).default || CodeMirrorNS;
+import {javascript} from '@codemirror/lang-javascript'
+import {python} from '@codemirror/lang-python'
+import {cpp} from '@codemirror/lang-cpp'
+import {rust} from '@codemirror/lang-rust'
 
+import {
+    crosshairCursor,
+    drawSelection,
+    dropCursor,
+    highlightActiveLine,
+    highlightActiveLineGutter,
+    highlightSpecialChars,
+    keymap,
+    lineNumbers,
+    rectangularSelection
+} from '@codemirror/view'
+import {
+    bracketMatching,
+    defaultHighlightStyle,
+    foldGutter,
+    foldKeymap,
+    indentOnInput,
+    indentUnit,
+    syntaxHighlighting
+} from '@codemirror/language'
+import {basicSetup, EditorView} from 'codemirror'
+import {EditorState, Compartment} from '@codemirror/state'
+import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete'
+import {highlightSelectionMatches, searchKeymap} from '@codemirror/search'
+import {defaultKeymap, history, historyKeymap} from '@codemirror/commands'
+import {lintKeymap} from '@codemirror/lint'
+// import 'codemirror/lib/codemirror.css';
+// import 'codemirror/mode/javascript/javascript';
+
+// import 'codemirror/lib/codemirror.css';
+// import 'codemirror/mode/javascript/javascript';
+
+let editor: EditorView = null;
+let canvasEnabled = true;
 
 const scrollToBottom = () => {
     let messages = document.getElementById("chat")!
@@ -94,7 +135,7 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     // if we have a <think></think> remove it
     const regex = /<think>([\s\S]*?)<\/think>([\s\S]*)/;
     const match = message.match(regex);
-    if(match) {
+    if (match) {
         // thought = match[1]
         message = match[2];
     }
@@ -500,7 +541,7 @@ function getInputHandler(inputElement: HTMLElement) {
         if (e.key === 'Enter' && e.shiftKey === false) {
             e.preventDefault();
             const xhr = new XMLHttpRequest();
-            const m = inputElement.innerText;
+            let m = inputElement.innerText;
             if (isMainInput) {
                 const ident = renderMessage(inputElement.innerText, 'me', chat);
 
@@ -566,7 +607,10 @@ function getInputHandler(inputElement: HTMLElement) {
                             stopButton.disabled = true;
                             loadHistory()
                             inputElement.focus();
-                            document.getElementsByClassName('think-title')[0].classList.remove('shimmer')
+                            // let elem1: HTMLElement;
+                            for (const elem1 of document.getElementsByClassName('shimmer')) {
+                              elem1.classList.remove('shimmer')
+                            }
 
                         } else {
                             let chunkContent = chunk.choices[0].delta.content;
@@ -637,8 +681,17 @@ function getInputHandler(inputElement: HTMLElement) {
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
             const formData = getFormDataAsJSON('settings-form')
-            formData.input = m
 
+            //
+            const content = editor.state.doc.toString();
+            if (content && canvasEnabled) {
+                m += '\n';
+                m += "<codecanvas>>";
+                m += content;
+                m+= "</codecanvas>>"
+            }
+
+            formData.input = m
             formData.pruneHistoryIndex = pruneHistoryIndex
             xhr.send(JSON.stringify(formData));
         }
@@ -858,6 +911,82 @@ const main = () => {
     setupMenu(); // Menu on top left
 
     setupCollectionDeletion();
-};
+    const initialText = 'console.log("hello, world")'
+    const targetElement = document.querySelector('#editor')!
+    let language = new Compartment, tabSize = new Compartment
+
+    editor = new EditorView({
+        doc: initialText,
+
+        extensions: [
+            basicSetup,
+            lineNumbers(),
+            highlightActiveLineGutter(),
+            highlightSpecialChars(),
+            // history(),
+            foldGutter(),
+            drawSelection(),
+            dropCursor(),
+            EditorState.allowMultipleSelections.of(true),
+            indentOnInput(),
+            indentUnit.of("    "),
+            syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
+            bracketMatching(),
+            closeBrackets(),
+            autocompletion(),
+            rectangularSelection(),
+            crosshairCursor(),
+            highlightActiveLine(),
+            highlightSelectionMatches(),
+            keymap.of([
+                ...closeBracketsKeymap,
+                ...defaultKeymap,
+                ...searchKeymap,
+                ...historyKeymap,
+                ...foldKeymap,
+                ...completionKeymap,
+                ...lintKeymap,
+            ]),
+            // javascript(),
+            // python(),
+            language.of(python()),
+
+        ],
+        parent: targetElement,
+    })
+
+    editor.dom.addEventListener('input', debounce(detectAndSetMode, 500));
+
+    function detectAndSetMode() {
+        const content = editor.state.doc.toString();
+
+        const result = hljs.highlightAuto(content, ["python", "cpp", "javascript", "rust"]);
+        console.log(result)
+        // let newMode = 'javascript';
+        if (result.language === 'python') {
+            language.reconfigure(python())
+        } else if (result.language === 'cpp') {
+            language.reconfigure(cpp())
+        } else if (result.language === 'javascript') {
+            language.reconfigure(javascript())
+        } else if (result.language === 'rust') {
+            language.reconfigure(rust())
+        }
+
+        // editor.state.('mode', newMode);
+    }
+
+
+    // editor.on('change', debounce(detectAndSetMode, 1000));
+}
+
+function debounce(fn: any, delay: number) {
+  let timeout: number;
+  return function(...args: any[]) {
+    clearTimeout(timeout);
+    timeout = window.setTimeout(() => fn.apply(this, args), delay);
+  }
+}
+
 
 main()
