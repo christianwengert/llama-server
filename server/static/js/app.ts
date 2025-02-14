@@ -816,7 +816,7 @@ function getInputHandler(inputElement: HTMLElement) {
                         editor.dispatch({changes: {
                           from: pos.from,
                           to: pos.to,
-                          insert: newCode + token.split('\n')[0]  // remove newline
+                          insert: newCode + token//.split('\n')[0]  // remove newline
                         }})
                         lineNumber ++;
                         newCode = "";  // reset
@@ -860,6 +860,13 @@ function getInputHandler(inputElement: HTMLElement) {
                             for (const elem1 of document.getElementsByClassName('shimmer')) {
                                 elem1.classList.remove('shimmer');
                             }
+                            let pos = editor.state.doc.line(lineNumber)
+                            editor.dispatch({changes: {
+                              from: pos.from,
+                              to: editor.state.doc.length,
+                              insert: ""  //.split('\n')[0]  // remove newline
+                            }})
+
                         } else {
                             onStreamProgress(chunk);
                         }

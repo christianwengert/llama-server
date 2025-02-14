@@ -75865,14 +75865,20 @@
             textField.textContent += token;
           } else if (element === "codecanvas") {
             if (token.endsWith("\n")) {
-              let pos = editor.state.doc.line(lineNumber);
+              let pos;
+              if (lineNumber <= editor.state.doc.lines) {
+                pos = editor.state.doc.line(lineNumber);
+              } else {
+                pos = { from: editor.state.doc.length, to: editor.state.doc.length, text: "" };
+              }
               editor.dispatch({ changes: {
                 from: pos.from,
                 to: pos.to,
-                insert: newCode + token.split("\n")[0]
-                // remove newline
+                insert: newCode + token
+                //.split('\n')[0]  // remove newline
               } });
               lineNumber++;
+              newCode = "";
             } else {
               newCode += token;
             }
@@ -75942,6 +75948,13 @@
                 for (const elem1 of document.getElementsByClassName("shimmer")) {
                   elem1.classList.remove("shimmer");
                 }
+                let pos = editor.state.doc.line(lineNumber);
+                editor.dispatch({ changes: {
+                  from: pos.from,
+                  to: editor.state.doc.length,
+                  insert: ""
+                  //.split('\n')[0]  // remove newline
+                } });
               } else {
                 onStreamProgress2(chunk);
               }
