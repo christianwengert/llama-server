@@ -75720,6 +75720,168 @@
     }
     function handleInput(e) {
       if (e.key === "Enter" && e.shiftKey === false) {
+        let processToken2 = function(token) {
+          const flushList = [];
+          function pushToFlushList(t2) {
+            let element;
+            switch (mode) {
+              case "think":
+                element = "think";
+                break;
+              case "codecanvas":
+                element = "codecanvas";
+                break;
+              default:
+                textField = inner;
+                element = "text";
+            }
+            flushList.push({ element, token: t2 });
+          }
+          function endsWithJoined(joinedString) {
+            let combined = "";
+            for (let i = rollingBuffer.length - 1; i >= 0; i--) {
+              const t2 = rollingBuffer[i].replace(/\s+/g, "");
+              combined = t2 + combined;
+              if (combined === joinedString) {
+                let neededTokens = 0;
+                let temp = "";
+                for (let j = rollingBuffer.length - 1; j >= 0; j--) {
+                  const seg = rollingBuffer[j].replace(/\s+/g, "");
+                  temp = seg + temp;
+                  neededTokens++;
+                  if (temp === joinedString) {
+                    rollingBuffer.splice(rollingBuffer.length - neededTokens, neededTokens);
+                    return true;
+                  }
+                }
+              }
+              if (!joinedString.endsWith(combined)) {
+                return false;
+              }
+            }
+            return false;
+          }
+          if (mode === "think") {
+            if (token === "</think>") {
+              mode = "normal";
+              return flushList;
+            }
+            rollingBuffer.push(token);
+            if (endsWithJoined("</think>")) {
+              mode = "normal";
+              return flushList;
+            }
+            while (rollingBuffer.length > 0) {
+              pushToFlushList(rollingBuffer.shift());
+            }
+            return flushList;
+          }
+          if (mode === "codecanvas") {
+            let couldStartMarker2 = function(t2) {
+              return t2.includes("<");
+            };
+            var couldStartMarker = couldStartMarker2;
+            if (token === "</codecanvas>") {
+              mode = "normal";
+              return flushList;
+            }
+            rollingBuffer.push(token);
+            if (endsWithJoined("</codecanvas>")) {
+              mode = "normal";
+              return flushList;
+            }
+            while (rollingBuffer.length > 0) {
+              if (couldStartMarker2(rollingBuffer[0])) {
+                break;
+              }
+              pushToFlushList(rollingBuffer.shift());
+            }
+            return flushList;
+          }
+          if (token === "<think>") {
+            mode = "think";
+            inner.innerHTML = "";
+            const details = document.createElement("details");
+            details.classList.add("think-details");
+            inner.appendChild(details);
+            const summary = document.createElement("summary");
+            summary.classList.add("think-title");
+            summary.classList.add("shimmer");
+            summary.innerText = "Thinking";
+            details.appendChild(summary);
+            const p = document.createElement("div");
+            p.classList.add("think-content");
+            details.appendChild(p);
+            inner.appendChild(details);
+            const after = document.createElement("div");
+            inner.append(after);
+            after.innerHTML = '<div class="loading"></div>';
+            inner = after;
+            textField = p;
+            return flushList;
+          }
+          if (token === "<codecanvas>") {
+            mode = "codecanvas";
+            return flushList;
+          }
+          rollingBuffer.push(token);
+          if (endsWithJoined("<think>")) {
+            mode = "think";
+            return flushList;
+          }
+          if (endsWithJoined("<codecanvas>")) {
+            mode = "codecanvas";
+            return flushList;
+          }
+          function couldStartMarker(t2) {
+            return t2.includes("<");
+          }
+          while (rollingBuffer.length > 0) {
+            if (couldStartMarker(rollingBuffer[0])) {
+              break;
+            }
+            pushToFlushList(rollingBuffer.shift());
+          }
+          return flushList;
+        }, onStreamProgress2 = function(jsonChunk) {
+          const token = jsonChunk.choices[0].delta.content;
+          const flushList = processToken2(token);
+          flushList.forEach((item) => flushQueue.push(item));
+          scheduleFlush2();
+        }, scheduleFlush2 = function() {
+          if (!isFlushing) {
+            isFlushing = true;
+            flushNext2();
+          }
+        }, flushNext2 = function() {
+          if (flushQueue.length === 0) {
+            isFlushing = false;
+            return;
+          }
+          const { element, token } = flushQueue.shift();
+          if (element === "text") {
+            textField.textContent += token;
+          } else if (element === "think") {
+            textField.textContent += token;
+          } else if (element === "codecanvas") {
+            if (token === "\n") {
+              let pos = editor.state.doc.lineAt(lineNumber);
+              editor.dispatch({ changes: {
+                from: pos.from,
+                to: pos.to,
+                insert: token
+              } });
+              lineNumber++;
+            } else {
+              newCode += token;
+            }
+          } else {
+            console.log("Do not know where to place " + element + " with token " + token);
+          }
+          if (element)
+            flushNext2();
+        };
+        var processToken = processToken2, onStreamProgress = onStreamProgress2, scheduleFlush = scheduleFlush2, flushNext = flushNext2;
         e.preventDefault();
         const xhr = new XMLHttpRequest();
         let m = inputElement.innerText;
@@ -75749,6 +75911,13 @@
         scrollToBottom();
         xhr.open("POST", "/");
         let index = 0;
+        let mode = "normal";
+        let rollingBuffer = [];
+        let flushQueue = [];
+        let isFlushing = false;
+        let newCode = "";
+        let lineNumber = 1;
+        let existingCode = editor.state.doc.toString();
         xhr.onprogress = function() {
           const chunks = getAllChunks(xhr.responseText);
           while (index < chunks.length) {
@@ -75769,39 +75938,15 @@
                 stopButton.disabled = true;
                 loadHistory();
                 inputElement.focus();
-                for (elem1 of document.getElementsByClassName("shimmer")) {
+                for (const elem1 of document.getElementsByClassName("shimmer")) {
                   elem1.classList.remove("shimmer");
                 }
               } else {
-                let chunkContent = chunk.choices[0].delta.content;
-                if (chunkContent == "<think>") {
-                  inner.innerHTML = "";
-                  const details = document.createElement("details");
-                  details.classList.add("think-details");
-                  inner.appendChild(details);
-                  const summary = document.createElement("summary");
-                  summary.classList.add("think-title");
-                  summary.classList.add("shimmer");
-                  summary.innerText = "Thinking";
-                  details.appendChild(summary);
-                  const p = document.createElement("div");
-                  p.classList.add("think-content");
-                  details.appendChild(p);
-                  inner.appendChild(details);
-                  textField = p;
-                  const after = document.createElement("div");
-                  inner.append(after);
-                  after.innerHTML = '<div class="loading"></div>';
-                  inner = after;
-                } else if (chunkContent == "</think>") {
-                  textField = inner;
-                } else {
-                  textField.textContent += chunkContent;
-                }
+                onStreamProgress2(chunk);
               }
             }
             updateScrollButton();
-            index = index + 1;
+            index++;
           }
         };
         xhr.addEventListener("error", function(e2) {
@@ -75811,12 +75956,15 @@
         };
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         const formData = getFormDataAsJSON("settings-form");
-        const content2 = editor.state.doc.toString();
+        const content2 = editor.state.doc.toString().trim();
         if (content2 && canvasEnabled) {
           m += "\n";
           m += "<codecanvas>>";
           m += content2;
           m += "</codecanvas>>";
+          console.log("we have a canvas");
+        } else {
+          console.log("no canvas");
         }
         formData.input = m;
         formData.pruneHistoryIndex = pruneHistoryIndex;
@@ -75971,7 +76119,7 @@
     setupSettingsMustBeSet();
     setupMenu();
     setupCollectionDeletion();
-    const initialText = 'console.log("hello, world")';
+    const initialText = "";
     const targetElement = document.querySelector("#editor");
     let language2 = new Compartment(), tabSize = new Compartment();
     editor = new EditorView({

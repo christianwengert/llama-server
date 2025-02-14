@@ -4,109 +4,124 @@
 {% block extra_header %}
 <div class="header-inner">
     {% if collections %}
-        <!-- Trigger link -->
-        <a href="#" id="menuLink">Chat<span>&nbsp;</span><span class="chevron-down"></span></a>
+    <!-- Trigger link -->
+    <a href="#" id="menuLink">Chat<span>&nbsp;</span><span class="chevron-down"></span></a>
 
-        <!-- Hidden menu -->
-        <div id="menu" class="hidden">
-            <a href="#" class="mode-button" id="mode-chat">Chat</a>
+    <!-- Hidden menu -->
+    <div id="menu" class="hidden">
+        <a href="#" class="mode-button" id="mode-chat">Chat</a>
 
-            <hr>
-            <div id="menu-collection-common">
-                <strong>Common collections</strong><br>
-                {% if collections['common'] %}
-                    {% for c in collections['common'] %}
-                        <div class="menu-collection-link-container">
-                            <a href="#" class="mode-button" id="{{ c.get('hashed_name') }}">{{ c.get('name') }}</a>
-                            <button class="delete-collection-item">×</button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
+        <hr>
+        <div id="menu-collection-common">
+            <strong>Common collections</strong><br>
+            {% if collections['common'] %}
+            {% for c in collections['common'] %}
+            <div class="menu-collection-link-container">
+                <a href="#" class="mode-button" id="{{ c.get('hashed_name') }}">{{ c.get('name') }}</a>
+                <button class="delete-collection-item">×</button>
             </div>
-            <div id="menu-collection-user">
-                <strong>User collections</strong><br>
-                {% if collections['user'] %}
-                    {% for u in collections['user'] %}
-                        <div class="menu-collection-link-container">
-                            <a href="#" class="mode-button" id="{{ u.get('hashed_name') }}">{{ u.get('name') }}</a>
-                            <button class="delete-collection-item">×</button>
-                        </div>
-                    {% endfor %}
-                {% endif %}
-            </div>
+            {% endfor %}
+            {% endif %}
         </div>
+        <div id="menu-collection-user">
+            <strong>User collections</strong><br>
+            {% if collections['user'] %}
+            {% for u in collections['user'] %}
+            <div class="menu-collection-link-container">
+                <a href="#" class="mode-button" id="{{ u.get('hashed_name') }}">{{ u.get('name') }}</a>
+                <button class="delete-collection-item">×</button>
+            </div>
+            {% endfor %}
+            {% endif %}
+        </div>
+    </div>
     {% endif %}
 
 </div>
 {% endblock extra_header %}
 
 {% block sidebar %}
-    <div class="sidebar">
-        <div class="sidebar-header">
-            <a class="sidebar-button" href="/" id="reset-button">
-                <i class="gg-math-plus"></i>
-            </a>
-        </div>
-
-        <div id="history-div">
-<!--            <strong>History</strong>-->
-
-            <ul id="history">
-            </ul>
-        </div>
-
-        <div class="sidebar-footer">
-            <div id="sidebar-username">
-                <i class="gg-profile"></i>&nbsp;{{username | e}}
-            </div>
-
-            <a class="sidebar-button" href="/logout" id="logout-button"><i class="gg-log-out"></i></a>
-        </div>
+<div class="sidebar">
+    <div class="sidebar-header">
+<!--        <a class="sidebar-button" href="/" id="reset-button">-->
+<!--            <i class="gg-add-r"></i>-->
+<!--        </a>-->
+        <a class="sidebar-button" href="/" id="toggle-button">
+            <i class="gg-math-plus"></i>
+        </a>
     </div>
+
+    <div id="history-div">
+        <!--            <strong>History</strong>-->
+
+        <ul id="history">
+        </ul>
+    </div>
+
+    <div class="sidebar-footer">
+        <div id="sidebar-username">
+            <i class="gg-profile"></i>&nbsp;{{username | e}}
+        </div>
+
+        <a class="sidebar-button" href="/logout" id="logout-button"><i class="gg-log-out"></i></a>
+    </div>
+</div>
 {% endblock sidebar %}
 
 
 {% block content %}
-    <div id="editor"></div>
+<div id="outer-chat">
+    <div id="chat"></div>
+    <div id="editor">
+        <h2>Editor</h2>
+        <!-- Editor content here -->
 
+<!--        <h3>Think</h3>-->
+<!--        <textarea id="think" rows="3"></textarea>-->
 
-    <div id="chat">
+<!--        <h3>Codecanvas</h3>-->
+<!--        <textarea id="codecanvas" rows="3"></textarea>-->
+
+<!--        <h3>Output</h3>-->
+<!--        <textarea id="text" rows="3"></textarea>-->
+
 
     </div>
-    <div class="chat-instruction">
-        <div>Chat here</div>
+</div>
+<div class="chat-instruction">
+    <div>Chat here</div>
+</div>
+<div class="chat-input">
+    <div id="extra-input-buttons">
+        <!--suppress HtmlUnknownAnchorTarget -->
+        <a href="#popupUpload" id="translate-button"><i class="gg-attachment"></i></a>
+        <!--            <button id="record"><i class="gg-mic"></i></button>-->
     </div>
-    <div class="chat-input">
-        <div id="extra-input-buttons">
+
+    <div id="input-box" class="input-box" contenteditable="true" data-text="Type here..."></div>
+    <button id="stop-generating" disabled="disabled">
+        Stop generating
+        <span class="loading"></span>
+    </button>
+    <div class="footer">
+        <div class="footer-buttons">
+
+            <!--                <a href="#popupUpload" id="translate-button">-->
+            <!--                    Upload-->
+            <span id="upload-plus"></span>
+            <!--                </a>&nbsp;-->
+            <span id="timing-info"></span>
             <!--suppress HtmlUnknownAnchorTarget -->
-            <a href="#popupUpload" id="translate-button"><i class="gg-attachment"></i></a>
-<!--            <button id="record"><i class="gg-mic"></i></button>-->
+            <a href="#popupSettings" id="settings-button">Settings</a>&nbsp;
+            <!--suppress HtmlUnknownAnchorTarget -->
+            <a href="#popupHelp" id="help-button">Help</a>
         </div>
 
-        <div id="input-box" class="input-box" contenteditable="true" data-text="Type here..."></div>
-        <button id="stop-generating" disabled="disabled">
-            Stop generating
-            <span class="loading"></span>
-        </button>
-        <div class="footer">
-            <div class="footer-buttons">
-
-<!--                <a href="#popupUpload" id="translate-button">-->
-<!--                    Upload-->
-                    <span id="upload-plus"></span>
-<!--                </a>&nbsp;-->
-                <span id="timing-info"></span>
-                <!--suppress HtmlUnknownAnchorTarget -->
-                <a href="#popupSettings" id="settings-button">Settings</a>&nbsp;
-                <!--suppress HtmlUnknownAnchorTarget -->
-                <a href="#popupHelp" id="help-button">Help</a>
-            </div>
-
-        </div>
     </div>
-    <div id="scrolldown-button-div">
-        <button id="scrolldown-button">↓</button>
-    </div>
+</div>
+<div id="scrolldown-button-div">
+    <button id="scrolldown-button">↓</button>
+</div>
 {% endblock content %}
 
 

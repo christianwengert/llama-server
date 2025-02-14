@@ -575,95 +575,293 @@ function getInputHandler(inputElement: HTMLElement) {
 
             xhr.open('POST', '/');
             let index = 0;
-            xhr.onprogress = function () {
 
-                const chunks = getAllChunks(xhr.responseText);  // do not miss any
+// Current mode (which element to append to)
+            let mode = "normal"; // can be: "normal", "think", "codecanvas"
+
+// Rolling buffer to detect multi-token markers like < code canvas >
+            let rollingBuffer: string[] = [];
+
+// A queue for tokens to display with a delay: each item => { element, token }
+            let flushQueue: Record<string, string>[] = [];
+
+// Are we currently showing tokens from flushQueue?
+            let isFlushing = false;
+
+            let newCode = ""
+            let lineNumber = 1;
+            let existingCode = editor.state.doc.toString()
+
+//------------------------------------------------------------------
+// processToken(token): returns an array of { element, token } objects
+// telling us which element to append to, and what text to append.
+//------------------------------------------------------------------
+            function processToken(token: string) {
+                const flushList: Array<Record<string, string>> = [];
+
+                function pushToFlushList(t: string) {
+                    let element;
+                    switch (mode) {
+                        case "think":
+                            element = 'think';
+                            break;
+                        case "codecanvas":
+                            element = 'codecanvas';
+                            break;
+                        default:
+                            textField = inner
+                            element = 'text';
+                    }
+                    flushList.push({element, token: t});
+                }
+
+                // Helper that checks if the tail of rollingBuffer forms joinedString ignoring whitespace.
+                function endsWithJoined(joinedString: string) {
+                    let combined = "";
+                    for (let i = rollingBuffer.length - 1; i >= 0; i--) {
+                        const t = rollingBuffer[i].replace(/\s+/g, "");
+                        combined = t + combined;
+                        // If we fully matched the marker
+                        if (combined === joinedString) {
+                            let neededTokens = 0;
+                            let temp = "";
+                            for (let j = rollingBuffer.length - 1; j >= 0; j--) {
+                                const seg = rollingBuffer[j].replace(/\s+/g, "");
+                                temp = seg + temp;
+                                neededTokens++;
+                                if (temp === joinedString) {
+                                    rollingBuffer.splice(rollingBuffer.length - neededTokens, neededTokens);
+                                    return true;
+                                }
+                            }
+                        }
+                        // If partial combination no longer matches as suffix, break
+                        if (!joinedString.endsWith(combined)) {
+                            return false;
+                        }
+                    }
+                    return false;
+                }
+
+                // If currently in 'think' mode, only watch for '</think>' to return to normal.
+                if (mode === "think") {
+                    // If single token = '</think>', switch mode, do not flush marker.
+                    if (token === "</think>") {
+                        mode = "normal";
+                        return flushList; // no output for the marker
+                    }
+                    // Otherwise, push token and see if we form '</think>' ignoring whitespace.
+                    rollingBuffer.push(token);
+
+                    if (endsWithJoined("</think>")) {
+                        mode = "normal";
+                        return flushList;
+                    }
+
+                    // If we didn't detect '</think>', flush everything to the thinkElement
+                    // (We know these tokens won't form another marker, so we can just flush now)
+                    while (rollingBuffer.length > 0) {
+                        pushToFlushList(rollingBuffer.shift());
+                    }
+                    return flushList;
+                }
+
+                // If currently in 'codecanvas' mode, only watch for '</codecanvas>' to return to normal.
+                if (mode === "codecanvas") {
+                    // If single token = '</codecanvas>', switch mode, do not flush marker.
+                    if (token === "</codecanvas>") {
+                        mode = "normal";
+                        return flushList;
+                    }
+                    // Otherwise, accumulate token and check for multi-token marker
+                    rollingBuffer.push(token);
+
+                    if (endsWithJoined("</codecanvas>")) {
+                        // if we matched it in rollingBuffer, remove it and switch mode.
+                        mode = "normal";
+                        return flushList;
+                    }
+
+                    // If we haven't found '</codecanvas>', flush everything that can't be part of a marker.
+                    function couldStartMarker(t) {
+                        // We'll skip flushing tokens that have '<' if we suspect they're part of the marker.
+                        return t.includes('<');
+                    }
+
+                    while (rollingBuffer.length > 0) {
+                        if (couldStartMarker(rollingBuffer[0])) {
+                            break;
+                        }
+                        pushToFlushList(rollingBuffer.shift());
+                    }
+                    return flushList;
+                }
+
+                // Otherwise, mode === "normal"; let's see if we open a think or codecanvas.
+
+                // First, handle single-token markers if the model merges them.
+                if (token === "<think>") {
+                    mode = "think";
+                    inner.innerHTML = "";
+                    const details = document.createElement('details');
+                    details.classList.add('think-details')
+
+                    inner.appendChild(details);
+                    const summary = document.createElement('summary');
+                    summary.classList.add('think-title')
+                    summary.classList.add('shimmer')
+                    summary.innerText = 'Thinking';
+                    details.appendChild(summary)
+                    const p = document.createElement('div');
+                    p.classList.add('think-content')
+
+                    details.appendChild(p)
+                    inner.appendChild(details)
+
+                    // textField = p;
+                    const after = document.createElement('div');
+                    // after.classList.add('loading')
+                    inner.append(after);
+                    after.innerHTML = '<div class="loading"></div>'
+                    inner = after;
+                    textField = p;
+                    return flushList;
+                }
+                if (token === "<codecanvas>") {
+                    mode = "codecanvas";
+                    return flushList;
+                }
+
+                // push the token into rollingBuffer and check for <think> or <codecanvas>
+                rollingBuffer.push(token);
+
+                if (endsWithJoined("<think>")) {
+                    mode = "think";
+                    return flushList;
+                }
+                if (endsWithJoined("<codecanvas>")) {
+                    mode = "codecanvas";
+                    return flushList;
+                }
+
+                // If we haven't found a marker, flush everything from the front that cannot be a marker start.
+                function couldStartMarker(t) {
+                    return t.includes("<");
+                }
+
+                while (rollingBuffer.length > 0) {
+                    if (couldStartMarker(rollingBuffer[0])) {
+                        break;
+                    }
+                    pushToFlushList(rollingBuffer.shift());
+                }
+
+                return flushList;
+            }
+
+//------------------------------------------------------------------
+// onStreamProgress(jsonChunk):
+//   - Extract the token
+//   - process it (state machine, rolling buffer)
+//   - add the resulting flushList to the global flushQueue
+//   - schedule flush if not already in progress
+//------------------------------------------------------------------
+            function onStreamProgress(jsonChunk: any) {
+                const token = jsonChunk.choices[0].delta.content;
+                const flushList = processToken(token);
+                flushList.forEach(item => flushQueue.push(item));
+                scheduleFlush();
+            }
+
+//------------------------------------------------------------------
+// scheduleFlush():
+//   - If not already flushing, start the delayed chain
+//------------------------------------------------------------------
+            function scheduleFlush() {
+                if (!isFlushing) {
+                    isFlushing = true;
+                    flushNext();
+                }
+            }
+
+            //------------------------------------------------------------------
+            // flushNext():
+            //   - Pops one token from flushQueue
+            //   - Appends it to the correct element
+            //   - Repeats after some interval
+            //------------------------------------------------------------------
+            function flushNext() {
+                if (flushQueue.length === 0) {
+                    isFlushing = false;
+                    return;
+                }
+
+                const {element, token} = flushQueue.shift() as Record<string, string>;
+                if (element === 'text') {
+                    textField.textContent += token;
+                } else if (element === 'think') {
+                    textField.textContent += token;
+                } else if (element === 'codecanvas') {
+
+                    if (token === '\n') {
+                        // editor.state.doc.append(token)
+                        let pos = editor.state.doc.lineAt(lineNumber)
+
+                        editor.dispatch({changes: {
+                          from: pos.from,
+                          to: pos.to,
+                          insert: token
+                        }})
+                        lineNumber ++;
+                    } else {
+                        newCode += token;
+                    }
+
+
+                } else {
+                    console.log('Do not know where to place ' + element + " with token " + token)
+                }
+                // element.value += token;
+                if (element)
+                    flushNext();
+            }
+
+// The rest of your XHR logic:
+            xhr.onprogress = function () {
+                const chunks = getAllChunks(xhr.responseText);
 
                 while (index < chunks.length) {
-
                     const chunk = chunks[index];
-                    // console.log('chunk ' + index + " " + chunk.choices[0].delta.content)
-
                     if (chunk) {
                         if (chunk.choices[0].finish_reason === 'stop') {
-
-                            const timings = chunk.timings
-                            let model = chunk.model
+                            const timings = chunk.timings;
+                            let model = chunk.model;
                             if (model) {
                                 model = model.split('/').slice(-1);
                             }
 
                             if (timings) {
-                                const timing = document.getElementById('timing-info')! as HTMLSpanElement;
-                                timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `
+                                const timing = document.getElementById('timing-info') as HTMLElement;
+                                timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `;
                             }
 
-                            // adapt markdown for ```
                             highlightCode(textField);
-
                             inputElement.contentEditable = "true";
-
-                            // setFocusToInputField(mainInput);
                             stopButton.disabled = true;
-                            loadHistory()
+                            loadHistory();
                             inputElement.focus();
-                            // let elem1: HTMLElement;
                             for (const elem1 of document.getElementsByClassName('shimmer')) {
-                              elem1.classList.remove('shimmer')
+                                elem1.classList.remove('shimmer');
                             }
-
                         } else {
-                            let chunkContent = chunk.choices[0].delta.content;
-
-                            if (chunkContent == '<think>') {
-                                inner.innerHTML = "";
-                                const details = document.createElement('details');
-                                details.classList.add('think-details')
-
-
-                                inner.appendChild(details);
-                                const summary = document.createElement('summary');
-                                summary.classList.add('think-title')
-                                summary.classList.add('shimmer')
-                                summary.innerText = 'Thinking';
-                                details.appendChild(summary)
-                                const p = document.createElement('div');
-                                p.classList.add('think-content')
-
-                                details.appendChild(p)
-                                inner.appendChild(details)
-
-                                textField = p;
-                                const after = document.createElement('div');
-                                // after.classList.add('loading')
-                                inner.append(after);
-                                after.innerHTML = '<div class="loading"></div>'
-                                inner = after;
-
-                            } else if (chunkContent == '</think>') {
-                                // chunkContent = '</details>'
-                                textField = inner;
-                            } else {
-                                // const newText = document.createTextNode(chunkContent);
-                                // textField.appendChild(newText)
-                                textField.textContent += chunkContent;
-                            }
-                            // if (index === 0) {
-                            //     inner.innerHTML = '<div class="loading"></div>'
-                            // }
-
-
-                            // if (textField.innerText === "") {
-                            //     textField = chunkContent.trim();
-                            // }
-
+                            onStreamProgress(chunk);
                         }
                     }
-
                     updateScrollButton();
-                    index = index + 1;
+                    index++;
                 }
             };
+
 
             xhr.addEventListener("error", function (e) {
                 console.log("error: " + e);
@@ -683,16 +881,27 @@ function getInputHandler(inputElement: HTMLElement) {
             const formData = getFormDataAsJSON('settings-form')
 
             //
-            const content = editor.state.doc.toString();
+            const content = editor.state.doc.toString().trim();
             if (content && canvasEnabled) {
                 m += '\n';
                 m += "<codecanvas>>";
                 m += content;
-                m+= "</codecanvas>>"
+                m += "</codecanvas>>"
+                console.log("we have a canvas")
+            } else {
+                console.log("no canvas")
             }
 
             formData.input = m
             formData.pruneHistoryIndex = pruneHistoryIndex
+
+            //
+            // editor.dispatch({changes: {
+            //   from: 0,
+            //   to: editor.state.doc.length,
+            //   insert: ""
+            // }})
+
             xhr.send(JSON.stringify(formData));
         }
     }
@@ -911,7 +1120,7 @@ const main = () => {
     setupMenu(); // Menu on top left
 
     setupCollectionDeletion();
-    const initialText = 'console.log("hello, world")'
+    const initialText = ''
     const targetElement = document.querySelector('#editor')!
     let language = new Compartment, tabSize = new Compartment
 
@@ -978,15 +1187,39 @@ const main = () => {
 
 
     // editor.on('change', debounce(detectAndSetMode, 1000));
+
+//
+//
+//     const toggleSidebarBtn = document.getElementById('toggle-sidebar');
+// const sidebar = document.getElementById('sidebar');
+// const container = document.getElementById('container');
+//
+// const toggleEditorBtn = document.getElementById('toggle-editor');
+// const editorT = document.getElementById('editorT');
+//
+// // Toggle sidebar
+// toggleSidebarBtn.addEventListener('click', () => {
+//   // Toggle a class on sidebar to collapse it
+//   sidebar.classList.toggle('collapsed');
+//   // Also adjust container margin
+//   container.classList.toggle('sidebar-collapsed');
+// });
+//
+// // Toggle editor visibility
+// toggleEditorBtn.addEventListener('click', () => {
+//   // Simply hide/show editor by toggling a "hidden" class
+//   editorT.classList.toggle('hidden');
+// });
 }
 
 function debounce(fn: any, delay: number) {
-  let timeout: number;
-  return function(...args: any[]) {
-    clearTimeout(timeout);
-    timeout = window.setTimeout(() => fn.apply(this, args), delay);
-  }
+    let timeout: number;
+    return function (...args: any[]) {
+        clearTimeout(timeout);
+        timeout = window.setTimeout(() => fn.apply(this, args), delay);
+    }
 }
 
 
-main()
+main();
+

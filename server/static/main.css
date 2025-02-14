@@ -192,7 +192,8 @@ pre code {
 }
 
 #chat {
-    max-height: calc(100vh - 240px);
+    max-height: calc(100vh - 200px);
+    height: calc(100vh - 200px);
     overflow: scroll;
 }
 
@@ -443,6 +444,9 @@ a:visited {
     padding: 10px 8px 8px;
     font-size: 1rem;
     cursor: pointer;
+    /*border: 1px solid rgb(243, 243, 243);*/
+    /*height: 20px;*/
+    /*border-radius: 5px;*/
 }
 
 
@@ -499,6 +503,14 @@ a:visited {
 
 .header-button > img {
     padding-top: 4px;
+}
+#outer-chat {
+    display: flex;
+
+}
+#chat {
+    width: 50%;
+    border: 1px solid darkgreen;
 }
 
 #history {
@@ -884,7 +896,35 @@ input[type="number"]::-webkit-outer-spin-button {
 #logout-button {
     border: 0;
 }
-
+.gg-add-r {
+  box-sizing: border-box;
+  position: relative;
+  display: block;
+  width: 22px;
+  height: 22px;
+  border: 2px solid;
+  transform: scale(var(--ggs, 1));
+  border-radius: 4px;
+}
+.gg-add-r::after,
+.gg-add-r::before {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  position: absolute;
+  width: 10px;
+  height: 2px;
+  background: currentColor;
+  border-radius: 5px;
+  top: 8px;
+  left: 4px;
+}
+.gg-add-r::after {
+  width: 2px;
+  height: 10px;
+  top: 4px;
+  left: 8px;
+}
 
 .gg-log-out::after {
     border-top: 2px solid;
@@ -1274,4 +1314,8 @@ details[open] > summary::before {
     padding-left: 10px;
     border-left: solid 8px rgb(244, 244, 244);
 
+}
+#editor {
+    border: 1px solid crimson;
+    width: 50%;
 }
