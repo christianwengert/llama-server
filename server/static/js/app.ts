@@ -805,7 +805,13 @@ function getInputHandler(inputElement: HTMLElement) {
 
                     if (token.endsWith('\n')) {
                         // editor.state.doc.append(token)
-                        let pos = editor.state.doc.line(lineNumber)
+                        let pos;
+                        if (lineNumber <= editor.state.doc.lines) {
+                            pos = editor.state.doc.line(lineNumber)
+                        } else {
+                            pos = {from: editor.state.doc.length, to: editor.state.doc.length, text: ""}
+                        }
+
                         // todo this can be outside of the document, check we do not have less numbers than we need!
                         editor.dispatch({changes: {
                           from: pos.from,
@@ -813,6 +819,7 @@ function getInputHandler(inputElement: HTMLElement) {
                           insert: newCode + token.split('\n')[0]  // remove newline
                         }})
                         lineNumber ++;
+                        newCode = "";  // reset
                     } else {
                         newCode += token;
                     }
