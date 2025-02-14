@@ -805,12 +805,12 @@ function getInputHandler(inputElement: HTMLElement) {
 
                     if (token.endsWith('\n')) {
                         // editor.state.doc.append(token)
-                        let pos = editor.state.doc.lineAt(lineNumber)
-
+                        let pos = editor.state.doc.line(lineNumber)
+                        // todo this can be outside of the document, check we do not have less numbers than we need!
                         editor.dispatch({changes: {
                           from: pos.from,
                           to: pos.to,
-                          insert: token
+                          insert: newCode + token.split('\n')[0]  // remove newline
                         }})
                         lineNumber ++;
                     } else {

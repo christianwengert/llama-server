@@ -75865,11 +75865,12 @@
             textField.textContent += token;
           } else if (element === "codecanvas") {
             if (token.endsWith("\n")) {
-              let pos = editor.state.doc.lineAt(lineNumber);
+              let pos = editor.state.doc.line(lineNumber);
               editor.dispatch({ changes: {
                 from: pos.from,
                 to: pos.to,
-                insert: token
+                insert: newCode + token.split("\n")[0]
+                // remove newline
               } });
               lineNumber++;
             } else {
