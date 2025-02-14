@@ -75864,7 +75864,7 @@
           } else if (element === "think") {
             textField.textContent += token;
           } else if (element === "codecanvas") {
-            if (token === "\n") {
+            if (token.endsWith("\n")) {
               let pos = editor.state.doc.lineAt(lineNumber);
               editor.dispatch({ changes: {
                 from: pos.from,

@@ -803,7 +803,7 @@ function getInputHandler(inputElement: HTMLElement) {
                     textField.textContent += token;
                 } else if (element === 'codecanvas') {
 
-                    if (token === '\n') {
+                    if (token.endsWith('\n')) {
                         // editor.state.doc.append(token)
                         let pos = editor.state.doc.lineAt(lineNumber)
 
