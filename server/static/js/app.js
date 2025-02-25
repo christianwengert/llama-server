@@ -75574,6 +75574,14 @@
       es_default.highlightElement(block);
     });
   };
+  var replaceLine = (view, lineNumber, newText) => {
+    let state = view.state;
+    let line = state.doc.line(lineNumber);
+    let transaction = state.update({
+      changes: { from: line.from, to: line.to, insert: newText }
+    });
+    view.dispatch(transaction);
+  };
   var loadHistory = () => {
     const historyDiv = document.getElementById("history");
     historyDiv.innerHTML = "";
@@ -75781,6 +75789,7 @@
               return t2.includes("<");
             };
             var couldStartMarker = couldStartMarker2;
+            console.log("Token: " + token);
             if (token === "</codecanvas>") {
               mode = "normal";
               return flushList;
@@ -75864,23 +75873,11 @@
           } else if (element === "think") {
             textField.textContent += token;
           } else if (element === "codecanvas") {
+            newCode += token;
             if (token.endsWith("\n")) {
-              let pos;
-              if (lineNumber <= editor.state.doc.lines) {
-                pos = editor.state.doc.line(lineNumber);
-              } else {
-                pos = { from: editor.state.doc.length, to: editor.state.doc.length, text: "" };
-              }
-              editor.dispatch({ changes: {
-                from: pos.from,
-                to: pos.to,
-                insert: newCode + token
-                //.split('\n')[0]  // remove newline
-              } });
+              replaceLine(editor, lineNumber, newCode.slice(0, -1));
               lineNumber++;
               newCode = "";
-            } else {
-              newCode += token;
             }
           } else {
             console.log("Do not know where to place " + element + " with token " + token);
@@ -75924,7 +75921,6 @@
         let isFlushing = false;
         let newCode = "";
         let lineNumber = 1;
-        let existingCode = editor.state.doc.toString();
         xhr.onprogress = function() {
           const chunks = getAllChunks(xhr.responseText);
           while (index < chunks.length) {
@@ -75973,9 +75969,9 @@
         const content2 = editor.state.doc.toString().trim();
         if (content2 && canvasEnabled) {
           m += "\n";
-          m += "<codecanvas>>";
+          m += "<codecanvas>";
           m += content2;
-          m += "</codecanvas>>";
+          m += "</codecanvas>";
           console.log("we have a canvas");
         } else {
           console.log("no canvas");
@@ -76122,7 +76118,27 @@
       }
     });
   };
+  var toggleRightPanel = () => {
+    const rightPanel = document.querySelector(".right-panel");
+    const leftPanel = document.querySelector(".left-panel");
+    const sidebar = document.querySelector(".sidebar");
+    if (rightPanel.style.display === "none" || rightPanel.style.display === "") {
+      rightPanel.style.display = "block";
+      leftPanel.style.flexBasis = "33%";
+      sidebar.classList.add("hidden");
+    } else {
+      rightPanel.style.display = "none";
+      leftPanel.style.flexBasis = "100%";
+      sidebar.classList.remove("hidden");
+    }
+  };
+  var toggleSidebar = () => {
+    const sidebar = document.querySelector(".sidebar");
+    sidebar.classList.toggle("hidden");
+  };
   var main = () => {
+    document.getElementById("sidebar-toggler").addEventListener("click", toggleSidebar);
+    document.getElementById("right-panel-toggler").addEventListener("click", toggleRightPanel);
     setupResetSettingsButton();
     setupScrollButton();
     setupUploadButton();

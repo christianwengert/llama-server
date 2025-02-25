@@ -29,7 +29,7 @@ import {
     syntaxHighlighting
 } from '@codemirror/language'
 import {basicSetup, EditorView} from 'codemirror'
-import {EditorState, Compartment} from '@codemirror/state'
+import {Compartment, EditorState} from '@codemirror/state'
 import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete'
 import {highlightSelectionMatches, searchKeymap} from '@codemirror/search'
 import {defaultKeymap, history, historyKeymap} from '@codemirror/commands'
@@ -40,7 +40,7 @@ import {lintKeymap} from '@codemirror/lint'
 // import 'codemirror/lib/codemirror.css';
 // import 'codemirror/mode/javascript/javascript';
 
-let editor: EditorView = null;
+let editor: EditorView | null = null;
 let canvasEnabled = true;
 
 const scrollToBottom = () => {
@@ -342,6 +342,16 @@ const highlightCode = (inner: HTMLElement) => {
     });
 };
 
+
+const replaceLine = (view: EditorView, lineNumber: number, newText: string) => {
+    let state = view.state;
+    let line = state.doc.line(lineNumber);  // Get the line object
+    let transaction = state.update({
+        changes: { from: line.from, to: line.to, insert: newText }
+    });
+    view.dispatch(transaction);
+};
+
 const loadHistory = () => {
     type Metadata = {
         file: string
@@ -590,7 +600,11 @@ function getInputHandler(inputElement: HTMLElement) {
 
             let newCode = ""
             let lineNumber = 1;
-            let existingCode = editor.state.doc.toString()
+            // let existingCode = "";
+            // if (editor) {
+            //     existingCode = editor.state.doc.toString()
+            // }
+
 
 //------------------------------------------------------------------
 // processToken(token): returns an array of { element, token } objects
@@ -668,6 +682,7 @@ function getInputHandler(inputElement: HTMLElement) {
 
                 // If currently in 'codecanvas' mode, only watch for '</codecanvas>' to return to normal.
                 if (mode === "codecanvas") {
+                    console.log("Token: " + token)
                     // If single token = '</codecanvas>', switch mode, do not flush marker.
                     if (token === "</codecanvas>") {
                         mode = "normal";
@@ -802,26 +817,20 @@ function getInputHandler(inputElement: HTMLElement) {
                 } else if (element === 'think') {
                     textField.textContent += token;
                 } else if (element === 'codecanvas') {
-
+                    newCode += token;
                     if (token.endsWith('\n')) {
                         // editor.state.doc.append(token)
-                        let pos;
-                        if (lineNumber <= editor.state.doc.lines) {
-                            pos = editor.state.doc.line(lineNumber)
-                        } else {
-                            pos = {from: editor.state.doc.length, to: editor.state.doc.length, text: ""}
-                        }
+                        replaceLine(editor, lineNumber, newCode.slice(0, -1))
 
+                        // console.log("linenumber: " + lineNumber + "  " + newCode + token.slice(0, -1) )
                         // todo this can be outside of the document, check we do not have less numbers than we need!
-                        editor.dispatch({changes: {
-                          from: pos.from,
-                          to: pos.to,
-                          insert: newCode + token//.split('\n')[0]  // remove newline
-                        }})
+                        // editor.dispatch({changes: {
+                        //   from: pos.from,
+                        //   to: pos.to,
+                        //   insert: newCode + token.slice(0, -1)  // remove newline
+                        // }})
                         lineNumber ++;
                         newCode = "";  // reset
-                    } else {
-                        newCode += token;
                     }
 
 
@@ -898,9 +907,9 @@ function getInputHandler(inputElement: HTMLElement) {
             const content = editor.state.doc.toString().trim();
             if (content && canvasEnabled) {
                 m += '\n';
-                m += "<codecanvas>>";
+                m += "<codecanvas>";
                 m += content;
-                m += "</codecanvas>>"
+                m += "</codecanvas>"
                 console.log("we have a canvas")
             } else {
                 console.log("no canvas")
@@ -1114,8 +1123,35 @@ const setupCollectionDeletion = () => {
     });
 };
 
+
+const toggleRightPanel = () => {
+    const rightPanel = document.querySelector('.right-panel') as HTMLElement;
+    const leftPanel = document.querySelector('.left-panel') as HTMLElement;
+    const sidebar = document.querySelector('.sidebar') as HTMLElement;
+
+    if (rightPanel.style.display === 'none' || rightPanel.style.display === '') {
+        rightPanel.style.display = 'block';
+        leftPanel.style.flexBasis = '33%';
+        sidebar.classList.add('hidden');
+    } else {
+        rightPanel.style.display = 'none';
+        leftPanel.style.flexBasis = '100%';
+        sidebar.classList.remove('hidden');
+    }
+    // todo clear codecanvas....
+};
+
+const toggleSidebar = () => {
+    // e.preventDefault();
+    const sidebar = document.querySelector('.sidebar') as HTMLElement;
+    sidebar.classList.toggle('hidden');
+};
+
 const main = () => {
 
+
+    document.getElementById("sidebar-toggler")!.addEventListener("click", toggleSidebar)
+    document.getElementById("right-panel-toggler")!.addEventListener("click", toggleRightPanel)
 
     setupResetSettingsButton(); // Reset Settings
     setupScrollButton(); // Scroll Button
@@ -1134,6 +1170,13 @@ const main = () => {
     setupMenu(); // Menu on top left
 
     setupCollectionDeletion();
+
+
+
+    // toggleSidebar();
+    // toggleRightPanel();
+
+
     const initialText = ''
     const targetElement = document.querySelector('#editor')!
     let language = new Compartment, tabSize = new Compartment
@@ -1177,6 +1220,11 @@ const main = () => {
         ],
         parent: targetElement,
     })
+
+
+
+
+
 
     editor.dom.addEventListener('input', debounce(detectAndSetMode, 500));
 
@@ -1236,4 +1284,6 @@ function debounce(fn: any, delay: number) {
 
 
 main();
+
+
 

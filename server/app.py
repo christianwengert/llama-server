@@ -180,7 +180,7 @@ def c(token):
     username = session.get('username')
     collections = get_available_collections(username)
 
-    return render_template('index.html',
+    return render_template('new.html',
                            collections=collections,
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
