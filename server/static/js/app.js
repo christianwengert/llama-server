@@ -75723,8 +75723,33 @@
       }
     });
   };
-  function couldStartMarker(t2) {
+  var couldStartMarker = (t2) => {
     return t2.includes("<");
+  };
+  function getAllChunks(responseText) {
+    const trimmed = responseText.trim();
+    if (!trimmed.includes("}{")) {
+      try {
+        return [JSON.parse(trimmed)];
+      } catch (e) {
+        return [];
+      }
+    }
+    const parts = trimmed.split("}{");
+    for (let i = 0; i < parts.length; i++) {
+      if (i > 0)
+        parts[i] = "{" + parts[i];
+      if (i < parts.length - 1)
+        parts[i] = parts[i] + "}";
+    }
+    const allResponses = [];
+    for (const part of parts) {
+      try {
+        allResponses.push(JSON.parse(part));
+      } catch (e) {
+      }
+    }
+    return allResponses;
   }
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
@@ -75740,31 +75765,6 @@
       const messages = Array.from(chat.children);
       pruneHistoryIndex = messages.indexOf(message);
       removeAllChildrenAfterIndex(chat, pruneHistoryIndex);
-    }
-    function getAllChunks(responseText) {
-      const trimmed = responseText.trim();
-      if (!trimmed.includes("}{")) {
-        try {
-          return [JSON.parse(trimmed)];
-        } catch (e) {
-          return [];
-        }
-      }
-      const parts = trimmed.split("}{");
-      for (let i = 0; i < parts.length; i++) {
-        if (i > 0)
-          parts[i] = "{" + parts[i];
-        if (i < parts.length - 1)
-          parts[i] = parts[i] + "}";
-      }
-      const allResponses = [];
-      for (const part of parts) {
-        try {
-          allResponses.push(JSON.parse(part));
-        } catch (e) {
-        }
-      }
-      return allResponses;
     }
     function handleInput(e) {
       if (e.key === "Enter" && e.shiftKey === false) {

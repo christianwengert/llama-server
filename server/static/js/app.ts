@@ -1,8 +1,5 @@
 import hljs from "highlight.js";
 import 'highlight.js/styles/github-dark.css';
-// import CodeMirror from 'codemirror';
-// import * as CodeMirrorNS from 'codemirror';
-// const CodeMirror = (CodeMirrorNS as any).default || CodeMirrorNS;
 import {javascript} from '@codemirror/lang-javascript'
 import {python} from '@codemirror/lang-python'
 import {cpp} from '@codemirror/lang-cpp'
@@ -34,11 +31,7 @@ import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} fr
 import {highlightSelectionMatches, searchKeymap} from '@codemirror/search'
 import {defaultKeymap, historyKeymap} from '@codemirror/commands'
 import {lintKeymap} from '@codemirror/lint'
-// import 'codemirror/lib/codemirror.css';
-// import 'codemirror/mode/javascript/javascript';
 
-// import 'codemirror/lib/codemirror.css';
-// import 'codemirror/mode/javascript/javascript';
 
 let editor: EditorView | null = null;
 let canvasEnabled = true;
@@ -469,14 +462,7 @@ const loadHistory = () => {
             const msgDiv = document.getElementById(ident);
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
-            // const codecanvasPattern = /<codecanvas>((.|\n)*)<\/codecanvas>/
-            // const regex = /<codecanvas>([\s\S]*?)<\/codecanvas>/g;
-
-            // const match = msg.content.match(regex)
             const lastMatch = findLastCodeCanvasBlock(msg.content)
-            // const matches = [...msg.content.matchAll(regex)];
-            // const lastMatch = matches.length > 0 ? matches[matches.length - 1][1] : null;
-
             if(editor && lastMatch) {
                 console.log(lastMatch)
                  let transaction = editor.state.update({
@@ -519,7 +505,6 @@ const findLastCodeCanvasBlock = (text: string) => {
             lastBlock = text.substring(startIndex, endIndex);
         }
     }
-
     return lastBlock ? lastBlock.replace(/<\/?codecanvas>/g, "").trim() : null;
 };
 
@@ -557,10 +542,35 @@ const setClipboardHandler = () => {
 };
 
 // If we haven't found '</codecanvas>', flush everything that can't be part of a marker.
-function couldStartMarker(t: string) {
+const couldStartMarker = (t: string) => {
     // We'll skip flushing tokens that have '<' if we suspect they're part of the marker.
     return t.includes('<');
-}
+};
+
+const getAllChunks = (responseText: string) => {
+    const trimmed = responseText.trim();
+    if (!trimmed.includes('}{')) {
+        try {
+            return [JSON.parse(trimmed)];
+        } catch (e) {
+            return [];
+        }
+    }
+    const parts = trimmed.split('}{');
+    for (let i = 0; i < parts.length; i++) {
+        if (i > 0) parts[i] = '{' + parts[i];
+        if (i < parts.length - 1) parts[i] = parts[i] + '}';
+    }
+    const allResponses = [];
+    for (const part of parts) {
+        try {
+            allResponses.push(JSON.parse(part));
+        } catch (e) {
+            // ignore any invalid/incomplete parts
+        }
+    }
+    return allResponses;
+};
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -581,31 +591,6 @@ function getInputHandler(inputElement: HTMLElement) {
         const messages = Array.from(chat.children)
         pruneHistoryIndex = messages.indexOf(message);
         removeAllChildrenAfterIndex(chat, pruneHistoryIndex)
-    }
-
-    function getAllChunks(responseText: string) {
-        const trimmed = responseText.trim();
-        if (!trimmed.includes('}{')) {
-            try {
-                return [JSON.parse(trimmed)];
-            } catch (e) {
-                return [];
-            }
-        }
-        const parts = trimmed.split('}{');
-        for (let i = 0; i < parts.length; i++) {
-            if (i > 0) parts[i] = '{' + parts[i];
-            if (i < parts.length - 1) parts[i] = parts[i] + '}';
-        }
-        const allResponses = [];
-        for (const part of parts) {
-            try {
-                allResponses.push(JSON.parse(part));
-            } catch (e) {
-                // ignore any invalid/incomplete parts
-            }
-        }
-        return allResponses;
     }
 
     function handleInput(e: KeyboardEvent) {
@@ -1229,35 +1214,6 @@ const main = () => {
     setupCollectionDeletion();
 
     setupEditor();
-
-
-
-
-
-    // editor.on('change', debounce(detectAndSetMode, 1000));
-
-//
-//
-//     const toggleSidebarBtn = document.getElementById('toggle-sidebar');
-// const sidebar = document.getElementById('sidebar');
-// const container = document.getElementById('container');
-//
-// const toggleEditorBtn = document.getElementById('toggle-editor');
-// const editorT = document.getElementById('editorT');
-//
-// // Toggle sidebar
-// toggleSidebarBtn.addEventListener('click', () => {
-//   // Toggle a class on sidebar to collapse it
-//   sidebar.classList.toggle('collapsed');
-//   // Also adjust container margin
-//   container.classList.toggle('sidebar-collapsed');
-// });
-//
-// // Toggle editor visibility
-// toggleEditorBtn.addEventListener('click', () => {
-//   // Simply hide/show editor by toggling a "hidden" class
-//   editorT.classList.toggle('hidden');
-// });
 }
 
 function debounce(fn: any, delay: number) {
