@@ -32,7 +32,7 @@ import {basicSetup, EditorView} from 'codemirror'
 import {Compartment, EditorState} from '@codemirror/state'
 import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete'
 import {highlightSelectionMatches, searchKeymap} from '@codemirror/search'
-import {defaultKeymap, history, historyKeymap} from '@codemirror/commands'
+import {defaultKeymap, historyKeymap} from '@codemirror/commands'
 import {lintKeymap} from '@codemirror/lint'
 // import 'codemirror/lib/codemirror.css';
 // import 'codemirror/mode/javascript/javascript';
@@ -512,7 +512,7 @@ const findLastCodeCanvasBlock = (text: string) => {
         if (match[0] === "<codecanvas>") {
             stack.push(match.index);
         } else if (match[0] === "</codecanvas>" && stack.length > 0) {
-            startIndex = stack.pop();
+            startIndex = stack.pop()!;
             endIndex = match.index + match[0].length;
 
             // Update lastBlock when a complete block is found
@@ -555,6 +555,12 @@ const setClipboardHandler = () => {
         }
     });
 };
+
+// If we haven't found '</codecanvas>', flush everything that can't be part of a marker.
+function couldStartMarker(t: string) {
+    // We'll skip flushing tokens that have '<' if we suspect they're part of the marker.
+    return t.includes('<');
+}
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -680,7 +686,7 @@ function getInputHandler(inputElement: HTMLElement) {
                 }
 
                 // Helper that checks if the tail of rollingBuffer forms joinedString ignoring whitespace.
-                 function endsWithJoined(joinedString) {
+                 function endsWithJoined(joinedString: string) {
                     let combined = rollingBuffer.join("").replace(/\s+/g, "");
                     if (combined.endsWith(joinedString)) {
 
@@ -711,7 +717,7 @@ function getInputHandler(inputElement: HTMLElement) {
                     // If we didn't detect '</think>', flush everything to the thinkElement
                     // (We know these tokens won't form another marker, so we can just flush now)
                     while (rollingBuffer.length > 0) {
-                        pushToFlushList(rollingBuffer.shift());
+                        pushToFlushList(rollingBuffer.shift()!);
                     }
                     return flushList;
                 }
@@ -735,17 +741,11 @@ function getInputHandler(inputElement: HTMLElement) {
                         return flushList;
                     }
 
-                    // If we haven't found '</codecanvas>', flush everything that can't be part of a marker.
-                    function couldStartMarker(t) {
-                        // We'll skip flushing tokens that have '<' if we suspect they're part of the marker.
-                        return t.includes('<');
-                    }
-
                     while (rollingBuffer.length > 0) {
                         if (couldStartMarker(rollingBuffer[0])) {
                             break;
                         }
-                        pushToFlushList(rollingBuffer.shift());
+                        pushToFlushList(rollingBuffer.shift()!);
                     }
                     return flushList;
                 }
@@ -795,16 +795,11 @@ function getInputHandler(inputElement: HTMLElement) {
                     return flushList;
                 }
 
-                // If we haven't found a marker, flush everything from the front that cannot be a marker start.
-                function couldStartMarker(t) {
-                    return t.includes("<");
-                }
-
                 while (rollingBuffer.length > 0) {
                     if (couldStartMarker(rollingBuffer[0])) {
                         break;
                     }
-                    pushToFlushList(rollingBuffer.shift());
+                    pushToFlushList(rollingBuffer.shift()!);
                 }
 
                 return flushList;
@@ -855,7 +850,7 @@ function getInputHandler(inputElement: HTMLElement) {
                 } else if (element === 'codecanvas') {
                     newCode += token;
                     if (token.endsWith('\n')) {
-                        replaceLine(editor, lineNumber, newCode.slice(0, -1))
+                        replaceLine(editor!, lineNumber, newCode.slice(0, -1))
                         lineNumber ++;
                         newCode = "";  // reset
                     }
@@ -914,7 +909,7 @@ function getInputHandler(inputElement: HTMLElement) {
             const formData = getFormDataAsJSON('settings-form')
 
             //
-            const content = editor.state.doc.toString().trim();
+            const content = editor!.state.doc.toString().trim();
             if (content && canvasEnabled) {
                 m += '\n';
                 m += "<codecanvas>";
@@ -1146,39 +1141,10 @@ const toggleSidebar = (force?: boolean) => {
     }
 };
 
-const main = () => {
-
-
-    document.getElementById("sidebar-toggler")!.addEventListener("click", toggleSidebar)
-    document.getElementById("right-panel-toggler")!.addEventListener("click", toggleRightPanel)
-
-    setupResetSettingsButton(); // Reset Settings
-    setupScrollButton(); // Scroll Button
-    setupUploadButton() //
-
-    setupTextInput();
-
-    loadHistory();
-
-    setClipboardHandler();
-
-    setupEscapeButtonForPopups();
-
-    setupSettingsMustBeSet();
-
-    setupMenu(); // Menu on top left
-
-    setupCollectionDeletion();
-
-
-
-    // toggleSidebar();
-    // toggleRightPanel();
-
-
+function setupEditor() {
     const initialText = ''
     const targetElement = document.querySelector('#editor')!
-    let language = new Compartment, tabSize = new Compartment
+    let language = new Compartment;
 
     editor = new EditorView({
         doc: initialText,
@@ -1219,16 +1185,10 @@ const main = () => {
         ],
         parent: targetElement,
     })
-
-
-
-
-
-
     editor.dom.addEventListener('input', debounce(detectAndSetMode, 500));
 
     function detectAndSetMode() {
-        const content = editor.state.doc.toString();
+        const content = editor!.state.doc.toString();
 
         const result = hljs.highlightAuto(content, ["python", "cpp", "javascript", "rust"]);
         console.log(result)
@@ -1242,9 +1202,36 @@ const main = () => {
         } else if (result.language === 'rust') {
             language.reconfigure(rust())
         }
-
-        // editor.state.('mode', newMode);
     }
+}
+
+const main = () => {
+
+    document.getElementById("sidebar-toggler")!.addEventListener("click", () => {toggleSidebar()})
+    document.getElementById("right-panel-toggler")!.addEventListener("click", () => {toggleRightPanel()})
+
+    setupResetSettingsButton(); // Reset Settings
+    setupScrollButton(); // Scroll Button
+    setupUploadButton() //
+
+    setupTextInput();
+
+    loadHistory();
+
+    setClipboardHandler();
+
+    setupEscapeButtonForPopups();
+
+    setupSettingsMustBeSet();
+
+    setupMenu(); // Menu on top left
+
+    setupCollectionDeletion();
+
+    setupEditor();
+
+
+
 
 
     // editor.on('change', debounce(detectAndSetMode, 1000));
@@ -1277,6 +1264,7 @@ function debounce(fn: any, delay: number) {
     let timeout: number;
     return function (...args: any[]) {
         clearTimeout(timeout);
+        // @ts-ignore
         timeout = window.setTimeout(() => fn.apply(this, args), delay);
     }
 }

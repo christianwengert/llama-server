@@ -72818,7 +72818,7 @@
       return new HistoryState(json.done.map(HistEvent.fromJSON), json.undone.map(HistEvent.fromJSON));
     }
   });
-  function history(config2 = {}) {
+  function history2(config2 = {}) {
     return [
       historyField_,
       historyConfig.of(config2),
@@ -75349,7 +75349,7 @@
     lineNumbers(),
     highlightActiveLineGutter(),
     highlightSpecialChars(),
-    history(),
+    history2(),
     foldGutter(),
     drawSelection(),
     dropCursor(),
@@ -75723,6 +75723,9 @@
       }
     });
   };
+  function couldStartMarker(t2) {
+    return t2.includes("<");
+  }
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
     let isMainInput = inputElement === mainInput;
@@ -75807,10 +75810,6 @@
             return flushList;
           }
           if (mode === "codecanvas") {
-            let couldStartMarker2 = function(t2) {
-              return t2.includes("<");
-            };
-            var couldStartMarker = couldStartMarker2;
             if (token === "</codecanvas>") {
               mode = "normal";
               flushList.push({ element: "codecanvas", token: "\n" });
@@ -75823,7 +75822,7 @@
               return flushList;
             }
             while (rollingBuffer.length > 0) {
-              if (couldStartMarker2(rollingBuffer[0])) {
+              if (couldStartMarker(rollingBuffer[0])) {
                 break;
               }
               pushToFlushList(rollingBuffer.shift());
@@ -75864,9 +75863,6 @@
           if (endsWithJoined("<codecanvas>")) {
             mode = "codecanvas";
             return flushList;
-          }
-          function couldStartMarker(t2) {
-            return t2.includes("<");
           }
           while (rollingBuffer.length > 0) {
             if (couldStartMarker(rollingBuffer[0])) {
@@ -76154,22 +76150,10 @@
       sidebar.classList.toggle("hidden");
     }
   };
-  var main = () => {
-    document.getElementById("sidebar-toggler").addEventListener("click", toggleSidebar);
-    document.getElementById("right-panel-toggler").addEventListener("click", toggleRightPanel);
-    setupResetSettingsButton();
-    setupScrollButton();
-    setupUploadButton();
-    setupTextInput();
-    loadHistory();
-    setClipboardHandler();
-    setupEscapeButtonForPopups();
-    setupSettingsMustBeSet();
-    setupMenu();
-    setupCollectionDeletion();
+  function setupEditor() {
     const initialText = "";
     const targetElement = document.querySelector("#editor");
-    let language2 = new Compartment(), tabSize = new Compartment();
+    let language2 = new Compartment();
     editor = new EditorView({
       doc: initialText,
       extensions: [
@@ -76222,6 +76206,25 @@
         language2.reconfigure(rust());
       }
     }
+  }
+  var main = () => {
+    document.getElementById("sidebar-toggler").addEventListener("click", () => {
+      toggleSidebar();
+    });
+    document.getElementById("right-panel-toggler").addEventListener("click", () => {
+      toggleRightPanel();
+    });
+    setupResetSettingsButton();
+    setupScrollButton();
+    setupUploadButton();
+    setupTextInput();
+    loadHistory();
+    setClipboardHandler();
+    setupEscapeButtonForPopups();
+    setupSettingsMustBeSet();
+    setupMenu();
+    setupCollectionDeletion();
+    setupEditor();
   };
   function debounce(fn, delay) {
     let timeout;
