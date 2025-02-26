@@ -345,10 +345,22 @@ const highlightCode = (inner: HTMLElement) => {
 
 const replaceLine = (view: EditorView, lineNumber: number, newText: string) => {
     let state = view.state;
-    let line = state.doc.line(lineNumber);  // Get the line object
+    let line
+
+    if (lineNumber > state.doc.lines) {  // end of document
+        line = { from: state.doc.length, to: state.doc.length}
+        newText = "\n" + newText;  // add the new line
+    } else {
+        line = state.doc.line(lineNumber);  // Get the line object
+    }
+
+    if(newText === line.text) {
+        return
+    }
     let transaction = state.update({
-        changes: { from: line.from, to: line.to, insert: newText }
+        changes: {from: line.from, to: line.to, insert: newText}
     });
+
     view.dispatch(transaction);
 };
 
@@ -457,6 +469,24 @@ const loadHistory = () => {
             const msgDiv = document.getElementById(ident);
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
+            // const codecanvasPattern = /<codecanvas>((.|\n)*)<\/codecanvas>/
+            // const regex = /<codecanvas>([\s\S]*?)<\/codecanvas>/g;
+
+            // const match = msg.content.match(regex)
+            const lastMatch = findLastCodeCanvasBlock(msg.content)
+            // const matches = [...msg.content.matchAll(regex)];
+            // const lastMatch = matches.length > 0 ? matches[matches.length - 1][1] : null;
+
+            if(editor && lastMatch) {
+                console.log(lastMatch)
+                 let transaction = editor.state.update({
+                    changes: { from: 0, to: editor.state.doc.length, insert: lastMatch }
+                });
+                editor.dispatch(transaction);
+                toggleRightPanel(true);
+                toggleSidebar()
+            }
+
             highlightCode(inner);  // highlight both directions
         })
     }
@@ -466,6 +496,31 @@ const loadHistory = () => {
         url += '/' + document.location.pathname.slice(index + 3)  // 3 is length of '/c/'
     }
     fetch(url).then((r) => r.json()).then(setHistory)
+};
+
+
+const findLastCodeCanvasBlock = (text: string) => {
+    let stack = [];
+    let lastBlock = null;
+    let startIndex = -1;
+    let endIndex = -1;
+
+    let regex = /<\/?codecanvas>/g;
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+        if (match[0] === "<codecanvas>") {
+            stack.push(match.index);
+        } else if (match[0] === "</codecanvas>" && stack.length > 0) {
+            startIndex = stack.pop();
+            endIndex = match.index + match[0].length;
+
+            // Update lastBlock when a complete block is found
+            lastBlock = text.substring(startIndex, endIndex);
+        }
+    }
+
+    return lastBlock ? lastBlock.replace(/<\/?codecanvas>/g, "").trim() : null;
 };
 
 const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) => {
@@ -586,33 +641,28 @@ function getInputHandler(inputElement: HTMLElement) {
             xhr.open('POST', '/');
             let index = 0;
 
-// Current mode (which element to append to)
+            // Current mode (which element to append to)
             let mode = "normal"; // can be: "normal", "think", "codecanvas"
 
-// Rolling buffer to detect multi-token markers like < code canvas >
+            // Rolling buffer to detect multi-token markers like < code canvas >
             let rollingBuffer: string[] = [];
 
-// A queue for tokens to display with a delay: each item => { element, token }
+            // A queue for tokens to display with a delay: each item => { element, token }
             let flushQueue: Record<string, string>[] = [];
 
-// Are we currently showing tokens from flushQueue?
+            // Are we currently showing tokens from flushQueue?
             let isFlushing = false;
 
             let newCode = ""
             let lineNumber = 1;
-            // let existingCode = "";
-            // if (editor) {
-            //     existingCode = editor.state.doc.toString()
-            // }
 
-
-//------------------------------------------------------------------
-// processToken(token): returns an array of { element, token } objects
-// telling us which element to append to, and what text to append.
-//------------------------------------------------------------------
+            //------------------------------------------------------------------
+            // processToken(token): returns an array of { element, token } objects
+            // telling us which element to append to, and what text to append.
+            //------------------------------------------------------------------
             function processToken(token: string) {
                 const flushList: Array<Record<string, string>> = [];
-
+                // console.log("Token: " + token + "   Mode: " + mode)
                 function pushToFlushList(t: string) {
                     let element;
                     switch (mode) {
@@ -630,29 +680,15 @@ function getInputHandler(inputElement: HTMLElement) {
                 }
 
                 // Helper that checks if the tail of rollingBuffer forms joinedString ignoring whitespace.
-                function endsWithJoined(joinedString: string) {
-                    let combined = "";
-                    for (let i = rollingBuffer.length - 1; i >= 0; i--) {
-                        const t = rollingBuffer[i].replace(/\s+/g, "");
-                        combined = t + combined;
-                        // If we fully matched the marker
-                        if (combined === joinedString) {
-                            let neededTokens = 0;
-                            let temp = "";
-                            for (let j = rollingBuffer.length - 1; j >= 0; j--) {
-                                const seg = rollingBuffer[j].replace(/\s+/g, "");
-                                temp = seg + temp;
-                                neededTokens++;
-                                if (temp === joinedString) {
-                                    rollingBuffer.splice(rollingBuffer.length - neededTokens, neededTokens);
-                                    return true;
-                                }
-                            }
-                        }
-                        // If partial combination no longer matches as suffix, break
-                        if (!joinedString.endsWith(combined)) {
-                            return false;
-                        }
+                 function endsWithJoined(joinedString) {
+                    let combined = rollingBuffer.join("").replace(/\s+/g, "");
+                    if (combined.endsWith(joinedString)) {
+
+                        pushToFlushList(combined.slice(0, combined.length - joinedString.length))
+
+
+                        rollingBuffer = []; // Clear buffer since we've found the match
+                        return true;
                     }
                     return false;
                 }
@@ -682,10 +718,11 @@ function getInputHandler(inputElement: HTMLElement) {
 
                 // If currently in 'codecanvas' mode, only watch for '</codecanvas>' to return to normal.
                 if (mode === "codecanvas") {
-                    console.log("Token: " + token)
+
                     // If single token = '</codecanvas>', switch mode, do not flush marker.
                     if (token === "</codecanvas>") {
                         mode = "normal";
+                        flushList.push({element: "codecanvas", token: "\n"});
                         return flushList;
                     }
                     // Otherwise, accumulate token and check for multi-token marker
@@ -694,6 +731,7 @@ function getInputHandler(inputElement: HTMLElement) {
                     if (endsWithJoined("</codecanvas>")) {
                         // if we matched it in rollingBuffer, remove it and switch mode.
                         mode = "normal";
+                        flushList.push({element: "codecanvas", token: "\n"});
                         return flushList;
                     }
 
@@ -711,8 +749,6 @@ function getInputHandler(inputElement: HTMLElement) {
                     }
                     return flushList;
                 }
-
-                // Otherwise, mode === "normal"; let's see if we open a think or codecanvas.
 
                 // First, handle single-token markers if the model merges them.
                 if (token === "<think>") {
@@ -774,13 +810,13 @@ function getInputHandler(inputElement: HTMLElement) {
                 return flushList;
             }
 
-//------------------------------------------------------------------
-// onStreamProgress(jsonChunk):
-//   - Extract the token
-//   - process it (state machine, rolling buffer)
-//   - add the resulting flushList to the global flushQueue
-//   - schedule flush if not already in progress
-//------------------------------------------------------------------
+            //------------------------------------------------------------------
+            // onStreamProgress(jsonChunk):
+            //   - Extract the token
+            //   - process it (state machine, rolling buffer)
+            //   - add the resulting flushList to the global flushQueue
+            //   - schedule flush if not already in progress
+            //------------------------------------------------------------------
             function onStreamProgress(jsonChunk: any) {
                 const token = jsonChunk.choices[0].delta.content;
                 const flushList = processToken(token);
@@ -788,10 +824,10 @@ function getInputHandler(inputElement: HTMLElement) {
                 scheduleFlush();
             }
 
-//------------------------------------------------------------------
-// scheduleFlush():
-//   - If not already flushing, start the delayed chain
-//------------------------------------------------------------------
+            //------------------------------------------------------------------
+            // scheduleFlush():
+            //   - If not already flushing, start the delayed chain
+            //------------------------------------------------------------------
             function scheduleFlush() {
                 if (!isFlushing) {
                     isFlushing = true;
@@ -819,30 +855,18 @@ function getInputHandler(inputElement: HTMLElement) {
                 } else if (element === 'codecanvas') {
                     newCode += token;
                     if (token.endsWith('\n')) {
-                        // editor.state.doc.append(token)
                         replaceLine(editor, lineNumber, newCode.slice(0, -1))
-
-                        // console.log("linenumber: " + lineNumber + "  " + newCode + token.slice(0, -1) )
-                        // todo this can be outside of the document, check we do not have less numbers than we need!
-                        // editor.dispatch({changes: {
-                        //   from: pos.from,
-                        //   to: pos.to,
-                        //   insert: newCode + token.slice(0, -1)  // remove newline
-                        // }})
                         lineNumber ++;
                         newCode = "";  // reset
                     }
-
-
                 } else {
                     console.log('Do not know where to place ' + element + " with token " + token)
                 }
-                // element.value += token;
                 if (element)
                     flushNext();
             }
 
-// The rest of your XHR logic:
+            // The rest of your XHR logic:
             xhr.onprogress = function () {
                 const chunks = getAllChunks(xhr.responseText);
 
@@ -869,13 +893,6 @@ function getInputHandler(inputElement: HTMLElement) {
                             for (const elem1 of document.getElementsByClassName('shimmer')) {
                                 elem1.classList.remove('shimmer');
                             }
-                            let pos = editor.state.doc.line(lineNumber)
-                            editor.dispatch({changes: {
-                              from: pos.from,
-                              to: editor.state.doc.length,
-                              insert: ""  //.split('\n')[0]  // remove newline
-                            }})
-
                         } else {
                             onStreamProgress(chunk);
                         }
@@ -890,15 +907,8 @@ function getInputHandler(inputElement: HTMLElement) {
                 console.log("error: " + e);
             });
 
-            xhr.onload = function () {
+            // xhr.onload = function () {}
 
-                // if (isMainInput) {
-                //     inputElement.contentEditable = "true";
-                // }
-                // setFocusToInputField(mainInput);
-                // stopButton.disabled = true;
-                // loadHistory()
-            }
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
             const formData = getFormDataAsJSON('settings-form')
@@ -916,14 +926,7 @@ function getInputHandler(inputElement: HTMLElement) {
             }
 
             formData.input = m
-            formData.pruneHistoryIndex = pruneHistoryIndex
-
-            //
-            // editor.dispatch({changes: {
-            //   from: 0,
-            //   to: editor.state.doc.length,
-            //   insert: ""
-            // }})
+            formData.pruneHistoryIndex = pruneHistoryIndex;
 
             xhr.send(JSON.stringify(formData));
         }
@@ -1039,16 +1042,9 @@ function setupMenu() {
                 updateUrlParam('')
                 return
             }
-            // if (target.id === 'mode-stackexchange') {
-            // const vals = target.id.split('-')
-            // console.log(vals)
-
 
             textNode.textContent = target.textContent;
             updateUrlParam(target.id)
-            // return
-            // }
-
         })
         //update current selection
         if (selectedMode && elem.id === selectedMode) {
@@ -1124,12 +1120,12 @@ const setupCollectionDeletion = () => {
 };
 
 
-const toggleRightPanel = () => {
+const toggleRightPanel = (force?: boolean|undefined) => {
     const rightPanel = document.querySelector('.right-panel') as HTMLElement;
     const leftPanel = document.querySelector('.left-panel') as HTMLElement;
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
 
-    if (rightPanel.style.display === 'none' || rightPanel.style.display === '') {
+    if (rightPanel.style.display === 'none' || rightPanel.style.display === '' || force) {
         rightPanel.style.display = 'block';
         leftPanel.style.flexBasis = '33%';
         sidebar.classList.add('hidden');
@@ -1138,13 +1134,16 @@ const toggleRightPanel = () => {
         leftPanel.style.flexBasis = '100%';
         sidebar.classList.remove('hidden');
     }
-    // todo clear codecanvas....
 };
 
-const toggleSidebar = () => {
+const toggleSidebar = (force?: boolean) => {
     // e.preventDefault();
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
-    sidebar.classList.toggle('hidden');
+    if(force) {
+        sidebar.classList.remove('hidden');
+    } else {
+        sidebar.classList.toggle('hidden');
+    }
 };
 
 const main = () => {

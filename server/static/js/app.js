@@ -75576,7 +75576,16 @@
   };
   var replaceLine = (view, lineNumber, newText) => {
     let state = view.state;
-    let line = state.doc.line(lineNumber);
+    let line;
+    if (lineNumber > state.doc.lines) {
+      line = { from: state.doc.length, to: state.doc.length };
+      newText = "\n" + newText;
+    } else {
+      line = state.doc.line(lineNumber);
+    }
+    if (newText === line.text) {
+      return;
+    }
     let transaction = state.update({
       changes: { from: line.from, to: line.to, insert: newText }
     });
@@ -75654,6 +75663,16 @@
         const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
         const msgDiv = document.getElementById(ident);
         const inner = msgDiv.getElementsByClassName("inner-message")[0];
+        const lastMatch = findLastCodeCanvasBlock(msg.content);
+        if (editor && lastMatch) {
+          console.log(lastMatch);
+          let transaction = editor.state.update({
+            changes: { from: 0, to: editor.state.doc.length, insert: lastMatch }
+          });
+          editor.dispatch(transaction);
+          toggleRightPanel(true);
+          toggleSidebar();
+        }
         highlightCode(inner);
       });
     };
@@ -75663,6 +75682,24 @@
       url += "/" + document.location.pathname.slice(index + 3);
     }
     fetch(url).then((r) => r.json()).then(setHistory);
+  };
+  var findLastCodeCanvasBlock = (text) => {
+    let stack = [];
+    let lastBlock = null;
+    let startIndex = -1;
+    let endIndex = -1;
+    let regex = /<\/?codecanvas>/g;
+    let match;
+    while ((match = regex.exec(text)) !== null) {
+      if (match[0] === "<codecanvas>") {
+        stack.push(match.index);
+      } else if (match[0] === "</codecanvas>" && stack.length > 0) {
+        startIndex = stack.pop();
+        endIndex = match.index + match[0].length;
+        lastBlock = text.substring(startIndex, endIndex);
+      }
+    }
+    return lastBlock ? lastBlock.replace(/<\/?codecanvas>/g, "").trim() : null;
   };
   var removeAllChildrenAfterIndex = (parentElement, index) => {
     while (parentElement.children.length > index + 1) {
@@ -75746,26 +75783,11 @@
             flushList.push({ element, token: t2 });
           }
           function endsWithJoined(joinedString) {
-            let combined = "";
-            for (let i = rollingBuffer.length - 1; i >= 0; i--) {
-              const t2 = rollingBuffer[i].replace(/\s+/g, "");
-              combined = t2 + combined;
-              if (combined === joinedString) {
-                let neededTokens = 0;
-                let temp = "";
-                for (let j = rollingBuffer.length - 1; j >= 0; j--) {
-                  const seg = rollingBuffer[j].replace(/\s+/g, "");
-                  temp = seg + temp;
-                  neededTokens++;
-                  if (temp === joinedString) {
-                    rollingBuffer.splice(rollingBuffer.length - neededTokens, neededTokens);
-                    return true;
-                  }
-                }
-              }
-              if (!joinedString.endsWith(combined)) {
-                return false;
-              }
+            let combined = rollingBuffer.join("").replace(/\s+/g, "");
+            if (combined.endsWith(joinedString)) {
+              pushToFlushList(combined.slice(0, combined.length - joinedString.length));
+              rollingBuffer = [];
+              return true;
             }
             return false;
           }
@@ -75789,14 +75811,15 @@
               return t2.includes("<");
             };
             var couldStartMarker = couldStartMarker2;
-            console.log("Token: " + token);
             if (token === "</codecanvas>") {
               mode = "normal";
+              flushList.push({ element: "codecanvas", token: "\n" });
               return flushList;
             }
             rollingBuffer.push(token);
             if (endsWithJoined("</codecanvas>")) {
               mode = "normal";
+              flushList.push({ element: "codecanvas", token: "\n" });
               return flushList;
             }
             while (rollingBuffer.length > 0) {
@@ -75944,13 +75967,6 @@
                 for (const elem1 of document.getElementsByClassName("shimmer")) {
                   elem1.classList.remove("shimmer");
                 }
-                let pos = editor.state.doc.line(lineNumber);
-                editor.dispatch({ changes: {
-                  from: pos.from,
-                  to: editor.state.doc.length,
-                  insert: ""
-                  //.split('\n')[0]  // remove newline
-                } });
               } else {
                 onStreamProgress2(chunk);
               }
@@ -75962,8 +75978,6 @@
         xhr.addEventListener("error", function(e2) {
           console.log("error: " + e2);
         });
-        xhr.onload = function() {
-        };
         xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
         const formData = getFormDataAsJSON("settings-form");
         const content2 = editor.state.doc.toString().trim();
@@ -76118,11 +76132,11 @@
       }
     });
   };
-  var toggleRightPanel = () => {
+  var toggleRightPanel = (force) => {
     const rightPanel = document.querySelector(".right-panel");
     const leftPanel = document.querySelector(".left-panel");
     const sidebar = document.querySelector(".sidebar");
-    if (rightPanel.style.display === "none" || rightPanel.style.display === "") {
+    if (rightPanel.style.display === "none" || rightPanel.style.display === "" || force) {
       rightPanel.style.display = "block";
       leftPanel.style.flexBasis = "33%";
       sidebar.classList.add("hidden");
@@ -76132,9 +76146,13 @@
       sidebar.classList.remove("hidden");
     }
   };
-  var toggleSidebar = () => {
+  var toggleSidebar = (force) => {
     const sidebar = document.querySelector(".sidebar");
-    sidebar.classList.toggle("hidden");
+    if (force) {
+      sidebar.classList.remove("hidden");
+    } else {
+      sidebar.classList.toggle("hidden");
+    }
   };
   var main = () => {
     document.getElementById("sidebar-toggler").addEventListener("click", toggleSidebar);
