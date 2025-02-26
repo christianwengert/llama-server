@@ -1746,3 +1746,6 @@ details[open] > summary::before {
     /*border: 1px solid crimson;*/
     /*width: 50%;*/
 }
+.katex-html {
+    display: none;
+}

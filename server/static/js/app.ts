@@ -5,6 +5,7 @@ import {python} from '@codemirror/lang-python'
 import {cpp} from '@codemirror/lang-cpp'
 import {rust} from '@codemirror/lang-rust'
 
+
 import {
     crosshairCursor,
     drawSelection,
@@ -31,6 +32,11 @@ import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} fr
 import {highlightSelectionMatches, searchKeymap} from '@codemirror/search'
 import {defaultKeymap, historyKeymap} from '@codemirror/commands'
 import {lintKeymap} from '@codemirror/lint'
+import katex from "katex";
+// import {marked} from "marked";
+import { marked } from "marked";
+
+document.documentElement.style.setProperty("--katex-font", "serif");
 
 
 let editor: EditorView | null = null;
@@ -106,6 +112,119 @@ const handleEditAction = (e: MouseEvent) => {
 //     e.preventDefault();
 //     handleVoteAction(e, 'down')
 // };
+// It sounds like your code is double-parsing the LaTeX: once via placeholders, once via Marked or some extension.
+// Below is a consolidated final approach that:
+// 1) Does *only* placeholders for LaTeX (inline/block) so Marked never sees the raw LaTeX.
+// 2) Then uses Marked for normal Markdown (including code blocks),
+// 3) Re-injects KaTeX for placeholders at the end,
+// 4) Avoids any math extension in Marked.
+// 5) Also, ensures highlight.js sees only code strings.
+// Make sure you remove or disable any other math extension or plugin that might parse LaTeX.
+
+
+
+// Example code renderer for Marked:
+const blockCodeRenderer = {
+  code(code: string, infostring: string) {
+    let lang = infostring?.trim() || ''
+    let highlighted
+    if (lang && hljs.getLanguage(lang)) {
+      highlighted = hljs.highlight(code, { language: lang }).value
+    } else {
+      // fallback auto-detection
+      const autoResult = hljs.highlightAuto(code.text)
+      highlighted = autoResult.value
+      lang = autoResult.language || ''
+    }
+    return `\n<div class="code-header">\n  <div class="language">${lang}</div>\n  <div class="copy" onclick="">Copy</div>\n</div><pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
+  },
+  // For inline backticks
+  codespan(code: string) {
+    return `<code class="hljs">${escapeHtml(code)}</code>`
+  }
+}
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
+// Strips the outer LaTeX delimiters from a match so KaTeX sees only the contents.
+function stripMathDelimiters(latex: string): string {
+  // block $$...$$
+  if (/^\${2}[\s\S]*?\${2}$/.test(latex)) {
+    return latex.slice(2, -2).trim()
+  }
+  // block \[...\]
+  if (/^\\\[[\s\S]*?\\\]$/.test(latex)) {
+    return latex.slice(2, -2).trim()
+  }
+  // inline \(...\)
+  if (/^\\\([\s\S]*?\\\)$/.test(latex)) {
+    return latex.slice(2, -2).trim()
+  }
+  // inline $...$
+  if (/^\$[\s\S]*?\$$/.test(latex)) {
+    return latex.slice(1, -1).trim()
+  }
+  return latex
+}
+
+export function parseMessage(text: string): string {
+  // 1) Regex to find *all* LaTeX forms: block or inline
+  //    $$...$$, \[...\], \(...\), $...$
+  // We do placeholders so Marked never sees actual LaTeX.
+  const mathRegex = /(\${2}[\s\S]*?\${2}|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[\s\S]*?\$)/g
+
+  const rawMath: string[] = []
+  let match: RegExpExecArray | null
+  while ((match = mathRegex.exec(text)) !== null) {
+    rawMath.push(match[0])
+  }
+
+  // 2) Replace each math snippet with a unique placeholder
+  let placeholderText = text
+  rawMath.forEach((m, i) => {
+    const placeholder = `@@MATH_${i}@@`
+    placeholderText = placeholderText.replace(m, placeholder)
+  })
+
+  // 3) Parse placeholderText with Marked for normal markdown
+  marked.setOptions({ mangle: false, smartypants: false })
+  marked.use({ renderer: blockCodeRenderer })
+
+  // Ensure no math extension is used. The below is all we do.
+
+  const htmlWithPlaceholders = marked.parse(placeholderText)
+
+  // 4) Re-inject KaTeX for each placeholder
+  let finalHtml = htmlWithPlaceholders
+  rawMath.forEach((latex, i) => {
+    const placeholder = `@@MATH_${i}@@`
+    // Decide block vs. inline
+    const isBlock = (
+      /^\${2}[\s\S]*?\${2}$/.test(latex) ||
+      /^\\\[[\s\S]*?\\\]$/.test(latex)
+    )
+    // Strip the delimiters
+    const stripped = stripMathDelimiters(latex)
+    // Render KaTeX
+    const rendered = katex.renderToString(stripped, {
+      throwOnError: false,
+      displayMode: isBlock
+    })
+    // Replace the placeholder
+    finalHtml = finalHtml.replace(placeholder, rendered)
+  })
+
+  return finalHtml
+}
+
+
 
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement, innerMessageExtraClass?: string, renderButtons: boolean = true): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
@@ -173,9 +292,17 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         //
         // }
     }
+
+    // renderMixedContent(message)
+    innerMessageDiv.innerHTML = parseMessage(message);
     chat.appendChild(messageDiv);
+    // Apply Highlight.js after rendering
+    messageDiv.querySelectorAll("pre code").forEach((block) => {
+        hljs.highlightElement(block as HTMLElement);
+    });
     return ident;
 };
+
 
 
 const setFocusToInputField = (textInput: HTMLDivElement) => {
@@ -320,9 +447,9 @@ const highlightCode = (inner: HTMLElement) => {
         return mdString;
     };
 
-    function escapeHTML(str: string) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    }
+    // function escapeHTML(str: string) {
+    //     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    // }
 
     const codeString = inner.innerText;
 
@@ -473,7 +600,7 @@ const loadHistory = () => {
                 toggleSidebar()
             }
 
-            highlightCode(inner);  // highlight both directions
+            // highlightCode(inner);  // highlight both directions
         })
     }
     const index = document.location.pathname.indexOf('/c/')

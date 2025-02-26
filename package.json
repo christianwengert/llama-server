@@ -11,6 +11,12 @@
     "@types/codemirror": "^5.60.15",
     "codemirror": "^6.0.1",
     "esbuild": "^0.17.17",
-    "highlight.js": "^11.7.0"
+    "highlight.js": "^11.7.0",
+    "katex": "^0.16.21",
+    "marked": "^15.0.7"
+  },
+  "devDependencies": {
+    "@types/katex": "^0.16.7",
+    "file-loader": "^6.2.0"
   }
 }
