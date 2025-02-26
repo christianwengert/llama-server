@@ -34,7 +34,7 @@ import {defaultKeymap, historyKeymap} from '@codemirror/commands'
 import {lintKeymap} from '@codemirror/lint'
 import katex from "katex";
 // import {marked} from "marked";
-import { marked } from "marked";
+import {marked} from "marked";
 
 document.documentElement.style.setProperty("--katex-font", "serif");
 
@@ -122,108 +122,114 @@ const handleEditAction = (e: MouseEvent) => {
 // Make sure you remove or disable any other math extension or plugin that might parse LaTeX.
 
 
-
 // Example code renderer for Marked:
 const blockCodeRenderer = {
-  code(code: string, infostring: string) {
-    let lang = infostring?.trim() || ''
-    let highlighted
-    if (lang && hljs.getLanguage(lang)) {
-      highlighted = hljs.highlight(code, { language: lang }).value
-    } else {
-      // fallback auto-detection
-      const autoResult = hljs.highlightAuto(code.text)
-      highlighted = autoResult.value
-      lang = autoResult.language || ''
-    }
-    return `\n<div class="code-header">\n  <div class="language">${lang}</div>\n  <div class="copy" onclick="">Copy</div>\n</div><pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
-  },
-  // For inline backticks
-  codespan(code: string) {
-    return `<code class="hljs">${escapeHtml(code)}</code>`
-  }
+    code(code: string, infostring: string) {
+        let lang = infostring?.trim() || ''
+        let highlighted
+        if (lang && hljs.getLanguage(lang)) {
+            highlighted = hljs.highlight(code, {language: lang}).value
+        } else {
+            // fallback auto-detection
+            const autoResult = hljs.highlightAuto(code.text)
+            highlighted = autoResult.value
+            lang = autoResult.language || ''
+        }
+        return `\n<div class="code-header">\n  <div class="language">${lang}</div>\n  <div class="copy" onclick="">Copy</div>\n</div><pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
+    },
+    // For inline backticks
+    // codespan(code: string) {
+    //   return `<code class="hljs">${escapeHtml(code)}</code>`
+    // }
 }
 
 function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
+    return str
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;')
 }
 
 // Strips the outer LaTeX delimiters from a match so KaTeX sees only the contents.
 function stripMathDelimiters(latex: string): string {
-  // block $$...$$
-  if (/^\${2}[\s\S]*?\${2}$/.test(latex)) {
-    return latex.slice(2, -2).trim()
-  }
-  // block \[...\]
-  if (/^\\\[[\s\S]*?\\\]$/.test(latex)) {
-    return latex.slice(2, -2).trim()
-  }
-  // inline \(...\)
-  if (/^\\\([\s\S]*?\\\)$/.test(latex)) {
-    return latex.slice(2, -2).trim()
-  }
-  // inline $...$
-  if (/^\$[\s\S]*?\$$/.test(latex)) {
-    return latex.slice(1, -1).trim()
-  }
-  return latex
+    // block $$...$$
+    if (/^\${2}[\s\S]*?\${2}$/.test(latex)) {
+        return latex.slice(2, -2).trim()
+    }
+    // block \[...\]
+    // noinspection RegExpRedundantEscape
+    if (/^\\\[[\s\S]*?\\\]$/.test(latex)) {
+        return latex.slice(2, -2).trim()
+    }
+    // inline \(...\)
+    if (/^\\\([\s\S]*?\\\)$/.test(latex)) {
+        return latex.slice(2, -2).trim()
+    }
+    // inline $...$
+    if (/^\$[\s\S]*?\$$/.test(latex)) {
+        return latex.slice(1, -1).trim()
+    }
+    return latex
 }
 
 export function parseMessage(text: string): string {
-  // 1) Regex to find *all* LaTeX forms: block or inline
-  //    $$...$$, \[...\], \(...\), $...$
-  // We do placeholders so Marked never sees actual LaTeX.
-  const mathRegex = /(\${2}[\s\S]*?\${2}|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[\s\S]*?\$)/g
+    // 1) Regex to find *all* LaTeX forms: block or inline
+    //    $$...$$, \[...\], \(...\), $...$
+    // We do placeholders so Marked never sees actual LaTeX.
+    // noinspection RegExpRedundantEscape
+    const mathRegex = /(\${2}[\s\S]*?\${2}|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[\s\S]*?\$)/g
 
-  const rawMath: string[] = []
-  let match: RegExpExecArray | null
-  while ((match = mathRegex.exec(text)) !== null) {
-    rawMath.push(match[0])
-  }
+    const rawMath: string[] = []
+    let match: RegExpExecArray | null
+    while ((match = mathRegex.exec(text)) !== null) {
+        rawMath.push(match[0])
+    }
 
-  // 2) Replace each math snippet with a unique placeholder
-  let placeholderText = text
-  rawMath.forEach((m, i) => {
-    const placeholder = `@@MATH_${i}@@`
-    placeholderText = placeholderText.replace(m, placeholder)
-  })
-
-  // 3) Parse placeholderText with Marked for normal markdown
-  marked.setOptions({ mangle: false, smartypants: false })
-  marked.use({ renderer: blockCodeRenderer })
-
-  // Ensure no math extension is used. The below is all we do.
-
-  const htmlWithPlaceholders = marked.parse(placeholderText)
-
-  // 4) Re-inject KaTeX for each placeholder
-  let finalHtml = htmlWithPlaceholders
-  rawMath.forEach((latex, i) => {
-    const placeholder = `@@MATH_${i}@@`
-    // Decide block vs. inline
-    const isBlock = (
-      /^\${2}[\s\S]*?\${2}$/.test(latex) ||
-      /^\\\[[\s\S]*?\\\]$/.test(latex)
-    )
-    // Strip the delimiters
-    const stripped = stripMathDelimiters(latex)
-    // Render KaTeX
-    const rendered = katex.renderToString(stripped, {
-      throwOnError: false,
-      displayMode: isBlock
+    // 2) Replace each math snippet with a unique placeholder
+    let placeholderText = text
+    rawMath.forEach((m, i) => {
+        const placeholder = `@@MATH_${i}@@`
+        placeholderText = placeholderText.replace(m, placeholder)
     })
-    // Replace the placeholder
-    finalHtml = finalHtml.replace(placeholder, rendered)
-  })
 
-  return finalHtml
+    // 3) Parse placeholderText with Marked for normal markdown
+    marked.setOptions({mangle: false, smartypants: false})
+    marked.use({renderer: blockCodeRenderer})
+
+    // Ensure no math extension is used. The below is all we do.
+
+    const htmlWithPlaceholders = marked.parse(placeholderText)
+
+    // 4) Re-inject KaTeX for each placeholder
+    let finalHtml = htmlWithPlaceholders
+    rawMath.forEach((latex, i) => {
+        const placeholder = `@@MATH_${i}@@`
+        // Decide block vs. inline
+        // noinspection RegExpRedundantEscape
+        const isBlock = (
+            /^\${2}[\s\S]*?\${2}$/.test(latex) ||
+            /^\\\[[\s\S]*?\\\]$/.test(latex)
+        )
+        // Strip the delimiters
+        const stripped = stripMathDelimiters(latex)
+        let rendered = "";
+        // Render KaTeX
+        try {
+            rendered = katex.renderToString(stripped, {
+                throwOnError: true,
+                displayMode: isBlock
+            })
+        } catch (e) {
+            console.log(stripped, latex)
+        }
+        // Replace the placeholder
+        finalHtml = finalHtml.replace(placeholder, rendered)
+    })
+
+    return finalHtml
 }
-
 
 
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement, innerMessageExtraClass?: string, renderButtons: boolean = true): string => {
@@ -302,7 +308,6 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     });
     return ident;
 };
-
 
 
 const setFocusToInputField = (textInput: HTMLDivElement) => {
@@ -422,59 +427,18 @@ const setupUploadButton = () => {
 };
 
 
-const highlightCode = (inner: HTMLElement) => {
-
-    const convertMarkdownToHTML = (mdString: string) => {
-        // Replace triple backtick code blocks
-        const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-        mdString = mdString.replace(codeBlockRegex, (_match, lang, code) => {
-            const language = lang || 'bash';
-            return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
-        });
-
-        // Replace inline code
-        const inlineCodeRegex = /`([^`]+)`/g;
-        mdString = mdString.replace(inlineCodeRegex, (_match, code) => {
-            return `<code class="inline">${escapeHTML(code)}</code>`;
-        });
-        // highlight inline **Title**
-        // const inlineMarkdownRegex = /\*\*([^*]*)\*\*/g;
-
-        // mdString = mdString.replace(inlineMarkdownRegex, (match, code) => {
-        //     return `<code class="inline">${escapeHTML(code)}</code>`;
-        // });
-
-        return mdString;
-    };
-
-    // function escapeHTML(str: string) {
-    //     return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-    // }
-
-    const codeString = inner.innerText;
-
-    inner.innerHTML = convertMarkdownToHTML(codeString);
-
-    scrollToBottom()
-    // highlight code
-    inner.querySelectorAll('pre code').forEach((block: Element) => {
-        hljs.highlightElement(block as HTMLElement);
-    });
-};
-
-
 const replaceLine = (view: EditorView, lineNumber: number, newText: string) => {
     let state = view.state;
     let line
 
     if (lineNumber > state.doc.lines) {  // end of document
-        line = { from: state.doc.length, to: state.doc.length}
+        line = {from: state.doc.length, to: state.doc.length}
         newText = "\n" + newText;  // add the new line
     } else {
         line = state.doc.line(lineNumber);  // Get the line object
     }
 
-    if(newText === line.text) {
+    if (newText === line.text) {
         return
     }
     let transaction = state.update({
@@ -590,10 +554,10 @@ const loadHistory = () => {
             const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
             const lastMatch = findLastCodeCanvasBlock(msg.content)
-            if(editor && lastMatch) {
+            if (editor && lastMatch) {
                 console.log(lastMatch)
-                 let transaction = editor.state.update({
-                    changes: { from: 0, to: editor.state.doc.length, insert: lastMatch }
+                let transaction = editor.state.update({
+                    changes: {from: 0, to: editor.state.doc.length, insert: lastMatch}
                 });
                 editor.dispatch(transaction);
                 toggleRightPanel(true);
@@ -683,19 +647,19 @@ const getAllChunks = (responseText: string) => {
             return [];
         }
     }
-    const parts = trimmed.split('}{');
-    for (let i = 0; i < parts.length; i++) {
-        if (i > 0) parts[i] = '{' + parts[i];
-        if (i < parts.length - 1) parts[i] = parts[i] + '}';
-    }
+
+    const matches = trimmed.match(/(\{.*?\})(?=\{|\s*$)/g);
+    if (!matches) return [];
+
     const allResponses = [];
-    for (const part of parts) {
+    for (const match of matches) {
         try {
-            allResponses.push(JSON.parse(part));
+            allResponses.push(JSON.parse(match));
         } catch (e) {
-            // ignore any invalid/incomplete parts
+            // Ignore invalid JSON parts
         }
     }
+
     return allResponses;
 };
 
@@ -730,7 +694,9 @@ function getInputHandler(inputElement: HTMLElement) {
 
                 const elem = document.getElementById(ident)!;
                 const inner = elem.querySelector('.inner-message')! as HTMLElement;
-                highlightCode(inner);
+                const parsed = parseMessage(inner.innerText)
+                console.log(parsed)
+                // highlightCode(inner);   // \[ \int_{a}^{b} x^2 \,dx \]
 
                 inputElement.innerText = '';
             }
@@ -778,9 +744,10 @@ function getInputHandler(inputElement: HTMLElement) {
             // processToken(token): returns an array of { element, token } objects
             // telling us which element to append to, and what text to append.
             //------------------------------------------------------------------
-            function processToken(token: string) {
+            const processToken = (token: string) => {
                 const flushList: Array<Record<string, string>> = [];
-                // console.log("Token: " + token + "   Mode: " + mode)
+
+                console.log("Token: " + token + "   Mode: " + mode)
                 function pushToFlushList(t: string) {
                     let element;
                     switch (mode) {
@@ -798,7 +765,7 @@ function getInputHandler(inputElement: HTMLElement) {
                 }
 
                 // Helper that checks if the tail of rollingBuffer forms joinedString ignoring whitespace.
-                 function endsWithJoined(joinedString: string) {
+                function endsWithJoined(joinedString: string) {
                     let combined = rollingBuffer.join("").replace(/\s+/g, "");
                     if (combined.endsWith(joinedString)) {
 
@@ -915,40 +882,14 @@ function getInputHandler(inputElement: HTMLElement) {
                 }
 
                 return flushList;
-            }
-
-            //------------------------------------------------------------------
-            // onStreamProgress(jsonChunk):
-            //   - Extract the token
-            //   - process it (state machine, rolling buffer)
-            //   - add the resulting flushList to the global flushQueue
-            //   - schedule flush if not already in progress
-            //------------------------------------------------------------------
-            function onStreamProgress(jsonChunk: any) {
-                const token = jsonChunk.choices[0].delta.content;
-                const flushList = processToken(token);
-                flushList.forEach(item => flushQueue.push(item));
-                scheduleFlush();
-            }
-
-            //------------------------------------------------------------------
-            // scheduleFlush():
-            //   - If not already flushing, start the delayed chain
-            //------------------------------------------------------------------
-            function scheduleFlush() {
-                if (!isFlushing) {
-                    isFlushing = true;
-                    flushNext();
-                }
-            }
-
+            };
             //------------------------------------------------------------------
             // flushNext():
             //   - Pops one token from flushQueue
             //   - Appends it to the correct element
             //   - Repeats after some interval
             //------------------------------------------------------------------
-            function flushNext() {
+            const flushNext = () => {
                 if (flushQueue.length === 0) {
                     isFlushing = false;
                     return;
@@ -963,7 +904,7 @@ function getInputHandler(inputElement: HTMLElement) {
                     newCode += token;
                     if (token.endsWith('\n')) {
                         replaceLine(editor!, lineNumber, newCode.slice(0, -1))
-                        lineNumber ++;
+                        lineNumber++;
                         newCode = "";  // reset
                     }
                 } else {
@@ -971,10 +912,35 @@ function getInputHandler(inputElement: HTMLElement) {
                 }
                 if (element)
                     flushNext();
-            }
+            };
+            //------------------------------------------------------------------
+            // scheduleFlush():
+            //   - If not already flushing, start the delayed chain
+            //------------------------------------------------------------------
+            const scheduleFlush = () => {
+                if (!isFlushing) {
+                    isFlushing = true;
+                    flushNext();
+                }
+            };
+            //------------------------------------------------------------------
+            // onStreamProgress(jsonChunk):
+            //   - Extract the token
+            //   - process it (state machine, rolling buffer)
+            //   - add the resulting flushList to the global flushQueue
+            //   - schedule flush if not already in progress
+            //------------------------------------------------------------------
+            const onStreamProgress = (jsonChunk: any) => {
+                const token = jsonChunk.choices[0].delta.content;
+                const flushList = processToken(token);
+                flushList.forEach(item => flushQueue.push(item));
+                scheduleFlush();
+            };
+
 
             // The rest of your XHR logic:
             xhr.onprogress = function () {
+
                 const chunks = getAllChunks(xhr.responseText);
 
                 while (index < chunks.length) {
@@ -991,8 +957,8 @@ function getInputHandler(inputElement: HTMLElement) {
                                 const timing = document.getElementById('timing-info') as HTMLElement;
                                 timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `;
                             }
-
-                            highlightCode(textField);
+                            textField.innerHTML = parseMessage(textField.innerText)
+                            // highlightCode(textField);
                             inputElement.contentEditable = "true";
                             stopButton.disabled = true;
                             loadHistory();
@@ -1227,7 +1193,7 @@ const setupCollectionDeletion = () => {
 };
 
 
-const toggleRightPanel = (force?: boolean|undefined) => {
+const toggleRightPanel = (force?: boolean | undefined) => {
     const rightPanel = document.querySelector('.right-panel') as HTMLElement;
     const leftPanel = document.querySelector('.left-panel') as HTMLElement;
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
@@ -1246,7 +1212,7 @@ const toggleRightPanel = (force?: boolean|undefined) => {
 const toggleSidebar = (force?: boolean) => {
     // e.preventDefault();
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
-    if(force) {
+    if (force) {
         sidebar.classList.remove('hidden');
     } else {
         sidebar.classList.toggle('hidden');
@@ -1319,8 +1285,12 @@ function setupEditor() {
 
 const main = () => {
 
-    document.getElementById("sidebar-toggler")!.addEventListener("click", () => {toggleSidebar()})
-    document.getElementById("right-panel-toggler")!.addEventListener("click", () => {toggleRightPanel()})
+    document.getElementById("sidebar-toggler")!.addEventListener("click", () => {
+        toggleSidebar()
+    })
+    document.getElementById("right-panel-toggler")!.addEventListener("click", () => {
+        toggleRightPanel()
+    })
 
     setupResetSettingsButton(); // Reset Settings
     setupScrollButton(); // Scroll Button

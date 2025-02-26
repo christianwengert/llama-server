@@ -68,7 +68,7 @@
           this.isMatchIgnored = true;
         }
       };
-      function escapeHTML2(value) {
+      function escapeHTML(value) {
         return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#x27;");
       }
       function inherit$1(original, ...objects) {
@@ -120,7 +120,7 @@
          *
          * @param {string} text */
         addText(text2) {
-          this.buffer += escapeHTML2(text2);
+          this.buffer += escapeHTML(text2);
         }
         /**
          * Adds a node open to the output stream (if needed)
@@ -971,7 +971,7 @@
           this.html = html2;
         }
       };
-      var escape3 = escapeHTML2;
+      var escape3 = escapeHTML;
       var inherit = inherit$1;
       var NO_MATCH = Symbol("nomatch");
       var MAX_KEYWORD_HITS = 7;
@@ -92083,15 +92083,12 @@ ${text2}</tr>
   <div class="language">${lang}</div>
   <div class="copy" onclick="">Copy</div>
 </div><pre><code class="hljs language-${lang}">${highlighted}</code></pre>`;
-    },
-    // For inline backticks
-    codespan(code) {
-      return `<code class="hljs">${escapeHtml(code)}</code>`;
     }
+    // For inline backticks
+    // codespan(code: string) {
+    //   return `<code class="hljs">${escapeHtml(code)}</code>`
+    // }
   };
-  function escapeHtml(str) {
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-  }
   function stripMathDelimiters(latex) {
     if (/^\${2}[\s\S]*?\${2}$/.test(latex)) {
       return latex.slice(2, -2).trim();
@@ -92127,10 +92124,15 @@ ${text2}</tr>
       const placeholder = `@@MATH_${i}@@`;
       const isBlock = /^\${2}[\s\S]*?\${2}$/.test(latex) || /^\\\[[\s\S]*?\\\]$/.test(latex);
       const stripped = stripMathDelimiters(latex);
-      const rendered = katex.renderToString(stripped, {
-        throwOnError: false,
-        displayMode: isBlock
-      });
+      let rendered = "";
+      try {
+        rendered = katex.renderToString(stripped, {
+          throwOnError: true,
+          displayMode: isBlock
+        });
+      } catch (e) {
+        console.log(stripped, latex);
+      }
       finalHtml = finalHtml.replace(placeholder, rendered);
     });
     return finalHtml;
@@ -92272,26 +92274,6 @@ ${text2}</tr>
       collectionSelector.addEventListener("change", eventHandler);
       eventHandler();
     }
-  };
-  var highlightCode = (inner2) => {
-    const convertMarkdownToHTML = (mdString) => {
-      const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-      mdString = mdString.replace(codeBlockRegex, (_match, lang, code) => {
-        const language2 = lang || "bash";
-        return `<div class="code-header"><div class="language">${language2}</div><div class="copy">Copy</div></div><pre><code class="language-${language2}">${escapeHTML(code)}</code></pre>`;
-      });
-      const inlineCodeRegex = /`([^`]+)`/g;
-      mdString = mdString.replace(inlineCodeRegex, (_match, code) => {
-        return `<code class="inline">${escapeHTML(code)}</code>`;
-      });
-      return mdString;
-    };
-    const codeString = inner2.innerText;
-    inner2.innerHTML = convertMarkdownToHTML(codeString);
-    scrollToBottom();
-    inner2.querySelectorAll("pre code").forEach((block2) => {
-      es_default.highlightElement(block2);
-    });
   };
   var replaceLine = (view, lineNumber, newText) => {
     let state = view.state;
@@ -92453,17 +92435,13 @@ ${text2}</tr>
         return [];
       }
     }
-    const parts = trimmed.split("}{");
-    for (let i = 0; i < parts.length; i++) {
-      if (i > 0)
-        parts[i] = "{" + parts[i];
-      if (i < parts.length - 1)
-        parts[i] = parts[i] + "}";
-    }
+    const matches = trimmed.match(/(\{.*?\})(?=\{|\s*$)/g);
+    if (!matches)
+      return [];
     const allResponses = [];
-    for (const part of parts) {
+    for (const match of matches) {
       try {
-        allResponses.push(JSON.parse(part));
+        allResponses.push(JSON.parse(match));
       } catch (e) {
       }
     }
@@ -92486,8 +92464,45 @@ ${text2}</tr>
     }
     function handleInput(e) {
       if (e.key === "Enter" && e.shiftKey === false) {
-        let processToken2 = function(token) {
+        e.preventDefault();
+        const xhr = new XMLHttpRequest();
+        let m = inputElement.innerText;
+        if (isMainInput) {
+          const ident2 = renderMessage(inputElement.innerText, "me", chat);
+          const elem2 = document.getElementById(ident2);
+          const inner3 = elem2.querySelector(".inner-message");
+          const parsed = parseMessage(inner3.innerText);
+          console.log(parsed);
+          inputElement.innerText = "";
+        }
+        inputElement.contentEditable = "false";
+        inputElement.blur();
+        if (stopButton) {
+          stopButton.addEventListener("click", (e2) => {
+            e2.preventDefault();
+            xhr.abort();
+            stopButton.disabled = true;
+            inputElement.contentEditable = "true";
+          });
+        }
+        stopButton.disabled = false;
+        const ident = renderMessage("", "them", chat);
+        const elem = document.getElementById(ident);
+        let inner2 = elem.querySelector(".inner-message");
+        let textField = inner2;
+        inner2.innerHTML = '<div class="loading"></div>';
+        scrollToBottom();
+        xhr.open("POST", "/");
+        let index = 0;
+        let mode = "normal";
+        let rollingBuffer = [];
+        let flushQueue = [];
+        let isFlushing = false;
+        let newCode = "";
+        let lineNumber = 1;
+        const processToken = (token) => {
           const flushList = [];
+          console.log("Token: " + token + "   Mode: " + mode);
           function pushToFlushList(t2) {
             let element;
             switch (mode) {
@@ -92589,17 +92604,8 @@ ${text2}</tr>
             pushToFlushList(rollingBuffer.shift());
           }
           return flushList;
-        }, onStreamProgress2 = function(jsonChunk) {
-          const token = jsonChunk.choices[0].delta.content;
-          const flushList = processToken2(token);
-          flushList.forEach((item) => flushQueue.push(item));
-          scheduleFlush2();
-        }, scheduleFlush2 = function() {
-          if (!isFlushing) {
-            isFlushing = true;
-            flushNext2();
-          }
-        }, flushNext2 = function() {
+        };
+        const flushNext = () => {
           if (flushQueue.length === 0) {
             isFlushing = false;
             return;
@@ -92620,44 +92626,20 @@ ${text2}</tr>
             console.log("Do not know where to place " + element + " with token " + token);
           }
           if (element)
-            flushNext2();
+            flushNext();
         };
-        var processToken = processToken2, onStreamProgress = onStreamProgress2, scheduleFlush = scheduleFlush2, flushNext = flushNext2;
-        e.preventDefault();
-        const xhr = new XMLHttpRequest();
-        let m = inputElement.innerText;
-        if (isMainInput) {
-          const ident2 = renderMessage(inputElement.innerText, "me", chat);
-          const elem2 = document.getElementById(ident2);
-          const inner3 = elem2.querySelector(".inner-message");
-          highlightCode(inner3);
-          inputElement.innerText = "";
-        }
-        inputElement.contentEditable = "false";
-        inputElement.blur();
-        if (stopButton) {
-          stopButton.addEventListener("click", (e2) => {
-            e2.preventDefault();
-            xhr.abort();
-            stopButton.disabled = true;
-            inputElement.contentEditable = "true";
-          });
-        }
-        stopButton.disabled = false;
-        const ident = renderMessage("", "them", chat);
-        const elem = document.getElementById(ident);
-        let inner2 = elem.querySelector(".inner-message");
-        let textField = inner2;
-        inner2.innerHTML = '<div class="loading"></div>';
-        scrollToBottom();
-        xhr.open("POST", "/");
-        let index = 0;
-        let mode = "normal";
-        let rollingBuffer = [];
-        let flushQueue = [];
-        let isFlushing = false;
-        let newCode = "";
-        let lineNumber = 1;
+        const scheduleFlush = () => {
+          if (!isFlushing) {
+            isFlushing = true;
+            flushNext();
+          }
+        };
+        const onStreamProgress = (jsonChunk) => {
+          const token = jsonChunk.choices[0].delta.content;
+          const flushList = processToken(token);
+          flushList.forEach((item) => flushQueue.push(item));
+          scheduleFlush();
+        };
         xhr.onprogress = function() {
           const chunks = getAllChunks(xhr.responseText);
           while (index < chunks.length) {
@@ -92673,7 +92655,7 @@ ${text2}</tr>
                   const timing = document.getElementById("timing-info");
                   timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
                 }
-                highlightCode(textField);
+                textField.innerHTML = parseMessage(textField.innerText);
                 inputElement.contentEditable = "true";
                 stopButton.disabled = true;
                 loadHistory();
@@ -92682,7 +92664,7 @@ ${text2}</tr>
                   elem1.classList.remove("shimmer");
                 }
               } else {
-                onStreamProgress2(chunk);
+                onStreamProgress(chunk);
               }
             }
             updateScrollButton();
