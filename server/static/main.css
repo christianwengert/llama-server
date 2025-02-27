@@ -999,7 +999,7 @@ input[type="number"]::-webkit-outer-spin-button {
     box-sizing: border-box;
     position: relative;
     display: block;
-    /*transform: scale(var(--ggs, 1));*/
+    transform: scale(var(--ggs, 1));
     width: 16px;
     height: 12px;
     border-bottom-left-radius: 120px;
@@ -1092,6 +1092,10 @@ input[type="number"]::-webkit-outer-spin-button {
     justify-content: center;
 }
 
+#record.recording {
+    color: red !important;
+}
+
 #extra-input-buttons button, #extra-input-buttons a {
     border: none;
     background-color: unset;
@@ -1131,9 +1135,7 @@ input[type="number"]::-webkit-outer-spin-button {
     opacity: 0.5;
 }
 
-.recording {
-    color: red;
-}
+
 
 #record > i {
     margin: auto;

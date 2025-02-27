@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Dict, Optional, Tuple, List
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
-    stream_with_context
+    stream_with_context, send_from_directory
 from langchain.text_splitter import RecursiveCharacterTextSplitter
 from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER, \
     get_default_props_from_llamacpp
@@ -75,7 +75,7 @@ def login_required(f):
 
 @app.route('/logout', methods=['GET'])
 def logout():
-    session.pop('username')
+    session.pop('username', None)
     return redirect(url_for('login'))
 
 
@@ -169,6 +169,10 @@ def get_default_settings():
 @login_required
 @app.route("/c/<path:token>")
 def c(token):
+
+    if token == 'ort-wasm-simd.wasm':
+        return send_from_directory('static', 'silero_vad.onnx')
+
     session['token'] = token
 
     data = session.get('params', None)
