@@ -123,14 +123,8 @@ const handleEditAction = (e: MouseEvent) => {
 //     e.preventDefault();
 //     handleVoteAction(e, 'down')
 // };
-// It sounds like your code is double-parsing the LaTeX: once via placeholders, once via Marked or some extension.
-// Below is a consolidated final approach that:
-// 1) Does *only* placeholders for LaTeX (inline/block) so Marked never sees the raw LaTeX.
-// 2) Then uses Marked for normal Markdown (including code blocks),
-// 3) Re-injects KaTeX for placeholders at the end,
-// 4) Avoids any math extension in Marked.
-// 5) Also, ensures highlight.js sees only code strings.
-// Make sure you remove or disable any other math extension or plugin that might parse LaTeX.
+const languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
+
 interface CodeBlock {
     lang: string
     raw: string
@@ -138,9 +132,15 @@ interface CodeBlock {
     type: string
 }
 
-// Example code renderer for Marked:
-const languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
+// Below is a consolidated final approach that:
+// 1) Does *only* placeholders for LaTeX (inline/block) so Marked never sees the raw LaTeX.
+// 2) Then uses Marked for normal Markdown (including code blocks),
+// 3) Re-injects KaTeX for placeholders at the end,
+// 4) Avoids any math extension in Marked.
+// 5) Also, ensures highlight.js sees only code strings.
+// Make sure you remove or disable any other math extension or plugin that might parse LaTeX.
 
+// Example code renderer for Marked:
 const blockCodeRenderer: any = {
     code(code: CodeBlock, infostring: string) {
         let lang = infostring?.trim() || ''
@@ -151,7 +151,8 @@ const blockCodeRenderer: any = {
             highlighted = hljs.highlight(code, {language: lang}).value
         } else {
             // fallback auto-detection
-            const autoResult = hljs.highlightAuto(escapeHtml(code.text), languageSubset) //escapeHTML?
+            // const autoResult = hljs.highlightAuto(escapeHtml(code.text), languageSubset) //escapeHTML?
+            const autoResult = hljs.highlightAuto(code.text, languageSubset) //escapeHTML?
             // const escaped = escapeHtml(autoResult.value)
             highlighted = autoResult.value
             lang = autoResult.language || ''
@@ -164,14 +165,6 @@ const blockCodeRenderer: any = {
     // }
 }
 
-// function escapeHtml(str: string): string {
-//     return str
-//         .replace(/&/g, '&amp;')
-//         .replace(/</g, '&lt;')
-//         .replace(/>/g, '&gt;')
-//         .replace(/"/g, '&quot;')
-//         .replace(/'/g, '&#039;')
-// }
 
 // Strips the outer LaTeX delimiters from a match so KaTeX sees only the contents.
 function stripMathDelimiters(latex: string): string {
