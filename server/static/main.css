@@ -86,6 +86,7 @@ body {
     max-width: 100%;
     width: 33%;
     flex: 1 1 33vw;
+    position: relative;
 }
 
 .right-panel {
