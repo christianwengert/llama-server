@@ -92031,9 +92031,6 @@ ${text2}</tr>
     let messages = document.getElementById("chat");
     messages.scrollTo(0, messages.scrollHeight);
   };
-  function escapeHtml(str) {
-    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
-  }
   var getFormDataAsJSON = (formId) => {
     const form = document.getElementById(formId);
     const formData = {};
@@ -92079,7 +92076,7 @@ ${text2}</tr>
         console.log("Have a look at this");
         highlighted = es_default.highlight(code, { language: lang }).value;
       } else {
-        const autoResult = es_default.highlightAuto(escapeHtml(code.text), languageSubset);
+        const autoResult = es_default.highlightAuto(code.text, languageSubset);
         highlighted = autoResult.value;
         lang = autoResult.language || "";
       }
@@ -92835,15 +92832,12 @@ ${text2}</tr>
   };
   var toggleRightPanel = (force) => {
     const rightPanel = document.querySelector(".right-panel");
-    const leftPanel = document.querySelector(".left-panel");
     const sidebar = document.querySelector(".sidebar");
     if (rightPanel.style.display === "none" || rightPanel.style.display === "" || force) {
       rightPanel.style.display = "block";
-      leftPanel.style.flexBasis = "33%";
       sidebar.classList.add("hidden");
     } else {
       rightPanel.style.display = "none";
-      leftPanel.style.flexBasis = "100%";
       sidebar.classList.remove("hidden");
     }
   };
@@ -92854,6 +92848,8 @@ ${text2}</tr>
     } else {
       sidebar.classList.toggle("hidden");
     }
+    let content2 = document.querySelector(".content");
+    content2.style.maxWidth = sidebar.classList.contains("hidden") ? "100vw" : "calc(100vw - 250px)";
   };
   function setupEditor() {
     const initialText = "";

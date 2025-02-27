@@ -49,14 +49,14 @@ const scrollToBottom = () => {
 }
 
 
-function escapeHtml(str: string): string {
-  return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
+// function escapeHtml(str: string): string {
+//   return str
+//     .replace(/&/g, '&amp;')
+//     .replace(/</g, '&lt;')
+//     .replace(/>/g, '&gt;')
+//     .replace(/"/g, '&quot;')
+//     .replace(/'/g, '&#039;')
+// }
 
 const getFormDataAsJSON = (formId: string): Record<string, string | number | boolean> => {
     const form = document.getElementById(formId) as HTMLFormElement;
@@ -1239,16 +1239,16 @@ const setupCollectionDeletion = () => {
 
 const toggleRightPanel = (force?: boolean | undefined) => {
     const rightPanel = document.querySelector('.right-panel') as HTMLElement;
-    const leftPanel = document.querySelector('.left-panel') as HTMLElement;
+    // const leftPanel = document.querySelector('.left-panel') as HTMLElement;
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
 
     if (rightPanel.style.display === 'none' || rightPanel.style.display === '' || force) {
         rightPanel.style.display = 'block';
-        leftPanel.style.flexBasis = '33%';
+        // leftPanel.style.flexBasis = '33%';
         sidebar.classList.add('hidden');
     } else {
         rightPanel.style.display = 'none';
-        leftPanel.style.flexBasis = '100%';
+        // leftPanel.style.flexBasis = '100%';
         sidebar.classList.remove('hidden');
     }
 };
@@ -1261,6 +1261,13 @@ const toggleSidebar = (force?: boolean) => {
     } else {
         sidebar.classList.toggle('hidden');
     }
+
+    let content = document.querySelector(".content") as HTMLElement;
+    content.style.maxWidth =
+        sidebar.classList.contains("hidden")
+        ? "100vw"
+        : "calc(100vw - 250px)";
+
 };
 
 function setupEditor() {
