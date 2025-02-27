@@ -129,7 +129,7 @@ interface CodeBlock {
 }
 
 // Example code renderer for Marked:
-const blockCodeRenderer = {
+const blockCodeRenderer: any = {
     code(code: CodeBlock, infostring: string) {
         let lang = infostring?.trim() || ''
         let highlighted: string;
@@ -203,12 +203,12 @@ export function parseMessage(text: string): string {
     })
 
     // 3) Parse placeholderText with Marked for normal markdown
-    marked.setOptions({mangle: false, smartypants: false})
+    // marked.setOptions({mangle: false, smartypants: false})
     marked.use({renderer: blockCodeRenderer})
 
     // Ensure no math extension is used. The below is all we do.
     // 4) Re-inject KaTeX for each placeholder
-    let finalHtml = marked.parse(placeholderText)
+    let finalHtml = marked.parse(placeholderText) as string
     rawMath.forEach((latex, i) => {
         const placeholder = `@@MATH_${i}@@`
         // Decide block vs. inline
@@ -553,10 +553,10 @@ const loadHistory = () => {
                 }
             }
 
-            const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
+            renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
 
-            const msgDiv = document.getElementById(ident);
-            const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
+            // const msgDiv = document.getElementById(ident);
+            // const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
             const lastMatch = findLastCodeCanvasBlock(msg.content)
             if (editor && lastMatch) {
@@ -653,6 +653,11 @@ const getAllChunks = (responseText: string) => {
         try {
             // Try parsing the current buffer
             const parsed = JSON.parse(buffer);
+
+            if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+                throw new Error("Only top-level JSON objects are allowed");
+            }
+
             allResponses.push(parsed);
             buffer = ""; // Reset buffer after successful parsing
         } catch (e) {
@@ -669,19 +674,6 @@ const getAllChunks = (responseText: string) => {
     return {allResponses, buffer};
 };
 
-
-let trop = '{"choices":[{"delta":{"content":"hello"}}]}' +
-    '{"choices":[{"delta":{"content":"}{"}}]}' +
-    '{"choices":[{"delta":{"content":"world"}}]'
-let allChunks = getAllChunks(trop.slice(0));
-console.log(allChunks)
-
-trop = '{"choices":[{"delta":{"content":"hello"}}]}' +
-    '{"choices":[{"delta":{"content":"}{"}}]}' +
-    '{"choices":[{"delta":{"content":"world"}}]}'
-
-let cc = allChunks.buffer.length + 1
-console.log(getAllChunks(trop.slice(-cc)))
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -714,6 +706,7 @@ function getInputHandler(inputElement: HTMLElement) {
 
                 const elem = document.getElementById(ident)!;
                 const inner = elem.querySelector('.inner-message')! as HTMLElement;
+                // noinspection JSUnusedLocalSymbols
                 const parsed = parseMessage(inner.innerText)
 
                 inputElement.innerText = '';
@@ -956,18 +949,26 @@ function getInputHandler(inputElement: HTMLElement) {
             };
 
             let ccindex = 0
+            // xhr.onloadstart = function() {
+            //     ccindex = 0
+            // }
             // The rest of your XHR logic:
             xhr.onprogress = function () {
-                // console.log(cindex)
+                // console.log('Before ' + ccindex)
 
-                const {allResponses, buffer} = getAllChunks(xhr.responseText.slice(-ccindex));
-                // if(buffer.length > 0) {
-                //     console.log(buffer)
-                // }
-                ccindex += buffer.length
+                let allChunks = getAllChunks(xhr.responseText.slice(0));
+                // console.log(allChunks)
 
-                while (index < allResponses.length) {
-                    const chunk = allResponses[index];
+                if (allChunks.allResponses.length > 0) {
+                    let s = JSON.stringify(allChunks.allResponses);
+                    ccindex +=  s.length // enclosing
+
+                    // console.log('after ' + ccindex)
+                }
+
+                while (index < allChunks.allResponses.length) {
+                // for (let index =0; index < allChunks.allResponses.length; index++) {
+                    const chunk = allChunks.allResponses[index];
                     // console.log(chunk.choices[0].delta.content)
                     if (chunk) {
                         if (chunk.choices[0].finish_reason === 'stop') {
@@ -987,7 +988,7 @@ function getInputHandler(inputElement: HTMLElement) {
                             stopButton.disabled = true;
                             loadHistory();
                             inputElement.focus();
-                            for (const elem1 of document.getElementsByClassName('shimmer')) {
+                            for (const elem1 of document.getElementsByClassName('shimmer') as any) {
                                 elem1.classList.remove('shimmer');
                             }
                         } else {
@@ -1116,7 +1117,7 @@ function setupMenu() {
 
     // get and set current mode
     const selectedMode = curUrl.searchParams.get(key);
-    for (let elem of document.getElementsByClassName('mode-button')) {
+    for (let elem of document.getElementsByClassName('mode-button') as any) {
         // @ts-ignore
         elem.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault()

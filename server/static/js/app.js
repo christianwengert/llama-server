@@ -92117,7 +92117,6 @@ ${text2}</tr>
       const placeholder = `@@MATH_${i}@@`;
       placeholderText = placeholderText.replace(m, placeholder);
     });
-    marked.setOptions({ mangle: false, smartypants: false });
     marked.use({ renderer: blockCodeRenderer });
     let finalHtml = marked.parse(placeholderText);
     rawMath.forEach((latex, i) => {
@@ -92361,9 +92360,7 @@ ${text2}</tr>
             console.log("Problems setting the collection name");
           }
         }
-        const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
-        const msgDiv = document.getElementById(ident);
-        const inner2 = msgDiv.getElementsByClassName("inner-message")[0];
+        renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
         const lastMatch = findLastCodeCanvasBlock(msg.content);
         if (editor && lastMatch) {
           console.log(lastMatch);
@@ -92433,6 +92430,9 @@ ${text2}</tr>
       buffer += responseText[i];
       try {
         const parsed = JSON.parse(buffer);
+        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
+          throw new Error("Only top-level JSON objects are allowed");
+        }
         allResponses.push(parsed);
         buffer = "";
       } catch (e) {
@@ -92443,12 +92443,6 @@ ${text2}</tr>
     }
     return { allResponses, buffer };
   };
-  var trop = '{"choices":[{"delta":{"content":"hello"}}]}{"choices":[{"delta":{"content":"}{"}}]}{"choices":[{"delta":{"content":"world"}}]';
-  var allChunks = getAllChunks(trop.slice(0));
-  console.log(allChunks);
-  trop = '{"choices":[{"delta":{"content":"hello"}}]}{"choices":[{"delta":{"content":"}{"}}]}{"choices":[{"delta":{"content":"world"}}]}';
-  var cc = allChunks.buffer.length + 1;
-  console.log(getAllChunks(trop.slice(-cc)));
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
     let isMainInput = inputElement === mainInput;
@@ -92642,10 +92636,13 @@ ${text2}</tr>
         };
         let ccindex = 0;
         xhr.onprogress = function() {
-          const { allResponses, buffer } = getAllChunks(xhr.responseText.slice(-ccindex));
-          ccindex += buffer.length;
-          while (index < allResponses.length) {
-            const chunk = allResponses[index];
+          let allChunks = getAllChunks(xhr.responseText.slice(0));
+          if (allChunks.allResponses.length > 0) {
+            let s = JSON.stringify(allChunks.allResponses);
+            ccindex += s.length;
+          }
+          while (index < allChunks.allResponses.length) {
+            const chunk = allChunks.allResponses[index];
             if (chunk) {
               if (chunk.choices[0].finish_reason === "stop") {
                 const timings = chunk.timings;
