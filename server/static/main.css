@@ -63,43 +63,25 @@ body {
     display: flex;
     justify-content: space-between;
     align-items: center;
-
-    /*background: #ccc;*/
     flex-shrink: 0;
-    /*height: 50px; !* Ensuring equal height *!*/
 }
+
 .header {
     padding: 10px;
     border-bottom: 1px solid #f2f2f2;
 }
 
 
-/*.toggle-sidebar-button {*/
-/*    !*background: #007bff;*!*/
-/*    !*color: white;*!*/
-/*    border: none;*/
-/*    padding: 5px 10px;*/
-/*    border-radius: 5px;*/
-/*    cursor: pointer;*/
-/*}*/
-
 .content {
     flex: 1;
     display: flex;
-    /*overflow: hidden;*/
-    /*width: calc(100vw - 300px);*/
-    transition: all 0.3s ease-in-out; /* Smooth transitions */
 }
 
 .left-panel {
-    /*flex-grow: 1;*/
-    transition: width 0.3s ease-in-out;
-    /*position: relative;*/
     height: calc(100vh - 50px - 64px - 20px);
     max-width: 100%;
     width: 33%;
     flex: 1 1 33vw;
-
 }
 
 .right-panel {
@@ -109,12 +91,9 @@ body {
     overflow-x: auto;
     overflow-y: auto;
     white-space: nowrap;
-    transition: transform 0.3s ease-in-out;
-
     height: calc(100vh - 50px - 64px - 20px);
     border-left: 1px solid #f2f2f2;
 }
-
 
 
 .toggle-right-panel-button {
@@ -133,29 +112,11 @@ codecanvas {
     display: none;
     /*visibility: hidden;*/
 }
+
 .footer {
     position: relative;
 }
-/*html, body {*/
-/*    max-width: 100%;*/
-/*    overflow-x: hidden;*/
-/*}*/
 
-/*html {*/
-/*    margin: 0;*/
-/*    padding: 0;*/
-/*}*/
-
-/*body {*/
-/*    font-size: 1rem;*/
-/*    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Roboto", "Oxygen", "Ubuntu", "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;*/
-/*    margin: 0;*/
-/*    padding: 0;*/
-/*}*/
-
-/*#model-name {*/
-/*    font-weight: normal;*/
-/*}*/
 
 .message {
     padding-top: 24px;
@@ -260,13 +221,12 @@ pre {
 }
 
 
-
 /*pre code {*/
-    /*max-width: 50%;*/
-    /*display: block;*/
-    /*padding-top: 0;*/
-    /*border-bottom-left-radius: 2px;*/
-    /*border-bottom-right-radius: 2px;*/
+/*max-width: 50%;*/
+/*display: block;*/
+/*padding-top: 0;*/
+/*border-bottom-left-radius: 2px;*/
+/*border-bottom-right-radius: 2px;*/
 /*}*/
 
 
@@ -382,7 +342,7 @@ pre {
 }
 
 #chat {
-/*    max-height: calc(100vh - 200px);*/
+    /*    max-height: calc(100vh - 200px);*/
     height: calc(100vh - 132px);
     /*border-bottom: 1px solid blue;*/
     /*overflow: scroll;*/
@@ -648,9 +608,9 @@ a {
 
 
 /*#reset-button {*/
-    /*width: 80%;*/
-    /*margin-left: auto;*/
-    /*padding-top: 10px;*/
+/*width: 80%;*/
+/*margin-left: auto;*/
+/*padding-top: 10px;*/
 /*}*/
 
 #sidebar-username {
@@ -700,13 +660,16 @@ a {
     color: unset;
     margin-bottom: 4px;
 }
+
 #right-panel-toggler {
     /*width: 20px;*/
     /*height: 20px;*/
 }
+
 #settings-button {
     /*margint-top: 0px*/
 }
+
 .header-button:hover {
     opacity: 1.0;
 
@@ -716,6 +679,7 @@ a {
     /*padding-top: 4px;*/
     margin-bottom: 6px;
 }
+
 /*#outer-chat {*/
 /*    display: flex;*/
 
@@ -1050,10 +1014,12 @@ input[type="number"]::-webkit-outer-spin-button {
 .hidden {
     display: none;
 }
+
 #outer-collection-menu {
     position: relative;
     display: inline-block;
 }
+
 #menu {
     position: absolute;
     background-color: white;
@@ -1118,31 +1084,34 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .gg-code {
-  /*transform: scale(var(--ggs, 1));*/
+    /*transform: scale(var(--ggs, 1));*/
 }
+
 .gg-code,
 .gg-code::after,
 .gg-code::before {
-  box-sizing: border-box;
-  position: relative;
-  display: block;
-  width: 8px;
-  height: 20px;
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    width: 8px;
+    height: 20px;
 }
+
 .gg-code::after,
 .gg-code::before {
-  content: "";
-  position: absolute;
-  height: 8px;
-  border-left: 2px solid;
-  border-bottom: 2px solid;
-  transform: rotate(45deg) scaleY(1);
-  left: -4px;
-  top: 6px;
+    content: "";
+    position: absolute;
+    height: 8px;
+    border-left: 2px solid;
+    border-bottom: 2px solid;
+    transform: rotate(45deg) scaleY(1);
+    left: -4px;
+    top: 6px;
 }
+
 .gg-code::after {
-  transform: rotate(-45deg) scaleX(-1);
-  left: 4px;
+    transform: rotate(-45deg) scaleX(-1);
+    left: 4px;
 }
 
 
@@ -1183,154 +1152,167 @@ input[type="number"]::-webkit-outer-spin-button {
     position: relative;
     bottom: 5px;
 }
+
 #new-chat-button {
     position: relative;
     bottom: 5px;
 }
+
 #right-panel-toggler {
     position: relative;
     top: 4px;
 }
+
 .gg-file-document {
-  box-sizing: border-box;
-  position: relative;
-  display: block;
-  /*transform: scale(var(--ggs, 1));*/
-  width: 14px;
-  height: 16px;
-  border: 2px solid transparent;
-  border-right: 0;
-  border-top: 0;
-  box-shadow: 0 0 0 2px;
-  border-radius: 1px;
-  border-top-right-radius: 4px;
-  overflow: hidden;
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    /*transform: scale(var(--ggs, 1));*/
+    width: 14px;
+    height: 16px;
+    border: 2px solid transparent;
+    border-right: 0;
+    border-top: 0;
+    box-shadow: 0 0 0 2px;
+    border-radius: 1px 4px 1px 1px;
+    overflow: hidden;
 }
+
 .gg-file-document::after,
 .gg-file-document::before {
-  content: "";
-  display: block;
-  box-sizing: border-box;
-  position: absolute;
+    content: "";
+    display: block;
+    box-sizing: border-box;
+    position: absolute;
 }
+
 .gg-file-document::before {
-  background: currentColor;
-  box-shadow:
-    0 4px 0,
+    background: currentColor;
+    box-shadow: 0 4px 0,
     -6px -4px 0;
-  left: 0;
-  width: 10px;
-  height: 2px;
-  top: 8px;
+    left: 0;
+    width: 10px;
+    height: 2px;
+    top: 8px;
 }
+
 .gg-file-document::after {
-  width: 6px;
-  height: 6px;
-  border-left: 2px solid;
-  border-bottom: 2px solid;
-  right: -1px;
-  top: -1px;
+    width: 6px;
+    height: 6px;
+    border-left: 2px solid;
+    border-bottom: 2px solid;
+    right: -1px;
+    top: -1px;
 }
+
 .gg-arrow-left-r {
-  box-sizing: border-box;
-  position: relative;
-  display: block;
-  width: 22px;
-  height: 22px;
-  border: 2px solid;
-  /*transform: scale(var(--ggs, 1));*/
-  border-radius: 4px;
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 22px;
+    border: 2px solid;
+    /*transform: scale(var(--ggs, 1));*/
+    border-radius: 4px;
 }
+
 .gg-arrow-left-r::after,
 .gg-arrow-left-r::before {
-  content: "";
-  display: block;
-  box-sizing: border-box;
-  position: absolute;
-  left: 4px;
+    content: "";
+    display: block;
+    box-sizing: border-box;
+    position: absolute;
+    left: 4px;
 }
+
 .gg-arrow-left-r::after {
-  width: 6px;
-  height: 6px;
-  border-bottom: 2px solid;
-  border-left: 2px solid;
-  transform: rotate(45deg);
-  bottom: 6px;
+    width: 6px;
+    height: 6px;
+    border-bottom: 2px solid;
+    border-left: 2px solid;
+    transform: rotate(45deg);
+    bottom: 6px;
 }
+
 .gg-arrow-left-r::before {
-  width: 10px;
-  height: 2px;
-  bottom: 8px;
-  background: currentColor;
+    width: 10px;
+    height: 2px;
+    bottom: 8px;
+    background: currentColor;
 }
 
 .gg-arrow-right-r {
-  box-sizing: border-box;
-  position: relative;
-  display: block;
-  width: 22px;
-  height: 22px;
-  border: 2px solid;
-  /*transform: scale(var(--ggs, 1));*/
-  border-radius: 4px;
-}
-.gg-arrow-right-r::after,
-.gg-arrow-right-r::before {
-  content: "";
-  display: block;
-  box-sizing: border-box;
-  position: absolute;
-  right: 4px;
-}
-.gg-arrow-right-r::after {
-  width: 6px;
-  height: 6px;
-  border-top: 2px solid;
-  border-right: 2px solid;
-  transform: rotate(45deg);
-  bottom: 6px;
-}
-.gg-arrow-right-r::before {
-  width: 10px;
-  height: 2px;
-  bottom: 8px;
-  background: currentColor;
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    width: 22px;
+    height: 22px;
+    border: 2px solid;
+    /*transform: scale(var(--ggs, 1));*/
+    border-radius: 4px;
 }
 
+.gg-arrow-right-r::after,
+.gg-arrow-right-r::before {
+    content: "";
+    display: block;
+    box-sizing: border-box;
+    position: absolute;
+    right: 4px;
+}
+
+.gg-arrow-right-r::after {
+    width: 6px;
+    height: 6px;
+    border-top: 2px solid;
+    border-right: 2px solid;
+    transform: rotate(45deg);
+    bottom: 6px;
+}
+
+.gg-arrow-right-r::before {
+    width: 10px;
+    height: 2px;
+    bottom: 8px;
+    background: currentColor;
+}
 
 
 .gg-terminal {
-  box-sizing: border-box;
-  position: relative;
-  display: block;
-  /*transform: scale(var(--ggs, 1));*/
-  width: 24px;
-  height: 20px;
-  border: 2px solid;
-  border-radius: 2px;
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    /*transform: scale(var(--ggs, 1));*/
+    width: 24px;
+    height: 20px;
+    border: 2px solid;
+    border-radius: 2px;
 }
+
 .gg-terminal::after,
 .gg-terminal::before {
-  content: "";
-  display: block;
-  box-sizing: border-box;
-  position: absolute;
+    content: "";
+    display: block;
+    box-sizing: border-box;
+    position: absolute;
 }
+
 .gg-terminal::before {
-  border-right: 2px solid;
-  border-bottom: 2px solid;
-  transform: rotate(-45deg);
-  width: 6px;
-  height: 6px;
-  top: 5px;
-  left: 3px;
+    border-right: 2px solid;
+    border-bottom: 2px solid;
+    transform: rotate(-45deg);
+    width: 6px;
+    height: 6px;
+    top: 5px;
+    left: 3px;
 }
+
 .gg-terminal::after {
-  width: 4px;
-  height: 2px;
-  background: currentColor;
-  top: 10px;
-  left: 11px;
+    width: 4px;
+    height: 2px;
+    background: currentColor;
+    top: 10px;
+    left: 11px;
 }
 
 .gg-log-out::after {
@@ -1484,27 +1466,30 @@ input[type="number"]::-webkit-outer-spin-button {
 }
 
 .gg-menu {
-  /*transform: scale(var(--ggs, 1));*/
+    /*transform: scale(var(--ggs, 1));*/
 }
+
 .gg-menu,
 .gg-menu::after,
 .gg-menu::before {
-  box-sizing: border-box;
-  position: relative;
-  display: block;
-  width: 20px;
-  height: 2px;
-  border-radius: 3px;
-  background: currentColor;
+    box-sizing: border-box;
+    position: relative;
+    display: block;
+    width: 20px;
+    height: 2px;
+    border-radius: 3px;
+    background: currentColor;
 }
+
 .gg-menu::after,
 .gg-menu::before {
-  content: "";
-  position: absolute;
-  top: -6px;
+    content: "";
+    position: absolute;
+    top: -6px;
 }
+
 .gg-menu::after {
-  top: 6px;
+    top: 6px;
 }
 
 .gg-attachment {
@@ -1764,6 +1749,7 @@ details[open] > summary::before {
     /*border: 1px solid crimson;*/
     /*width: 50%;*/
 }
+
 .katex-html {
     display: none;
 }
