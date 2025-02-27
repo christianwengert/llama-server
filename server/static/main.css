@@ -45,11 +45,15 @@ body {
     overflow-y: auto;
     padding: 10px;
 }
+.footer-buttons {
+    width: 80%;
+    margin: auto;
+}
 
 .sidebar-footer {
     padding: 10px;
-    background: #ddd;
     flex-shrink: 0;
+    border-top: 1px solid #e4e4e4;
 }
 
 .main-content {
@@ -355,7 +359,7 @@ pre {
     /*margin-bottom: 32px;*/
     /*width: calc(100% - var(--sidebar-width));*/
     width: 100%;
-    padding: 8px;
+    /*padding: 8px;*/
     background-color: white;
 }
 
@@ -444,13 +448,17 @@ input, textarea, select {
     background-color: white;
     border: none;
     position: absolute;
-    bottom: 17px;
+    bottom: 10px;
     cursor: pointer;
     /*display: none !important;*/
 }
 
 button:disabled {
     display: none;
+}
+#translate-button {
+    position: relative;
+    bottom: 4px;
 }
 
 /*.input-box:focus,*/
@@ -479,12 +487,13 @@ button:disabled {
 /*    !*border: 1px solid rebeccapurple;*!*/
 /*}*/
 
-/*#timing-info {*/
+#timing-info {
 /*    overflow: hidden;*/
-/*    white-space: nowrap;*/
-/*    text-overflow: ellipsis;*/
-/*    width: calc(100% - var(--sidebar-width))*/
-/*}*/
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    display: inline-block;
+    width: 80%;
+}
 
 /*.loading {*/
 /*    width: 20px;*/
@@ -558,66 +567,22 @@ a {
 
 .inner-footer {
     margin: auto;
-    width: 80%;
+    width: 100%;
     display: flex;
-    /*justify-content: space-between;*/
     align-items: flex-start;
 }
 
-/*#settings-button {*/
-/*    margin-left: auto;*/
-/*}*/
-
-
-/*.sidebar {*/
-/*    padding: 10px;*/
-/*    background-color: rgb(32, 33, 35);*/
-/*    color: rgb(183, 183, 193);*/
-/*    width: var(--sidebar-width);*/
-/*    height: 100vh;*/
-/*    position: fixed;*/
-/*    overflow-y: scroll;*/
-/*    z-index: 2;*/
-/*    display: flex;*/
-/*    flex-direction: column;*/
-
-
-/*    !*opacity: 0.5;*!*/
-/*}*/
-
-/*.sidebar div {*/
-/*    margin: 8px;*/
-/*}*/
-
-/*.sidebar-header {*/
-/*    display: flex;*/
-/*}*/
-
-/*.sidebar-button {*/
-/*    !*border: 1px solid rgb(183, 183, 193);*!*/
-/*    !*border-radius: 5px;*!*/
-/*    background-color: unset;*/
-/*    color: rgb(183, 183, 193);*/
-/*    padding: 10px 8px 8px;*/
-/*    font-size: 1rem;*/
-/*    cursor: pointer;*/
-/*    !*border: 1px solid rgb(243, 243, 243);*!*/
-/*    !*height: 20px;*!*/
-/*    !*border-radius: 5px;*!*/
-/*}*/
-
-
-/*#reset-button {*/
-/*width: 80%;*/
-/*margin-left: auto;*/
-/*padding-top: 10px;*/
-/*}*/
-
 #sidebar-username {
+    max-width: 100%;
+    width: 100%;
+    display: flex;
+}
+#sidebar-username-inner {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    display: flex;
+    max-width: 80%;
+    /*display: flex;*/
 }
 
 #logout-button {
@@ -632,43 +597,18 @@ a {
 .sidebar-footer {
     margin-top: auto !important;
     display: flex;
-    /*font-size: 0.8rem;*/
 }
 
 
-/*.container {*/
-/*    margin-left: auto; !* Default margin *!*/
-/*}*/
-
-/*.sidebar + .container {*/
-/*    margin-left: var(--sidebar-width); !* Margin when sidebar is present *!*/
-/*    margin-right: 0;*/
-/*    !*width: calc(80% - 200px);*!*/
-/*}*/
-
 
 .header-button {
-    /*display: inline-block;*/
     display: inline-flex;
-    /*margin-left: 12px;*/
-    /*font-weight: normal;*/
-    /*padding: 3px;*/
-    /*font-size: smaller;*/
-    /*opacity: 0.5;*/
     text-decoration: none;
     margin-right: 20px;
     color: unset;
     margin-bottom: 4px;
 }
 
-#right-panel-toggler {
-    /*width: 20px;*/
-    /*height: 20px;*/
-}
-
-#settings-button {
-    /*margint-top: 0px*/
-}
 
 .header-button:hover {
     opacity: 1.0;
@@ -680,24 +620,10 @@ a {
     margin-bottom: 6px;
 }
 
-/*#outer-chat {*/
-/*    display: flex;*/
-
-/*}*/
-/*#chat {*/
-/*    width: 50%;*/
-/*    border: 1px solid darkgreen;*/
-/*}*/
 
 #history {
     padding-left: 0;
     list-style-type: none;
-    /*border-bottom: 1px solid white;*/
-    /*padding-top: 32px;*/
-    /*padding-bottom: 32px;*/
-    /*height: calc(100vh - 240px);*/
-    /*border: 1px solid rebeccapurple;*/
-    /*overflow-y: auto;*/
 }
 
 #history a {
@@ -711,10 +637,6 @@ a {
     padding: 0;
 }
 
-
-/*#todos-div {*/
-/*    margin-top: 24px;*/
-/*}*/
 
 .edit-button {
     width: 80%;
@@ -806,7 +728,6 @@ div.menu-collection-link-container:hover .delete-collection-item {
     left: 0;
     right: 0;
     background: rgba(0, 0, 0, 0.7);
-    /*transition: opacity 500ms;*/
     visibility: hidden;
     opacity: 0;
     z-index: 999;
@@ -1555,19 +1476,6 @@ input[type="number"]::-webkit-outer-spin-button {
     color: black !important;
 }
 
-/*#translate-button {*/
-
-/*    !*border: none;*!*/
-/*    !*background-color: unset;*!*/
-/*    !*height: 28px;*!*/
-/*    !*width: 28px;*!*/
-/*    !*margin: 0;*!*/
-/*    !*padding: 0;*!*/
-/*    !*position: absolute;*!*/
-/*    !*top: 4px;*!*/
-/*    !*left: calc(10% - 40px);*!*/
-/*}*/
-
 /*#record {*/
 /*    margin-top: 4px;*/
 /*    !*border: none;*!*/
@@ -1594,20 +1502,9 @@ input[type="number"]::-webkit-outer-spin-button {
 /*    margin: auto;*/
 /*}*/
 
-/*details {*/
-/*    margin-top: 8px;*/
-/*    margin-bottom: 24px;*/
-/*}*/
-
-/*summary {*/
-/*    cursor: pointer;*/
-/*    margin-bottom: 8px;*/
-/*}*/
 
 div.warning input {
     border: 1px solid red; /* Example to highlight the field in error */
-    /*position: relative;*/
-
 }
 
 div.warning:after {
@@ -1745,10 +1642,6 @@ details[open] > summary::before {
 
 }
 
-#editor {
-    /*border: 1px solid crimson;*/
-    /*width: 50%;*/
-}
 
 .katex-html {
     display: none;
