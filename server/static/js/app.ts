@@ -32,6 +32,7 @@ import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} fr
 import {highlightSelectionMatches, searchKeymap} from '@codemirror/search'
 import {defaultKeymap, historyKeymap} from '@codemirror/commands'
 import {lintKeymap} from '@codemirror/lint'
+// @ts-ignore
 import katex from "katex";
 // import {marked} from "marked";
 import {marked} from "marked";
@@ -120,14 +121,21 @@ const handleEditAction = (e: MouseEvent) => {
 // 4) Avoids any math extension in Marked.
 // 5) Also, ensures highlight.js sees only code strings.
 // Make sure you remove or disable any other math extension or plugin that might parse LaTeX.
-
+interface CodeBlock {
+    lang: string
+    raw: string
+    text: string
+    type: string
+}
 
 // Example code renderer for Marked:
 const blockCodeRenderer = {
-    code(code: string, infostring: string) {
+    code(code: CodeBlock, infostring: string) {
         let lang = infostring?.trim() || ''
-        let highlighted
+        let highlighted: string;
         if (lang && hljs.getLanguage(lang)) {
+            console.log("Have a look at this")
+            // @ts-ignore
             highlighted = hljs.highlight(code, {language: lang}).value
         } else {
             // fallback auto-detection
@@ -143,14 +151,14 @@ const blockCodeRenderer = {
     // }
 }
 
-function escapeHtml(str: string): string {
-    return str
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#039;')
-}
+// function escapeHtml(str: string): string {
+//     return str
+//         .replace(/&/g, '&amp;')
+//         .replace(/</g, '&lt;')
+//         .replace(/>/g, '&gt;')
+//         .replace(/"/g, '&quot;')
+//         .replace(/'/g, '&#039;')
+// }
 
 // Strips the outer LaTeX delimiters from a match so KaTeX sees only the contents.
 function stripMathDelimiters(latex: string): string {
@@ -199,11 +207,8 @@ export function parseMessage(text: string): string {
     marked.use({renderer: blockCodeRenderer})
 
     // Ensure no math extension is used. The below is all we do.
-
-    const htmlWithPlaceholders = marked.parse(placeholderText)
-
     // 4) Re-inject KaTeX for each placeholder
-    let finalHtml = htmlWithPlaceholders
+    let finalHtml = marked.parse(placeholderText)
     rawMath.forEach((latex, i) => {
         const placeholder = `@@MATH_${i}@@`
         // Decide block vs. inline
@@ -429,7 +434,7 @@ const setupUploadButton = () => {
 
 const replaceLine = (view: EditorView, lineNumber: number, newText: string) => {
     let state = view.state;
-    let line
+    let line: any;
 
     if (lineNumber > state.doc.lines) {  // end of document
         line = {from: state.doc.length, to: state.doc.length}
@@ -583,7 +588,7 @@ const findLastCodeCanvasBlock = (text: string) => {
     let endIndex = -1;
 
     let regex = /<\/?codecanvas>/g;
-    let match;
+    let match: any;
 
     while ((match = regex.exec(text)) !== null) {
         if (match[0] === "<codecanvas>") {
@@ -639,29 +644,36 @@ const couldStartMarker = (t: string) => {
 };
 
 const getAllChunks = (responseText: string) => {
-    const trimmed = responseText.trim();
-    if (!trimmed.includes('}{')) {
-        try {
-            return [JSON.parse(trimmed)];
-        } catch (e) {
-            return [];
-        }
-    }
-
-    const matches = trimmed.match(/(\{.*?\})(?=\{|\s*$)/g);
-    if (!matches) return [];
-
     const allResponses = [];
-    for (const match of matches) {
+    let buffer = "";
+
+    for (let i = 0; i < responseText.length; i++) {
+        buffer += responseText[i];
+
         try {
-            allResponses.push(JSON.parse(match));
+            // Try parsing the current buffer
+            const parsed = JSON.parse(buffer);
+            allResponses.push(parsed);
+            buffer = ""; // Reset buffer after successful parsing
         } catch (e) {
-            // Ignore invalid JSON parts
+            // If parsing fails, continue accumulating in buffer
+            // console.log(e)
+            // continue;
         }
     }
 
-    return allResponses;
+    if (buffer.trim() !== "") {
+        console.warn("Unparsed JSON chunk remaining:", buffer);
+    }
+
+    return {allResponses, buffer};
 };
+
+
+let t = '{"choices":[{"delta":{"content":"hello"}}]}' +
+    '{"choices":[{"delta":{"content":"}{"}}]}' +
+    '{"choices":[{"delta":{"content":"world"}}]}'
+console.log(getAllChunks(t))
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -695,8 +707,6 @@ function getInputHandler(inputElement: HTMLElement) {
                 const elem = document.getElementById(ident)!;
                 const inner = elem.querySelector('.inner-message')! as HTMLElement;
                 const parsed = parseMessage(inner.innerText)
-                console.log(parsed)
-                // highlightCode(inner);   // \[ \int_{a}^{b} x^2 \,dx \]
 
                 inputElement.innerText = '';
             }
@@ -747,9 +757,9 @@ function getInputHandler(inputElement: HTMLElement) {
             const processToken = (token: string) => {
                 const flushList: Array<Record<string, string>> = [];
 
-                console.log("Token: " + token + "   Mode: " + mode)
+                // console.log("Token: " + token + "   Mode: " + mode)
                 function pushToFlushList(t: string) {
-                    let element;
+                    let element: string;
                     switch (mode) {
                         case "think":
                             element = 'think';
@@ -937,14 +947,20 @@ function getInputHandler(inputElement: HTMLElement) {
                 scheduleFlush();
             };
 
-
+            let cindex = 0
             // The rest of your XHR logic:
             xhr.onprogress = function () {
+                // console.log(cindex)
 
-                const chunks = getAllChunks(xhr.responseText);
+                const {allResponses, buffer} = getAllChunks(xhr.responseText);
+                // if(buffer.length > 0) {
+                //     console.log(buffer)
+                // }
+                // cindex += JSON.stringify(allResponses).length - 2
 
-                while (index < chunks.length) {
-                    const chunk = chunks[index];
+                while (index < allResponses.length) {
+                    const chunk = allResponses[index];
+                    // console.log(chunk.choices[0].delta.content)
                     if (chunk) {
                         if (chunk.choices[0].finish_reason === 'stop') {
                             const timings = chunk.timings;
@@ -993,9 +1009,9 @@ function getInputHandler(inputElement: HTMLElement) {
                 m += "<codecanvas>";
                 m += content;
                 m += "</codecanvas>"
-                console.log("we have a canvas")
+                console.log("Inserting canvas")
             } else {
-                console.log("no canvas")
+                console.log("Ignoring empty canvas")
             }
 
             formData.input = m

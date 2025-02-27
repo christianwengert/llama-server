@@ -1,5 +1,6 @@
 import hashlib
 import json
+import logging
 import os
 import secrets
 import tempfile
@@ -424,6 +425,8 @@ def get_input():
                 response = decoded_line[6:]
                 if response != '[DONE]':
                     responses.append(response)
+                    # logging.error(json.loads(response)['choices'][0]['delta'])
+                    # print()
                     yield response  # + SEPARATOR
 
         output = "".join([json.loads(a)['choices'][0]['delta'].get('content', '') for a in responses if 'embedding' not in a]).strip()
