@@ -670,10 +670,18 @@ const getAllChunks = (responseText: string) => {
 };
 
 
-let t = '{"choices":[{"delta":{"content":"hello"}}]}' +
+let trop = '{"choices":[{"delta":{"content":"hello"}}]}' +
+    '{"choices":[{"delta":{"content":"}{"}}]}' +
+    '{"choices":[{"delta":{"content":"world"}}]'
+let allChunks = getAllChunks(trop.slice(0));
+console.log(allChunks)
+
+trop = '{"choices":[{"delta":{"content":"hello"}}]}' +
     '{"choices":[{"delta":{"content":"}{"}}]}' +
     '{"choices":[{"delta":{"content":"world"}}]}'
-console.log(getAllChunks(t))
+
+let cc = allChunks.buffer.length + 1
+console.log(getAllChunks(trop.slice(-cc)))
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -947,16 +955,16 @@ function getInputHandler(inputElement: HTMLElement) {
                 scheduleFlush();
             };
 
-            let cindex = 0
+            let ccindex = 0
             // The rest of your XHR logic:
             xhr.onprogress = function () {
                 // console.log(cindex)
 
-                const {allResponses, buffer} = getAllChunks(xhr.responseText);
+                const {allResponses, buffer} = getAllChunks(xhr.responseText.slice(-ccindex));
                 // if(buffer.length > 0) {
                 //     console.log(buffer)
                 // }
-                // cindex += JSON.stringify(allResponses).length - 2
+                ccindex += buffer.length
 
                 while (index < allResponses.length) {
                     const chunk = allResponses[index];

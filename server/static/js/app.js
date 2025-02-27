@@ -46371,7 +46371,7 @@
           "verbatim",
           "with"
         ];
-        TAG_NAMES = TAG_NAMES.concat(TAG_NAMES.map((t3) => `end${t3}`));
+        TAG_NAMES = TAG_NAMES.concat(TAG_NAMES.map((t2) => `end${t2}`));
         const STRING = {
           scope: "string",
           variants: [
@@ -53158,9 +53158,9 @@
         copy.top = info;
       }
       if (config2.tokenizers)
-        copy.tokenizers = this.tokenizers.map((t3) => {
-          let found = config2.tokenizers.find((r) => r.from == t3);
-          return found ? found.to : t3;
+        copy.tokenizers = this.tokenizers.map((t2) => {
+          let found = config2.tokenizers.find((r) => r.from == t2);
+          return found ? found.to : t2;
         });
       if (config2.specializers) {
         copy.specializers = this.specializers.slice();
@@ -53301,8 +53301,8 @@
       let tag2 = new Tag(name2, [], null, []);
       tag2.set.push(tag2);
       if (parent)
-        for (let t3 of parent.set)
-          tag2.set.push(t3);
+        for (let t2 of parent.set)
+          tag2.set.push(t2);
       return tag2;
     }
     /**
@@ -53336,7 +53336,7 @@
     static get(base2, mods) {
       if (!mods.length)
         return base2;
-      let exists = mods[0].instances.find((t3) => t3.base == base2 && sameArray(mods, t3.modified));
+      let exists = mods[0].instances.find((t2) => t2.base == base2 && sameArray(mods, t2.modified));
       if (exists)
         return exists;
       let set = [], tag2 = new Tag(base2.name, set, base2, mods);
@@ -60101,7 +60101,7 @@
       return this.range.to <= state.doc.length ? this : new ScrollTarget(EditorSelection.cursor(state.doc.length), this.y, this.x, this.yMargin, this.xMargin, this.isSnapshot);
     }
   };
-  var scrollIntoView = /* @__PURE__ */ StateEffect.define({ map: (t3, ch) => t3.map(ch) });
+  var scrollIntoView = /* @__PURE__ */ StateEffect.define({ map: (t2, ch) => t2.map(ch) });
   var setEditContextFormatting = /* @__PURE__ */ StateEffect.define();
   function logException(state, exception, context) {
     let handler = state.facet(exceptionSink);
@@ -66591,18 +66591,18 @@
       this.createTooltipView = createTooltipView;
       this.removeTooltipView = removeTooltipView;
       this.input = view.state.facet(facet);
-      this.tooltips = this.input.filter((t3) => t3);
+      this.tooltips = this.input.filter((t2) => t2);
       let prev = null;
-      this.tooltipViews = this.tooltips.map((t3) => prev = createTooltipView(t3, prev));
+      this.tooltipViews = this.tooltips.map((t2) => prev = createTooltipView(t2, prev));
     }
     update(update, above) {
       var _a2;
       let input = update.state.facet(this.facet);
       let tooltips = input.filter((x) => x);
       if (input === this.input) {
-        for (let t3 of this.tooltipViews)
-          if (t3.update)
-            t3.update(update);
+        for (let t2 of this.tooltipViews)
+          if (t2.update)
+            t2.update(update);
         return false;
       }
       let tooltipViews = [], newAbove = above ? [] : null;
@@ -66627,10 +66627,10 @@
             tooltipView.update(update);
         }
       }
-      for (let t3 of this.tooltipViews)
-        if (tooltipViews.indexOf(t3) < 0) {
-          this.removeTooltipView(t3);
-          (_a2 = t3.destroy) === null || _a2 === void 0 ? void 0 : _a2.call(t3);
+      for (let t2 of this.tooltipViews)
+        if (tooltipViews.indexOf(t2) < 0) {
+          this.removeTooltipView(t2);
+          (_a2 = t2.destroy) === null || _a2 === void 0 ? void 0 : _a2.call(t2);
         }
       if (above) {
         newAbove.forEach((val, i) => above[i] = val);
@@ -66672,12 +66672,12 @@
       this.createContainer();
       this.measureReq = { read: this.readMeasure.bind(this), write: this.writeMeasure.bind(this), key: this };
       this.resizeObserver = typeof ResizeObserver == "function" ? new ResizeObserver(() => this.measureSoon()) : null;
-      this.manager = new TooltipViewManager(view, showTooltip, (t3, p) => this.createTooltip(t3, p), (t3) => {
+      this.manager = new TooltipViewManager(view, showTooltip, (t2, p) => this.createTooltip(t2, p), (t2) => {
         if (this.resizeObserver)
-          this.resizeObserver.unobserve(t3.dom);
-        t3.dom.remove();
+          this.resizeObserver.unobserve(t2.dom);
+        t2.dom.remove();
       });
-      this.above = this.manager.tooltips.map((t3) => !!t3.above);
+      this.above = this.manager.tooltips.map((t2) => !!t2.above);
       this.intersectionObserver = typeof IntersectionObserver == "function" ? new IntersectionObserver((entries) => {
         if (Date.now() > this.lastTransaction - 50 && entries.length > 0 && entries[entries.length - 1].intersectionRatio < 1)
           this.measureSoon();
@@ -66720,8 +66720,8 @@
       let newConfig = update.state.facet(tooltipConfig);
       if (newConfig.position != this.position && !this.madeAbsolute) {
         this.position = newConfig.position;
-        for (let t3 of this.manager.tooltipViews)
-          t3.dom.style.position = this.position;
+        for (let t2 of this.manager.tooltipViews)
+          t2.dom.style.position = this.position;
         shouldMeasure = true;
       }
       if (newConfig.parent != this.parent) {
@@ -66729,8 +66729,8 @@
           this.container.remove();
         this.parent = newConfig.parent;
         this.createContainer();
-        for (let t3 of this.manager.tooltipViews)
-          this.container.appendChild(t3.dom);
+        for (let t2 of this.manager.tooltipViews)
+          this.container.appendChild(t2.dom);
         shouldMeasure = true;
       } else if (this.parent && this.view.themeClasses != this.classes) {
         this.classes = this.container.className = this.view.themeClasses;
@@ -66801,9 +66801,9 @@
           bottom: visible.bottom - margins.bottom
         },
         parent: this.parent ? this.container.getBoundingClientRect() : this.view.dom.getBoundingClientRect(),
-        pos: this.manager.tooltips.map((t3, i) => {
+        pos: this.manager.tooltips.map((t2, i) => {
           let tv = this.manager.tooltipViews[i];
-          return tv.getCoords ? tv.getCoords(t3.pos) : this.view.coordsAtPos(t3.pos);
+          return tv.getCoords ? tv.getCoords(t2.pos) : this.view.coordsAtPos(t2.pos);
         }),
         size: this.manager.tooltipViews.map(({ dom }) => dom.getBoundingClientRect()),
         space: this.view.state.facet(tooltipConfig).tooltipSpace(this.view),
@@ -66817,8 +66817,8 @@
       if (measured.makeAbsolute) {
         this.madeAbsolute = true;
         this.position = "absolute";
-        for (let t3 of this.manager.tooltipViews)
-          t3.dom.style.position = "absolute";
+        for (let t2 of this.manager.tooltipViews)
+          t2.dom.style.position = "absolute";
       }
       let { visible, space: space3, scaleX, scaleY } = measured;
       let others = [];
@@ -66977,7 +66977,7 @@
       this.mounted = false;
       this.dom = document.createElement("div");
       this.dom.classList.add("cm-tooltip-hover");
-      this.manager = new TooltipViewManager(view, showHoverTooltip, (t3, p) => this.createHostedView(t3, p), (t3) => t3.dom.remove());
+      this.manager = new TooltipViewManager(view, showHoverTooltip, (t2, p) => this.createHostedView(t2, p), (t2) => t2.dom.remove());
     }
     createHostedView(tooltip, prev) {
       let hostedView = tooltip.create(this.view);
@@ -67005,8 +67005,8 @@
     }
     destroy() {
       var _a2;
-      for (let t3 of this.manager.tooltipViews)
-        (_a2 = t3.destroy) === null || _a2 === void 0 ? void 0 : _a2.call(t3);
+      for (let t2 of this.manager.tooltipViews)
+        (_a2 = t2.destroy) === null || _a2 === void 0 ? void 0 : _a2.call(t2);
     }
     passProp(name2) {
       let value = void 0;
@@ -67039,14 +67039,14 @@
     if (tooltips.length === 0)
       return null;
     return {
-      pos: Math.min(...tooltips.map((t3) => t3.pos)),
-      end: Math.max(...tooltips.map((t3) => {
+      pos: Math.min(...tooltips.map((t2) => t2.pos)),
+      end: Math.max(...tooltips.map((t2) => {
         var _a2;
-        return (_a2 = t3.end) !== null && _a2 !== void 0 ? _a2 : t3.pos;
+        return (_a2 = t2.end) !== null && _a2 !== void 0 ? _a2 : t2.pos;
       })),
       create: HoverTooltipHost.create,
       above: tooltips[0].above,
-      arrow: tooltips.some((t3) => t3.arrow)
+      arrow: tooltips.some((t2) => t2.arrow)
     };
   });
   var HoverPlugin = class {
@@ -67120,7 +67120,7 @@
     }
     get tooltip() {
       let plugin = this.view.plugin(tooltipPlugin);
-      let index = plugin ? plugin.manager.tooltips.findIndex((t3) => t3.create == HoverTooltipHost.create) : -1;
+      let index = plugin ? plugin.manager.tooltips.findIndex((t2) => t2.create == HoverTooltipHost.create) : -1;
       return index > -1 ? plugin.manager.tooltipViews[index] : null;
     }
     mousemove(event) {
@@ -69361,7 +69361,7 @@
     }
     if (!tags$1.length)
       return 0;
-    let name2 = tagStr.replace(/ /g, "_"), key = name2 + " " + tags$1.map((t3) => t3.id);
+    let name2 = tagStr.replace(/ /g, "_"), key = name2 + " " + tags$1.map((t2) => t2.id);
     let known = byTag[key];
     if (known)
       return known.id;
@@ -72905,11 +72905,11 @@
   }
   function isAdjacent(a2, b) {
     let ranges = [], isAdjacent2 = false;
-    a2.iterChangedRanges((f, t3) => ranges.push(f, t3));
-    b.iterChangedRanges((_f2, _t, f, t3) => {
+    a2.iterChangedRanges((f, t2) => ranges.push(f, t2));
+    b.iterChangedRanges((_f2, _t, f, t2) => {
       for (let i = 0; i < ranges.length; ) {
         let from = ranges[i++], to = ranges[i++];
-        if (t3 >= from && f <= to)
+        if (t2 >= from && f <= to)
           isAdjacent2 = true;
       }
     });
@@ -75598,7 +75598,7 @@
     minRuleThickness: {
       type: "number",
       description: "Specifies a minimum thickness, in ems, for fraction lines, `\\sqrt` top lines, `{array}` vertical lines, `\\hline`, `\\hdashline`, `\\underline`, `\\overline`, and the borders of `\\fbox`, `\\boxed`, and `\\fcolorbox`.",
-      processor: (t3) => Math.max(0, t3),
+      processor: (t2) => Math.max(0, t2),
       cli: "--min-rule-thickness <size>",
       cliProcessor: parseFloat
     },
@@ -87387,21 +87387,21 @@
   };
   var macros = _macros;
   defineMacro("\\noexpand", function(context) {
-    var t3 = context.popToken();
-    if (context.isExpandable(t3.text)) {
-      t3.noexpand = true;
-      t3.treatAsRelax = true;
+    var t2 = context.popToken();
+    if (context.isExpandable(t2.text)) {
+      t2.noexpand = true;
+      t2.treatAsRelax = true;
     }
     return {
-      tokens: [t3],
+      tokens: [t2],
       numArgs: 0
     };
   });
   defineMacro("\\expandafter", function(context) {
-    var t3 = context.popToken();
+    var t2 = context.popToken();
     context.expandOnce(true);
     return {
-      tokens: [t3],
+      tokens: [t2],
       numArgs: 0
     };
   });
@@ -90425,7 +90425,7 @@ ${currentText}` : currentText;
           }
           raw = cap[0];
           src = src.substring(raw.length);
-          let line = cap[2].split("\n", 1)[0].replace(this.rules.other.listReplaceTabs, (t3) => " ".repeat(3 * t3.length));
+          let line = cap[2].split("\n", 1)[0].replace(this.rules.other.listReplaceTabs, (t2) => " ".repeat(3 * t2.length));
           let nextLine = src.split("\n", 1)[0];
           let blankLine = !line.trim();
           let indent2 = 0;
@@ -90543,8 +90543,8 @@ ${currentText}` : currentText;
           this.lexer.state.top = false;
           list2.items[i].tokens = this.lexer.blockTokens(list2.items[i].text, []);
           if (!list2.loose) {
-            const spacers = list2.items[i].tokens.filter((t3) => t3.type === "space");
-            const hasMultipleLineBreaks = spacers.length > 0 && spacers.some((t3) => this.rules.other.anyLine.test(t3.raw));
+            const spacers = list2.items[i].tokens.filter((t2) => t2.type === "space");
+            const hasMultipleLineBreaks = spacers.length > 0 && spacers.some((t2) => this.rules.other.anyLine.test(t2.raw));
             list2.loose = hasMultipleLineBreaks;
           }
         }
@@ -92050,8 +92050,8 @@ ${text2}</tr>
     return formData;
   };
   var round = (originalNumber, digits) => {
-    const t3 = 10 ** digits;
-    return Math.round(originalNumber * t3) / t3;
+    const t2 = 10 ** digits;
+    return Math.round(originalNumber * t2) / t2;
   };
   var handleEditAction = (e) => {
     e.preventDefault();
@@ -92423,8 +92423,8 @@ ${text2}</tr>
       }
     });
   };
-  var couldStartMarker = (t3) => {
-    return t3.includes("<");
+  var couldStartMarker = (t2) => {
+    return t2.includes("<");
   };
   var getAllChunks = (responseText) => {
     const allResponses = [];
@@ -92443,8 +92443,12 @@ ${text2}</tr>
     }
     return { allResponses, buffer };
   };
-  var t2 = '{"choices":[{"delta":{"content":"hello"}}]}{"choices":[{"delta":{"content":"}{"}}]}{"choices":[{"delta":{"content":"world"}}]}';
-  console.log(getAllChunks(t2));
+  var trop = '{"choices":[{"delta":{"content":"hello"}}]}{"choices":[{"delta":{"content":"}{"}}]}{"choices":[{"delta":{"content":"world"}}]';
+  var allChunks = getAllChunks(trop.slice(0));
+  console.log(allChunks);
+  trop = '{"choices":[{"delta":{"content":"hello"}}]}{"choices":[{"delta":{"content":"}{"}}]}{"choices":[{"delta":{"content":"world"}}]}';
+  var cc = allChunks.buffer.length + 1;
+  console.log(getAllChunks(trop.slice(-cc)));
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
     let isMainInput = inputElement === mainInput;
@@ -92499,7 +92503,7 @@ ${text2}</tr>
         let lineNumber = 1;
         const processToken = (token) => {
           const flushList = [];
-          function pushToFlushList(t3) {
+          function pushToFlushList(t2) {
             let element;
             switch (mode) {
               case "think":
@@ -92512,7 +92516,7 @@ ${text2}</tr>
                 textField = inner2;
                 element = "text";
             }
-            flushList.push({ element, token: t3 });
+            flushList.push({ element, token: t2 });
           }
           function endsWithJoined(joinedString) {
             let combined = rollingBuffer.join("").replace(/\s+/g, "");
@@ -92636,9 +92640,10 @@ ${text2}</tr>
           flushList.forEach((item) => flushQueue.push(item));
           scheduleFlush();
         };
-        let cindex = 0;
+        let ccindex = 0;
         xhr.onprogress = function() {
-          const { allResponses, buffer } = getAllChunks(xhr.responseText);
+          const { allResponses, buffer } = getAllChunks(xhr.responseText.slice(-ccindex));
+          ccindex += buffer.length;
           while (index < allResponses.length) {
             const chunk = allResponses[index];
             if (chunk) {
