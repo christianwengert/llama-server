@@ -10,6 +10,8 @@ a history with each user.
 
 # Installation
 
+Use Python3.9 for compatibility for PDF extraction
+
 - Checkout or download zip.
 - `python3 -m venv env`
 - `. env/bin/activate`
