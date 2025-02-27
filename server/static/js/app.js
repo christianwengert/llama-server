@@ -1382,10 +1382,10 @@
           result._emitter.addText(code);
           return result;
         }
-        function highlightAuto(code, languageSubset) {
-          languageSubset = languageSubset || options2.languages || Object.keys(languages);
+        function highlightAuto(code, languageSubset2) {
+          languageSubset2 = languageSubset2 || options2.languages || Object.keys(languages);
           const plaintext = justTextHighlightResult(code);
-          const results = languageSubset.filter(getLanguage).filter(autoDetection).map(
+          const results = languageSubset2.filter(getLanguage).filter(autoDetection).map(
             (name2) => _highlight(name2, code, false)
           );
           results.unshift(plaintext);
@@ -92031,6 +92031,9 @@ ${text2}</tr>
     let messages = document.getElementById("chat");
     messages.scrollTo(0, messages.scrollHeight);
   };
+  function escapeHtml(str) {
+    return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+  }
   var getFormDataAsJSON = (formId) => {
     const form = document.getElementById(formId);
     const formData = {};
@@ -92067,6 +92070,7 @@ ${text2}</tr>
     selection.addRange(range);
     inner2.addEventListener("keypress", getInputHandler(inner2));
   };
+  var languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
   var blockCodeRenderer = {
     code(code, infostring) {
       let lang = infostring?.trim() || "";
@@ -92075,7 +92079,7 @@ ${text2}</tr>
         console.log("Have a look at this");
         highlighted = es_default.highlight(code, { language: lang }).value;
       } else {
-        const autoResult = es_default.highlightAuto(code.text);
+        const autoResult = es_default.highlightAuto(escapeHtml(code.text), languageSubset);
         highlighted = autoResult.value;
         lang = autoResult.language || "";
       }
@@ -92172,9 +92176,6 @@ ${text2}</tr>
     }
     innerMessageDiv.innerHTML = parseMessage(message);
     chat.appendChild(messageDiv);
-    messageDiv.querySelectorAll("pre code").forEach((block2) => {
-      es_default.highlightElement(block2);
-    });
     return ident;
   };
   var setFocusToInputField = (textInput) => {
@@ -92423,26 +92424,22 @@ ${text2}</tr>
   var couldStartMarker = (t2) => {
     return t2.includes("<");
   };
-  var getAllChunks = (responseText) => {
-    const allResponses = [];
-    let buffer = "";
-    for (let i = 0; i < responseText.length; i++) {
-      buffer += responseText[i];
+  function getAllChunks(input) {
+    let allResponses = [];
+    let buffer;
+    let candidate = "";
+    for (let i = 0; i < input.length; i++) {
+      candidate += input[i];
       try {
-        const parsed = JSON.parse(buffer);
-        if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-          throw new Error("Only top-level JSON objects are allowed");
-        }
+        const parsed = JSON.parse(candidate);
         allResponses.push(parsed);
-        buffer = "";
+        candidate = "";
       } catch (e) {
       }
     }
-    if (buffer.trim() !== "") {
-      console.warn("Unparsed JSON chunk remaining:", buffer);
-    }
+    buffer = candidate;
     return { allResponses, buffer };
-  };
+  }
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
     let isMainInput = inputElement === mainInput;
@@ -92464,10 +92461,7 @@ ${text2}</tr>
         const xhr = new XMLHttpRequest();
         let m = inputElement.innerText;
         if (isMainInput) {
-          const ident2 = renderMessage(inputElement.innerText, "me", chat);
-          const elem2 = document.getElementById(ident2);
-          const inner3 = elem2.querySelector(".inner-message");
-          const parsed = parseMessage(inner3.innerText);
+          renderMessage(inputElement.innerText, "me", chat);
           inputElement.innerText = "";
         }
         inputElement.contentEditable = "false";
@@ -92488,7 +92482,6 @@ ${text2}</tr>
         inner2.innerHTML = '<div class="loading"></div>';
         scrollToBottom();
         xhr.open("POST", "/");
-        let index = 0;
         let mode = "normal";
         let rollingBuffer = [];
         let flushQueue = [];
@@ -92635,18 +92628,30 @@ ${text2}</tr>
           scheduleFlush();
         };
         let ccindex = 0;
+        let lastIndex = 0;
+        let chunkBuffer = "";
         xhr.onprogress = function() {
-          let allChunks = getAllChunks(xhr.responseText.slice(0));
-          if (allChunks.allResponses.length > 0) {
-            let s = JSON.stringify(allChunks.allResponses);
+          let newData = xhr.responseText.substring(lastIndex);
+          lastIndex = xhr.responseText.length;
+          chunkBuffer += newData;
+          const { allResponses, buffer } = getAllChunks(chunkBuffer);
+          if (allResponses.length > 0) {
+            let s = JSON.stringify(allResponses);
             ccindex += s.length;
           }
-          while (index < allChunks.allResponses.length) {
-            const chunk = allChunks.allResponses[index];
-            if (chunk) {
-              if (chunk.choices[0].finish_reason === "stop") {
-                const timings = chunk.timings;
-                let model = chunk.model;
+          for (let i = 0; i < allResponses.length; i++) {
+            const chunk = allResponses[i];
+            if (!chunk || !chunk.choices) {
+              continue;
+            }
+            for (let i2 = 0; i2 < allResponses.length; i2++) {
+              const chunk2 = allResponses[i2];
+              if (!chunk2 || !chunk2.choices) {
+                continue;
+              }
+              if (chunk2.choices[0].finish_reason === "stop") {
+                const timings = chunk2.timings;
+                let model = chunk2.model;
                 if (model) {
                   model = model.split("/").slice(-1);
                 }
@@ -92662,12 +92667,13 @@ ${text2}</tr>
                 for (const elem1 of document.getElementsByClassName("shimmer")) {
                   elem1.classList.remove("shimmer");
                 }
+                return;
               } else {
-                onStreamProgress(chunk);
+                onStreamProgress(chunk2);
               }
             }
+            chunkBuffer = buffer;
             updateScrollButton();
-            index++;
           }
         };
         xhr.addEventListener("error", function(e2) {
@@ -92893,7 +92899,7 @@ ${text2}</tr>
     editor.dom.addEventListener("input", debounce(detectAndSetMode, 500));
     function detectAndSetMode() {
       const content2 = editor.state.doc.toString();
-      const result = es_default.highlightAuto(content2, ["python", "cpp", "javascript", "rust"]);
+      const result = es_default.highlightAuto(content2, languageSubset);
       console.log(result);
       if (result.language === "python") {
         language2.reconfigure(python());

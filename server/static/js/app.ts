@@ -48,6 +48,16 @@ const scrollToBottom = () => {
     messages.scrollTo(0, messages.scrollHeight);
 }
 
+
+function escapeHtml(str: string): string {
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;')
+}
+
 const getFormDataAsJSON = (formId: string): Record<string, string | number | boolean> => {
     const form = document.getElementById(formId) as HTMLFormElement;
     const formData: Record<string, string | number | boolean> = {};
@@ -129,6 +139,8 @@ interface CodeBlock {
 }
 
 // Example code renderer for Marked:
+const languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
+
 const blockCodeRenderer: any = {
     code(code: CodeBlock, infostring: string) {
         let lang = infostring?.trim() || ''
@@ -139,7 +151,8 @@ const blockCodeRenderer: any = {
             highlighted = hljs.highlight(code, {language: lang}).value
         } else {
             // fallback auto-detection
-            const autoResult = hljs.highlightAuto(code.text)
+            const autoResult = hljs.highlightAuto(escapeHtml(code.text), languageSubset) //escapeHTML?
+            // const escaped = escapeHtml(autoResult.value)
             highlighted = autoResult.value
             lang = autoResult.language || ''
         }
@@ -308,9 +321,9 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     innerMessageDiv.innerHTML = parseMessage(message);
     chat.appendChild(messageDiv);
     // Apply Highlight.js after rendering
-    messageDiv.querySelectorAll("pre code").forEach((block) => {
-        hljs.highlightElement(block as HTMLElement);
-    });
+    // messageDiv.querySelectorAll("pre code").forEach((block) => {
+    //     hljs.highlightElement(block as HTMLElement);
+    // });
     return ident;
 };
 
@@ -643,37 +656,31 @@ const couldStartMarker = (t: string) => {
     return t.includes('<');
 };
 
-const getAllChunks = (responseText: string) => {
-    const allResponses = [];
-    let buffer = "";
+function getAllChunks(input: string) {
+    let allResponses = [];
+    let buffer: string;
+    let candidate = "";
 
-    for (let i = 0; i < responseText.length; i++) {
-        buffer += responseText[i];
-
+    for (let i = 0; i < input.length; i++) {
+        candidate += input[i];
         try {
-            // Try parsing the current buffer
-            const parsed = JSON.parse(buffer);
+            const parsed = JSON.parse(candidate);
 
-            if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) {
-                throw new Error("Only top-level JSON objects are allowed");
-            }
-
+            // If we parsed successfully, store it
             allResponses.push(parsed);
-            buffer = ""; // Reset buffer after successful parsing
+
+            // Reset candidate
+            candidate = "";
         } catch (e) {
-            // If parsing fails, continue accumulating in buffer
-            // console.log(e)
-            // continue;
+            // If parsing fails, keep accumulating
+            // do nothing, just continue
         }
     }
 
-    if (buffer.trim() !== "") {
-        console.warn("Unparsed JSON chunk remaining:", buffer);
-    }
-
+    // Whatever remains in candidate is incomplete JSON
+    buffer = candidate;
     return {allResponses, buffer};
-};
-
+}
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -702,12 +709,12 @@ function getInputHandler(inputElement: HTMLElement) {
             const xhr = new XMLHttpRequest();
             let m = inputElement.innerText;
             if (isMainInput) {
-                const ident = renderMessage(inputElement.innerText, 'me', chat);
+                renderMessage(inputElement.innerText, 'me', chat);
 
-                const elem = document.getElementById(ident)!;
-                const inner = elem.querySelector('.inner-message')! as HTMLElement;
+                // const elem = document.getElementById(ident)!;
+                // const inner = elem.querySelector('.inner-message')! as HTMLElement;
                 // noinspection JSUnusedLocalSymbols
-                const parsed = parseMessage(inner.innerText)
+                // const parsed = parseMessage(inner.innerText)
 
                 inputElement.innerText = '';
             }
@@ -734,7 +741,7 @@ function getInputHandler(inputElement: HTMLElement) {
             scrollToBottom()
 
             xhr.open('POST', '/');
-            let index = 0;
+            // let index = 0;
 
             // Current mode (which element to append to)
             let mode = "normal"; // can be: "normal", "think", "codecanvas"
@@ -952,25 +959,42 @@ function getInputHandler(inputElement: HTMLElement) {
             // xhr.onloadstart = function() {
             //     ccindex = 0
             // }
+            // A variable to store how many characters we've processed from the raw response
+            let lastIndex = 0;
+// A buffer string for partial JSON data that hasn't yet formed a valid chunk
+            let chunkBuffer = "";
             // The rest of your XHR logic:
             xhr.onprogress = function () {
                 // console.log('Before ' + ccindex)
+                // 1) Get new data from responseText since the last processed index
+                let newData = xhr.responseText.substring(lastIndex);
+                lastIndex = xhr.responseText.length;
 
-                let allChunks = getAllChunks(xhr.responseText.slice(0));
-                // console.log(allChunks)
+                // 2) Accumulate into our buffer
+                chunkBuffer += newData;
 
-                if (allChunks.allResponses.length > 0) {
-                    let s = JSON.stringify(allChunks.allResponses);
-                    ccindex +=  s.length // enclosing
+                // 3) Try to parse out as many JSON objects as we can
+                const {allResponses, buffer} = getAllChunks(chunkBuffer);// console.log(allChunks)
+
+                if (allResponses.length > 0) {
+                    let s = JSON.stringify(allResponses);
+                    ccindex += s.length // enclosing
 
                     // console.log('after ' + ccindex)
                 }
 
-                while (index < allChunks.allResponses.length) {
-                // for (let index =0; index < allChunks.allResponses.length; index++) {
-                    const chunk = allChunks.allResponses[index];
-                    // console.log(chunk.choices[0].delta.content)
-                    if (chunk) {
+                for (let i = 0; i < allResponses.length; i++) {
+                    const chunk = allResponses[i];
+                    if (!chunk || !chunk.choices) {
+                        continue;
+                    }
+
+                    // 4) For each valid JSON chunk we managed to parse, process it
+                    for (let i = 0; i < allResponses.length; i++) {
+                        const chunk = allResponses[i];
+                        if (!chunk || !chunk.choices) {
+                            continue;
+                        }
                         if (chunk.choices[0].finish_reason === 'stop') {
                             const timings = chunk.timings;
                             let model = chunk.model;
@@ -991,12 +1015,16 @@ function getInputHandler(inputElement: HTMLElement) {
                             for (const elem1 of document.getElementsByClassName('shimmer') as any) {
                                 elem1.classList.remove('shimmer');
                             }
+                            return;
                         } else {
                             onStreamProgress(chunk);
                         }
                     }
+
+                    // 5) Keep any leftover partial JSON in chunkBuffer
+                    //    (which is the ‘buffer’ value returned by getAllChunks)
+                    chunkBuffer = buffer;
                     updateScrollButton();
-                    index++;
                 }
             };
 
@@ -1004,8 +1032,6 @@ function getInputHandler(inputElement: HTMLElement) {
             xhr.addEventListener("error", function (e) {
                 console.log("error: " + e);
             });
-
-            // xhr.onload = function () {}
 
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
@@ -1293,7 +1319,7 @@ function setupEditor() {
     function detectAndSetMode() {
         const content = editor!.state.doc.toString();
 
-        const result = hljs.highlightAuto(content, ["python", "cpp", "javascript", "rust"]);
+        const result = hljs.highlightAuto(content, languageSubset);
         console.log(result)
         // let newMode = 'javascript';
         if (result.language === 'python') {
