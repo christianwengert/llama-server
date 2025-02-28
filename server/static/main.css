@@ -699,12 +699,12 @@ div.menu-collection-link-container:hover .delete-collection-item {
 }
 
 
-/*!*.vote-buttons-div {*!*/
-/*!*    display: flex;*!*/
-/*!*    justify-content: flex-end;*!*/
-/*!*    font-size: 0.8rem;*!*/
-/*!*    width: 80%;*!*/
-/*!*}*!*/
+/*.from-them-buttons-div {*/
+/*    display: flex;*/
+/*    justify-content: flex-end;*/
+/*    font-size: 0.8rem;*/
+/*    width: 80%;*/
+/*}*/
 
 
 #history li {
@@ -1645,4 +1645,49 @@ details[open] > summary::before {
 
 .katex-html {
     display: none;
+}
+.branch-button {
+    display: flex;
+}
+.branch-button > * {
+    display: inline-block;
+}
+.branch-button > span {
+    margin-left: 16px;
+}
+.gg-git-pull {
+  box-sizing: border-box;
+  position: relative;
+  display: block;
+  /*transform: scale(var(--ggs, 1));*/
+  width: 2px;
+  height: 14px;
+  background: currentColor;
+}
+.gg-git-pull::after,
+.gg-git-pull::before {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  position: absolute;
+}
+.gg-git-pull::before {
+  border-right: 2px solid;
+  border-top: 2px solid;
+  border-top-right-radius: 4px;
+  width: 8px;
+  height: 6px;
+  left: 0;
+  top: 2px;
+}
+.gg-git-pull::after {
+  width: 4px;
+  height: 4px;
+  background: currentColor;
+  box-shadow:
+    0 12px 0 0,
+    6px 8px 0 0;
+  border-radius: 100%;
+  left: -1px;
+  top: -1px;
 }

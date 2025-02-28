@@ -92169,6 +92169,7 @@ ${text2}</tr>
         editButtonDiv.appendChild(editLink);
         editLink.addEventListener("click", handleEditAction);
         messageDiv.appendChild(editButtonDiv);
+      } else {
       }
     }
     innerMessageDiv.innerHTML = parseMessage(message);

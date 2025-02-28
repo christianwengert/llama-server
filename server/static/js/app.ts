@@ -285,15 +285,28 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
 
             messageDiv.appendChild(editButtonDiv);
         }
-        // else {
-        // const voteButtonDiv = document.createElement('div');
-        // voteButtonDiv.className = 'edit-button';
-        // const upvoteLink = document.createElement('a');
-        // upvoteLink.href = '/upvote/';
-        // upvoteLink.id = `upvote-${ident}`;
-        // upvoteLink.textContent = '➞';
-        // voteButtonDiv.appendChild(upvoteLink);
-        //
+        else {
+            // const themButtonDiv = document.createElement('div');
+            // themButtonDiv.className = 'edit-button';
+            // const branchLink = document.createElement('a');
+            // branchLink.href = '/branch/';
+            // branchLink.id = `branch-${ident}`;
+            // branchLink.title = 'Branch conversation'
+            // branchLink.classList.add('branch-button')
+            //
+            //
+            // const icon = document.createElement('i')
+            // icon.classList.add('gg-git-pull')
+            // branchLink.appendChild(icon)
+            // const text = document.createElement("span")
+            // branchLink.appendChild(text)
+            // text.textContent = 'Branch'
+            //
+            //
+            // // branchLink.textContent = '➞';
+            // themButtonDiv.appendChild(branchLink);
+            // console.log('adding branch')
+            //
         //
         // const downvoteLink = document.createElement('a');
         // downvoteLink.href = '/downvote/';
@@ -301,13 +314,13 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         // downvoteLink.textContent = '➞';
         // voteButtonDiv.appendChild(downvoteLink);
         //
-        // messageDiv.appendChild(voteButtonDiv);
+        //     messageDiv.appendChild(themButtonDiv);
         //
         // upvoteLink.addEventListener('click', handleUpvoteAction);
         // downvoteLink.addEventListener('click', handleDownvoteAction);
         //
         //
-        // }
+        }
     }
 
     // renderMixedContent(message)
