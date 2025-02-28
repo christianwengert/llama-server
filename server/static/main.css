@@ -1691,3 +1691,12 @@ details[open] > summary::before {
   left: -1px;
   top: -1px;
 }
+
+ul, ol {
+    /*margin-bottom: -20px;*/
+    margin-top: -20px;
+}
+li {
+    margin-left: 16px;
+    margin-bottom: -8px;
+}
