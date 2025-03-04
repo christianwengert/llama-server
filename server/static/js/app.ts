@@ -253,7 +253,7 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     const messageExtra = document.createElement('div')
     messageExtra.className = 'message-header'
     messageDiv.appendChild(messageExtra);
-    messageExtra.innerText = direction === 'me' ? 'You' : 'Assistant';
+    messageExtra.innerText = direction === 'me' ? 'Me' : 'Assistant';
 
     const innerMessageDiv = document.createElement('div');
     innerMessageDiv.className = 'inner-message';
@@ -286,6 +286,9 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
             messageDiv.appendChild(editButtonDiv);
         }
         else {
+            // todo: Branch
+            // todo: Regenerate
+            // todo sidebar button oike in chatgpt?
             // const themButtonDiv = document.createElement('div');
             // themButtonDiv.className = 'edit-button';
             // const branchLink = document.createElement('a');

@@ -1,14 +1,52 @@
-{% extends "base.html" %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/js/app.css">
+    <link rel="stylesheet" href='/static/main.css'/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{name}}{{name2}}</title>
+
+</head>
+<body>
 
 
-
-{% block content %}
-    <div id="login-form-outer">
-        <div>Please login first.</div>
-        <form method="post" id="login-form">
-            <label for="username">Username:</label>
-            <input type="text" name="username" id="username">
-            <button type="submit">Login</button>
-        </form>
+<div class="main-content">
+    <div class="header">
+        <div></div>
+        <div>
+            <a href="/" title="New Chat" id="logo-link"><strong>{{name}}</strong>{{name2}}</a>
+        </div>
     </div>
-{% endblock content %}
+
+    <div class="content">
+        <div class="left-panel">
+
+            <div id="login-form-outer">
+                <!-- <div>Please login first.</div>-->
+                <br><br>
+                <form method="post" id="login-form">
+                    <div style="display: inline-block;">
+                        <label for="username">Username:</label>
+                        <input type="text" name="username" id="username">
+                    </div>
+                    <button type="submit">
+                        <i class="gg-log-in"></i>
+                    </button>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+
+</div>
+
+
+</body>
+</html>
+
+
+
+
+

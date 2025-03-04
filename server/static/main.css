@@ -471,22 +471,34 @@ button:disabled {
 /*}*/
 
 
-/*#login-form {*/
-/*    margin: auto;*/
-/*}*/
+#login-form {
+    margin: auto;
+    display: flex;
+}
+#login-form > button {
+    border: none;
+    background-color: unset;
+    cursor: pointer;
+    margin-left: 12px;
+    height: 24px;
+    display: inline-block;
+    margin-top: 28px;
+}
 
-/*#login-form > input {*/
-/*    text-align: left;*/
-/*}*/
+#login-form input {
+    text-align: left !important;
+    font-size: initial;
+}
 
-/*#login-form-outer {*/
-/*    display: flex;*/
-/*    flex-direction: column;*/
-/*    align-items: center;*/
-/*    justify-content: center;*/
-/*    -webkit-align-items: center;*/
-/*    !*border: 1px solid rebeccapurple;*!*/
-/*}*/
+#login-form-outer {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    -webkit-align-items: center;
+    /*border: 1px solid rebeccapurple;*/
+    margin-top: 100px;
+}
 
 #timing-info {
 /*    overflow: hidden;*/
@@ -586,6 +598,7 @@ a {
 }
 
 #logout-button {
+    color: black;
     margin-left: auto !important;
     margin-right: 0 !important;
 }
@@ -1234,6 +1247,44 @@ input[type="number"]::-webkit-outer-spin-button {
     background: currentColor;
     top: 10px;
     left: 11px;
+}
+
+.gg-log-in {
+  box-sizing: border-box;
+  position: relative;
+  display: block;
+  /*transform: scale(var(--ggs, 1));*/
+  width: 6px;
+  height: 16px;
+  border: 2px solid;
+  border-left: 0;
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+  margin-right: -10px;
+}
+.gg-log-in::after,
+.gg-log-in::before {
+  content: "";
+  display: block;
+  box-sizing: border-box;
+  position: absolute;
+}
+.gg-log-in::after {
+  border-top: 2px solid;
+  border-right: 2px solid;
+  transform: rotate(45deg);
+  width: 8px;
+  height: 8px;
+  left: -8px;
+  bottom: 2px;
+}
+.gg-log-in::before {
+  border-radius: 3px;
+  width: 10px;
+  height: 2px;
+  background: currentColor;
+  left: -11px;
+  bottom: 5px;
 }
 
 .gg-log-out::after {

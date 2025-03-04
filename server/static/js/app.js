@@ -92145,7 +92145,7 @@ ${text2}</tr>
     const messageExtra = document.createElement("div");
     messageExtra.className = "message-header";
     messageDiv.appendChild(messageExtra);
-    messageExtra.innerText = direction === "me" ? "You" : "Assistant";
+    messageExtra.innerText = direction === "me" ? "Me" : "Assistant";
     const innerMessageDiv = document.createElement("div");
     innerMessageDiv.className = "inner-message";
     if (innerMessageExtraClass) {
