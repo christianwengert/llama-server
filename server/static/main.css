@@ -462,13 +462,13 @@ button:disabled {
     bottom: 4px;
 }
 
-/*.input-box:focus,*/
-/*input:focus,*/
-/*select:focus,*/
-/*textarea:focus,*/
-/*button:focus {*/
-/*    outline: none;*/
-/*}*/
+.input-box:focus,
+input:focus,
+select:focus,
+textarea:focus,
+button:focus {
+    outline: none;
+}
 
 
 #login-form {
