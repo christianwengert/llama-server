@@ -92831,6 +92831,17 @@ ${text2}</tr>
       }
     });
   };
+  var updateHeaderAndContentWidth = () => {
+    const sidebar = document.querySelector(".sidebar");
+    const header = document.querySelector(".header");
+    const content2 = document.querySelector(".content");
+    const w = sidebar.style.width;
+    console.log(w);
+    const sidebarWidth = "300px";
+    const maxWidth = sidebar.classList.contains("hidden") ? "100vw" : `calc(100vw - ${sidebarWidth})`;
+    content2.style.width = maxWidth;
+    header.style.width = maxWidth;
+  };
   var toggleRightPanel = (force) => {
     const rightPanel = document.querySelector(".right-panel");
     const sidebar = document.querySelector(".sidebar");
@@ -92841,6 +92852,7 @@ ${text2}</tr>
       rightPanel.style.display = "none";
       sidebar.classList.remove("hidden");
     }
+    updateHeaderAndContentWidth();
   };
   var toggleSidebar = (force) => {
     const sidebar = document.querySelector(".sidebar");
@@ -92849,18 +92861,19 @@ ${text2}</tr>
     } else {
       sidebar.classList.toggle("hidden");
     }
-    let content2 = document.querySelector(".content");
-    content2.style.maxWidth = sidebar.classList.contains("hidden") ? "100vw" : "calc(100vw - 250px)";
+    updateHeaderAndContentWidth();
   };
   function setupEditor() {
     const initialText = "";
     const targetElement = document.querySelector("#editor");
     let language2 = new Compartment();
+    const softwrap = new Compartment();
     editor = new EditorView({
       doc: initialText,
       extensions: [
         basicSetup,
         lineNumbers(),
+        softwrap.of([]),
         highlightActiveLineGutter(),
         highlightSpecialChars(),
         // history(),
@@ -92892,6 +92905,21 @@ ${text2}</tr>
         language2.of(python())
       ],
       parent: targetElement
+    });
+    const button = document.createElement("button");
+    button.id = "linewrap-toggler";
+    button.innerText = "Line Wrapping: Off";
+    const rightPanel = document.querySelector(".right-panel");
+    rightPanel.insertAdjacentElement("afterbegin", button);
+    let wrapping = false;
+    button.addEventListener("click", () => {
+      wrapping = !wrapping;
+      button.innerText = `Line Wrapping: ${wrapping ? "On" : "Off"}`;
+      editor.dispatch({
+        effects: [softwrap.reconfigure(
+          wrapping ? EditorView.lineWrapping : []
+        )]
+      });
     });
     editor.dom.addEventListener("input", debounce(detectAndSetMode, 500));
     function detectAndSetMode() {

@@ -410,6 +410,27 @@ def get_input():
     post_data = get_llama_default_parameters(data)
     url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
     post_data['messages'] = messages
+    # post_data['stream'] = False
+    # post_data.pop('grammar')
+    # post_data['tools'] = [
+    #     {
+    #     "type":"function",
+    #     "function":{
+    #         "name":"python",
+    #         "description":"Runs code in an ipython interpreter and returns the result of the execution after 60 seconds.",
+    #         "parameters":{
+    #         "type":"object",
+    #         "properties":{
+    #             "code":{
+    #             "type":"string",
+    #             "description":"The code to run in the ipython interpreter."
+    #             }
+    #         },
+    #         "required":["code"]
+    #         }
+    #     }
+    #     }
+    # ]
 
     def generate():
         data = requests.request(method="POST",

@@ -1252,21 +1252,31 @@ const setupCollectionDeletion = () => {
     });
 };
 
+const updateHeaderAndContentWidth = () => {
+    const sidebar = document.querySelector('.sidebar') as HTMLElement;
+    const header = document.querySelector('.header') as HTMLElement;
+    const content = document.querySelector('.content') as HTMLElement;
+    const w = sidebar.style.width;
+    console.log(w)
+
+    const sidebarWidth = "300px"
+    const maxWidth = sidebar.classList.contains("hidden") ? "100vw" : `calc(100vw - ${sidebarWidth})`;
+    content.style.width = maxWidth
+    header.style.width = maxWidth
+}
 
 const toggleRightPanel = (force?: boolean | undefined) => {
     const rightPanel = document.querySelector('.right-panel') as HTMLElement;
-    // const leftPanel = document.querySelector('.left-panel') as HTMLElement;
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
 
     if (rightPanel.style.display === 'none' || rightPanel.style.display === '' || force) {
         rightPanel.style.display = 'block';
-        // leftPanel.style.flexBasis = '33%';
         sidebar.classList.add('hidden');
     } else {
         rightPanel.style.display = 'none';
-        // leftPanel.style.flexBasis = '100%';
         sidebar.classList.remove('hidden');
     }
+    updateHeaderAndContentWidth()
 };
 
 const toggleSidebar = (force?: boolean) => {
@@ -1277,13 +1287,7 @@ const toggleSidebar = (force?: boolean) => {
     } else {
         sidebar.classList.toggle('hidden');
     }
-
-    let content = document.querySelector(".content") as HTMLElement;
-    content.style.maxWidth =
-        sidebar.classList.contains("hidden")
-        ? "100vw"
-        : "calc(100vw - 250px)";
-
+    updateHeaderAndContentWidth()
 };
 
 function setupEditor() {
@@ -1291,12 +1295,16 @@ function setupEditor() {
     const targetElement = document.querySelector('#editor')!
     let language = new Compartment;
 
+    const softwrap = new Compartment();
+
+
     editor = new EditorView({
         doc: initialText,
 
         extensions: [
             basicSetup,
             lineNumbers(),
+            softwrap.of([]),
             highlightActiveLineGutter(),
             highlightSpecialChars(),
             // history(),
@@ -1330,6 +1338,26 @@ function setupEditor() {
         ],
         parent: targetElement,
     })
+
+
+    const button = document.createElement('button');
+    button.id = 'linewrap-toggler'
+    button.innerText = "Line Wrapping: Off";
+    const rightPanel = document.querySelector('.right-panel')
+    rightPanel!.insertAdjacentElement('afterbegin', button);
+
+    let wrapping = false;
+    button.addEventListener('click', () => {
+      wrapping = !wrapping;
+      button.innerText = `Line Wrapping: ${wrapping ? 'On' : 'Off'}`;
+
+      editor!.dispatch({
+        effects: [softwrap.reconfigure(
+          wrapping ? EditorView.lineWrapping : []
+        )]
+      });
+    })
+
     editor.dom.addEventListener('input', debounce(detectAndSetMode, 500));
 
     function detectAndSetMode() {
