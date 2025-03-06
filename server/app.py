@@ -40,7 +40,6 @@ while True:
         continue
 
 
-# SEPARATOR = '~~~~'
 LOADED_EMBEDDINGS = {}
 CACHE_DIR = 'cache'
 if not os.path.exists(CACHE_DIR):
@@ -174,8 +173,6 @@ def c(token):
     data = session.get('params', None)
     if not data:
         data = get_llama_parameters()
-    # if isinstance(data['stop'], list):
-    #     data['stop'] = ','.join(data['stop'])
 
     username = session.get('username')
     collections = get_available_collections(username)
@@ -445,9 +442,7 @@ def get_input():
                 response = decoded_line[6:]
                 if response != '[DONE]':
                     responses.append(response)
-                    # logging.error(json.loads(response)['choices'][0]['delta'])
-                    # print()
-                    yield response  # + SEPARATOR
+                    yield response
 
         output = "".join([json.loads(a)['choices'][0]['delta'].get('content', '') for a in responses if 'embedding' not in a]).strip()
         hist['items'].append(dict(role=USER, content=text))

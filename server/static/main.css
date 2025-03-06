@@ -517,6 +517,7 @@ a {
 
 li:hover .delete-history-item {
     visibility: visible; /* Show the button when the li element is hovered */
+    position: relative;
 }
 
 
