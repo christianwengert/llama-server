@@ -167,7 +167,7 @@ const blockCodeRenderer: any = {
 
 
 // Strips the outer LaTeX delimiters from a match so KaTeX sees only the contents.
-function stripMathDelimiters(latex: string): string {
+const stripMathDelimiters = (latex: string): string => {
     // block $$...$$
     if (/^\${2}[\s\S]*?\${2}$/.test(latex)) {
         return latex.slice(2, -2).trim()
@@ -186,9 +186,9 @@ function stripMathDelimiters(latex: string): string {
         return latex.slice(1, -1).trim()
     }
     return latex
-}
+};
 
-export function parseMessage(text: string): string {
+export const parseMessage = (text: string): string => {
     // 1) Regex to find *all* LaTeX forms: block or inline
     //    $$...$$, \[...\], \(...\), $...$
     // We do placeholders so Marked never sees actual LaTeX.
@@ -240,7 +240,7 @@ export function parseMessage(text: string): string {
     })
 
     return finalHtml
-}
+};
 
 
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement, innerMessageExtraClass?: string, renderButtons: boolean = true): string => {
@@ -329,10 +329,7 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     // renderMixedContent(message)
     innerMessageDiv.innerHTML = parseMessage(message);
     chat.appendChild(messageDiv);
-    // Apply Highlight.js after rendering
-    // messageDiv.querySelectorAll("pre code").forEach((block) => {
-    //     hljs.highlightElement(block as HTMLElement);
-    // });
+
     return ident;
 };
 
@@ -582,7 +579,7 @@ const loadHistory = () => {
 
             const lastMatch = findLastCodeCanvasBlock(msg.content)
             if (editor && lastMatch) {
-                console.log(lastMatch)
+                // console.log(lastMatch)
                 let transaction = editor.state.update({
                     changes: {from: 0, to: editor.state.doc.length, insert: lastMatch}
                 });
@@ -634,6 +631,20 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
 };
 
 
+const removeLinesAfter = (editor: EditorView, lineNumber: number) => {
+    let state = editor.state;
+    let line = state.doc.line(lineNumber);
+    if (lineNumber >= state.doc.lines) return;
+
+    let from = line.from;  // Start of the next line
+    let to = state.doc.length; // End of the document
+
+    editor.dispatch({
+        changes: { from, to, insert: "" }
+    });
+};
+
+
 const setClipboardHandler = () => {
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
@@ -665,7 +676,7 @@ const couldStartMarker = (t: string) => {
     return t.includes('<');
 };
 
-function getAllChunks(input: string) {
+const getAllChunks = (input: string) => {
     let allResponses = [];
     let buffer: string;
     let candidate = "";
@@ -689,7 +700,24 @@ function getAllChunks(input: string) {
     // Whatever remains in candidate is incomplete JSON
     buffer = candidate;
     return {allResponses, buffer};
-}
+};
+
+const stripEnding = (rollingBuffer: Array<string>, endingToRemove: string): Array<string> => {
+    let joined = rollingBuffer.join("");
+    if (!joined.replace(/\s+/g, "").endsWith(endingToRemove)) return rollingBuffer;
+
+    let cleaned = joined.slice(0, -endingToRemove.length);
+
+    let newArray: Array<string> = [];
+    let index = 0;
+    for (let part of rollingBuffer) {
+        if (cleaned.startsWith(part, index)) {
+            newArray.push(part);
+            index += part.length;
+        }
+    }
+    return newArray;
+};
 
 
 function getInputHandler(inputElement: HTMLElement) {
@@ -793,13 +821,24 @@ function getInputHandler(inputElement: HTMLElement) {
 
                 // Helper that checks if the tail of rollingBuffer forms joinedString ignoring whitespace.
                 function endsWithJoined(joinedString: string) {
-                    let combined = rollingBuffer.join("").replace(/\s+/g, "");
+                    let withWhiteSpace = rollingBuffer.join("")
+                    let combined = withWhiteSpace.replace(/\s+/g, "");  // strange the replace seems necessary
                     if (combined.endsWith(joinedString)) {
 
-                        pushToFlushList(combined.slice(0, combined.length - joinedString.length))
+                        // let resulting = withWhiteSpace.slice(0, withWhiteSpace.length - joinedString.length)
+                        // if(resulting) {
+                        //     for(const line of resulting.split('\n')) {
+                        //         pushToFlushList(line)
+                        //     }
+                        //
+                        // }
+                        // for(const token of rollingBuffer) {
+                        //     pushToFlushList(token)
+                        // }
+                        // pushToFlushList()
 
 
-                        rollingBuffer = []; // Clear buffer since we've found the match
+                        // rollingBuffer = []; // Clear buffer since we've found the match
                         return true;
                     }
                     return false;
@@ -832,18 +871,28 @@ function getInputHandler(inputElement: HTMLElement) {
                 if (mode === "codecanvas") {
 
                     // If single token = '</codecanvas>', switch mode, do not flush marker.
-                    if (token === "</codecanvas>") {
-                        mode = "normal";
-                        flushList.push({element: "codecanvas", token: "\n"});
-                        return flushList;
-                    }
+                    // if (token === "</codecanvas>") {
+                    //     mode = "normal";
+                    //     flushList.push({element: "codecanvas", token: "\n"});
+                    //     return flushList;
+                    // }
                     // Otherwise, accumulate token and check for multi-token marker
                     rollingBuffer.push(token);
 
                     if (endsWithJoined("</codecanvas>")) {
+                        let lines = rollingBuffer.join("").split('\n')
+                        for (const line of lines) {
+                            if(line.trim() === '</codecanvas>') {
+                                continue
+                            }
+                            pushToFlushList(line)
+                            pushToFlushList('\n')
+                        }
+
                         // if we matched it in rollingBuffer, remove it and switch mode.
                         mode = "normal";
-                        flushList.push({element: "codecanvas", token: "\n"});
+                        pushToFlushList("</codecanvas>")
+                        // flushList.push({element: "codecanvas", token: "\n"});
                         return flushList;
                     }
 
@@ -884,20 +933,22 @@ function getInputHandler(inputElement: HTMLElement) {
                     textField = p;
                     return flushList;
                 }
-                if (token === "<codecanvas>") {
-                    mode = "codecanvas";
-                    return flushList;
-                }
+                // if (token === "<codecanvas>") {
+                //     mode = "codecanvas";
+                //     return flushList;
+                // }
 
                 // push the token into rollingBuffer and check for <think> or <codecanvas>
                 rollingBuffer.push(token);
 
-                if (endsWithJoined("<think>")) {
-                    mode = "think";
-                    return flushList;
-                }
+                // if (endsWithJoined("<think>")) {
+                //     mode = "think";
+                //     return flushList;
+                // }
                 if (endsWithJoined("<codecanvas>")) {
+                    pushToFlushList("<codecanvas>")
                     mode = "codecanvas";
+                    rollingBuffer = [];
                     return flushList;
                 }
 
@@ -929,13 +980,20 @@ function getInputHandler(inputElement: HTMLElement) {
                     textField.textContent += token;
                 } else if (element === 'codecanvas') {
                     newCode += token;
-                    if (token.endsWith('\n')) {
-                        replaceLine(editor!, lineNumber, newCode.slice(0, -1))
-                        lineNumber++;
-                        newCode = "";  // reset
+                    if(newCode.replace(/\s+/g, "") == '</codecanvas>') {
+                        newCode = "";  // dont output
+                        // ignore this token
+
+                    } else { // todo: This is ugly
+
+                        if (token.endsWith('\n')) {
+                            replaceLine(editor!, lineNumber, newCode.slice(0, -1))
+                            lineNumber++;
+                            newCode = "";  // reset
+                        }
                     }
                 } else {
-                    console.log('Do not know where to place ' + element + " with token " + token)
+                    console.warn('Do not know where to place ' + element + " with token " + token)
                 }
                 if (element)
                     flushNext();
@@ -970,7 +1028,7 @@ function getInputHandler(inputElement: HTMLElement) {
             // }
             // A variable to store how many characters we've processed from the raw response
             let lastIndex = 0;
-// A buffer string for partial JSON data that hasn't yet formed a valid chunk
+            // A buffer string for partial JSON data that hasn't yet formed a valid chunk
             let chunkBuffer = "";
             // The rest of your XHR logic:
             xhr.onprogress = function () {
@@ -1024,6 +1082,11 @@ function getInputHandler(inputElement: HTMLElement) {
                             for (const elem1 of document.getElementsByClassName('shimmer') as any) {
                                 elem1.classList.remove('shimmer');
                             }
+                            //
+                            if(editor && lineNumber < editor.state.doc.lines) {
+                                removeLinesAfter(editor, lineNumber)
+                            }
+                            console.log(editor, lineNumber)
                             return;
                         } else {
                             onStreamProgress(chunk);
@@ -1256,8 +1319,6 @@ const updateHeaderAndContentWidth = () => {
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
     const header = document.querySelector('.header') as HTMLElement;
     const content = document.querySelector('.content') as HTMLElement;
-    const w = sidebar.style.width;
-    console.log(w)
 
     const sidebarWidth = "300px"
     const maxWidth = sidebar.classList.contains("hidden") ? "100vw" : `calc(100vw - ${sidebarWidth})`;

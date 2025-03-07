@@ -75,7 +75,7 @@ def login_required(f):
 
 @app.route('/logout', methods=['GET'])
 def logout():
-    session.pop('username')
+    session.pop('username', None)
     return redirect(url_for('login'))
 
 

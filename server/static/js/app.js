@@ -92091,7 +92091,7 @@ ${text2}</tr>
     //   return `<code class="hljs">${escapeHtml(code)}</code>`
     // }
   };
-  function stripMathDelimiters(latex) {
+  var stripMathDelimiters = (latex) => {
     if (/^\${2}[\s\S]*?\${2}$/.test(latex)) {
       return latex.slice(2, -2).trim();
     }
@@ -92105,8 +92105,8 @@ ${text2}</tr>
       return latex.slice(1, -1).trim();
     }
     return latex;
-  }
-  function parseMessage(text2) {
+  };
+  var parseMessage = (text2) => {
     const mathRegex = /(\${2}[\s\S]*?\${2}|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[\s\S]*?\$)/g;
     const rawMath = [];
     let match;
@@ -92136,7 +92136,7 @@ ${text2}</tr>
       finalHtml = finalHtml.replace(placeholder, rendered);
     });
     return finalHtml;
-  }
+  };
   var renderMessage = (message, direction, chat, innerMessageExtraClass, renderButtons = true) => {
     const ident = (Math.random() + 1).toString(36).substring(2);
     const messageDiv = document.createElement("div");
@@ -92362,7 +92362,6 @@ ${text2}</tr>
         renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
         const lastMatch = findLastCodeCanvasBlock(msg.content);
         if (editor && lastMatch) {
-          console.log(lastMatch);
           let transaction = editor.state.update({
             changes: { from: 0, to: editor.state.doc.length, insert: lastMatch }
           });
@@ -92402,6 +92401,17 @@ ${text2}</tr>
       parentElement.removeChild(parentElement.lastChild);
     }
   };
+  var removeLinesAfter = (editor2, lineNumber) => {
+    let state = editor2.state;
+    let line = state.doc.line(lineNumber);
+    if (lineNumber >= state.doc.lines)
+      return;
+    let from = line.from;
+    let to = state.doc.length;
+    editor2.dispatch({
+      changes: { from, to, insert: "" }
+    });
+  };
   var setClipboardHandler = () => {
     document.addEventListener("click", (event) => {
       const target = event.target;
@@ -92422,7 +92432,7 @@ ${text2}</tr>
   var couldStartMarker = (t2) => {
     return t2.includes("<");
   };
-  function getAllChunks(input) {
+  var getAllChunks = (input) => {
     let allResponses = [];
     let buffer;
     let candidate = "";
@@ -92437,7 +92447,7 @@ ${text2}</tr>
     }
     buffer = candidate;
     return { allResponses, buffer };
-  }
+  };
   function getInputHandler(inputElement) {
     const mainInput = document.getElementById("input-box");
     let isMainInput = inputElement === mainInput;
@@ -92504,10 +92514,9 @@ ${text2}</tr>
             flushList.push({ element, token: t2 });
           }
           function endsWithJoined(joinedString) {
-            let combined = rollingBuffer.join("").replace(/\s+/g, "");
+            let withWhiteSpace = rollingBuffer.join("");
+            let combined = withWhiteSpace.replace(/\s+/g, "");
             if (combined.endsWith(joinedString)) {
-              pushToFlushList(combined.slice(0, combined.length - joinedString.length));
-              rollingBuffer = [];
               return true;
             }
             return false;
@@ -92528,14 +92537,18 @@ ${text2}</tr>
             return flushList;
           }
           if (mode === "codecanvas") {
-            if (token === "</codecanvas>") {
-              mode = "normal";
-              flushList.push({ element: "codecanvas", token: "\n" });
-              return flushList;
-            }
             rollingBuffer.push(token);
             if (endsWithJoined("</codecanvas>")) {
+              let lines = rollingBuffer.join("").split("\n");
+              for (const line of lines) {
+                if (line.trim() === "</codecanvas>") {
+                  continue;
+                }
+                pushToFlushList(line);
+                pushToFlushList("\n");
+              }
               mode = "normal";
+              pushToFlushList("</codecanvas>");
               flushList.push({ element: "codecanvas", token: "\n" });
               return flushList;
             }
@@ -92569,17 +92582,11 @@ ${text2}</tr>
             textField = p;
             return flushList;
           }
-          if (token === "<codecanvas>") {
-            mode = "codecanvas";
-            return flushList;
-          }
           rollingBuffer.push(token);
-          if (endsWithJoined("<think>")) {
-            mode = "think";
-            return flushList;
-          }
           if (endsWithJoined("<codecanvas>")) {
+            pushToFlushList("<codecanvas>");
             mode = "codecanvas";
+            rollingBuffer = [];
             return flushList;
           }
           while (rollingBuffer.length > 0) {
@@ -92602,13 +92609,17 @@ ${text2}</tr>
             textField.textContent += token;
           } else if (element === "codecanvas") {
             newCode += token;
-            if (token.endsWith("\n")) {
-              replaceLine(editor, lineNumber, newCode.slice(0, -1));
-              lineNumber++;
+            if (newCode.replace(/\s+/g, "") == "</codecanvas>") {
               newCode = "";
+            } else {
+              if (token.endsWith("\n")) {
+                replaceLine(editor, lineNumber, newCode.slice(0, -1));
+                lineNumber++;
+                newCode = "";
+              }
             }
           } else {
-            console.log("Do not know where to place " + element + " with token " + token);
+            console.warn("Do not know where to place " + element + " with token " + token);
           }
           if (element)
             flushNext();
@@ -92665,6 +92676,10 @@ ${text2}</tr>
                 for (const elem1 of document.getElementsByClassName("shimmer")) {
                   elem1.classList.remove("shimmer");
                 }
+                if (editor && lineNumber < editor.state.doc.lines) {
+                  removeLinesAfter(editor, lineNumber);
+                }
+                console.log(editor, lineNumber);
                 return;
               } else {
                 onStreamProgress(chunk2);
@@ -92835,8 +92850,6 @@ ${text2}</tr>
     const sidebar = document.querySelector(".sidebar");
     const header = document.querySelector(".header");
     const content2 = document.querySelector(".content");
-    const w = sidebar.style.width;
-    console.log(w);
     const sidebarWidth = "300px";
     const maxWidth = sidebar.classList.contains("hidden") ? "100vw" : `calc(100vw - ${sidebarWidth})`;
     content2.style.width = maxWidth;
