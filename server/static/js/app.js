@@ -92025,6 +92025,7 @@ ${text2}</tr>
 
   // server/static/js/app.ts
   document.documentElement.style.setProperty("--katex-font", "serif");
+  var languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
   var editor = null;
   var canvasEnabled = true;
   var scrollToBottom = () => {
@@ -92067,7 +92068,6 @@ ${text2}</tr>
     selection.addRange(range);
     inner2.addEventListener("keypress", getInputHandler(inner2));
   };
-  var languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
   var blockCodeRenderer = {
     code(code, infostring) {
       let lang = infostring?.trim() || "";
@@ -92086,10 +92086,6 @@ ${text2}</tr>
   <div class="copy" onclick="">Copy</div>
 </div><pre><code class="hljs language-${lang}">${highlighted}</code></pre>`;
     }
-    // For inline backticks
-    // codespan(code: string) {
-    //   return `<code class="hljs">${escapeHtml(code)}</code>`
-    // }
   };
   var stripMathDelimiters = (latex) => {
     if (/^\${2}[\s\S]*?\${2}$/.test(latex)) {
@@ -92107,6 +92103,24 @@ ${text2}</tr>
     return latex;
   };
   var parseMessage = (text2) => {
+    function preprocessMessage(text3) {
+      const placeholders2 = /* @__PURE__ */ new Map();
+      let counter = 0;
+      const processed2 = text3.replace(/<codecanvas>[\s\S]*?<\/codecanvas>/g, (match2) => {
+        const placeholder = `@@CODECANVAS_${counter}@@`;
+        placeholders2.set(placeholder, match2);
+        counter++;
+        return placeholder;
+      });
+      return { processed: processed2, placeholders: placeholders2 };
+    }
+    function postprocessMessage(parsedText, placeholders2) {
+      let result = parsedText;
+      placeholders2.forEach((original, placeholder) => {
+        result = result.replace(placeholder, original);
+      });
+      return result;
+    }
     const mathRegex = /(\${2}[\s\S]*?\${2}|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[\s\S]*?\$)/g;
     const rawMath = [];
     let match;
@@ -92119,7 +92133,9 @@ ${text2}</tr>
       placeholderText = placeholderText.replace(m, placeholder);
     });
     marked.use({ renderer: blockCodeRenderer });
-    let finalHtml = marked.parse(placeholderText);
+    const { processed, placeholders } = preprocessMessage(placeholderText);
+    let finalHtml = marked.parse(processed);
+    finalHtml = postprocessMessage(finalHtml, placeholders);
     rawMath.forEach((latex, i) => {
       const placeholder = `@@MATH_${i}@@`;
       const isBlock = /^\${2}[\s\S]*?\${2}$/.test(latex) || /^\\\[[\s\S]*?\\\]$/.test(latex);
@@ -92156,7 +92172,6 @@ ${text2}</tr>
     if (match) {
       message = match[2];
     }
-    innerMessageDiv.innerText = message.trim();
     messageDiv.appendChild(innerMessageDiv);
     if (renderButtons) {
       if (direction === "me") {
@@ -92273,6 +92288,10 @@ ${text2}</tr>
       eventHandler();
     }
   };
+  function endsWithJoined(rollingBuffer, joinedString) {
+    let combined = rollingBuffer.join("").replace(/\s+/g, "");
+    return combined.endsWith(joinedString);
+  }
   var replaceLine = (view, lineNumber, newText) => {
     let state = view.state;
     let line;
@@ -92513,24 +92532,12 @@ ${text2}</tr>
             }
             flushList.push({ element, token: t2 });
           }
-          function endsWithJoined(joinedString) {
-            let withWhiteSpace = rollingBuffer.join("");
-            let combined = withWhiteSpace.replace(/\s+/g, "");
-            if (combined.endsWith(joinedString)) {
-              return true;
-            }
-            return false;
-          }
           if (mode === "think") {
             if (token === "</think>") {
               mode = "normal";
               return flushList;
             }
             rollingBuffer.push(token);
-            if (endsWithJoined("</think>")) {
-              mode = "normal";
-              return flushList;
-            }
             while (rollingBuffer.length > 0) {
               pushToFlushList(rollingBuffer.shift());
             }
@@ -92538,7 +92545,7 @@ ${text2}</tr>
           }
           if (mode === "codecanvas") {
             rollingBuffer.push(token);
-            if (endsWithJoined("</codecanvas>")) {
+            if (endsWithJoined(rollingBuffer, "</codecanvas>")) {
               let lines = rollingBuffer.join("").split("\n");
               for (const line of lines) {
                 if (line.trim() === "</codecanvas>") {
@@ -92548,8 +92555,7 @@ ${text2}</tr>
                 pushToFlushList("\n");
               }
               mode = "normal";
-              pushToFlushList("</codecanvas>");
-              flushList.push({ element: "codecanvas", token: "\n" });
+              pushToFlushList("\n</codecanvas>\n");
               return flushList;
             }
             while (rollingBuffer.length > 0) {
@@ -92583,8 +92589,8 @@ ${text2}</tr>
             return flushList;
           }
           rollingBuffer.push(token);
-          if (endsWithJoined("<codecanvas>")) {
-            pushToFlushList("<codecanvas>");
+          if (endsWithJoined(rollingBuffer, "<codecanvas>")) {
+            pushToFlushList("\n<codecanvas>\n");
             mode = "codecanvas";
             rollingBuffer = [];
             return flushList;
@@ -92950,13 +92956,16 @@ ${text2}</tr>
       }
     }
   }
-  var main2 = () => {
+  function setupSidebarAndEditorToggle() {
     document.getElementById("sidebar-toggler").addEventListener("click", () => {
       toggleSidebar();
     });
     document.getElementById("right-panel-toggler").addEventListener("click", () => {
       toggleRightPanel();
     });
+  }
+  var main2 = () => {
+    setupSidebarAndEditorToggle();
     setupResetSettingsButton();
     setupScrollButton();
     setupUploadButton();

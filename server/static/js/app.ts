@@ -39,25 +39,26 @@ import {marked} from "marked";
 
 document.documentElement.style.setProperty("--katex-font", "serif");
 
+const languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
+
+interface CodeBlock {
+    lang: string
+    raw: string
+    text: string
+    type: string
+}
+
 
 let editor: EditorView | null = null;
 let canvasEnabled = true;
 
+// just scroll to the bottom of the chat window
 const scrollToBottom = () => {
     let messages = document.getElementById("chat")!
     messages.scrollTo(0, messages.scrollHeight);
 }
 
-
-// function escapeHtml(str: string): string {
-//   return str
-//     .replace(/&/g, '&amp;')
-//     .replace(/</g, '&lt;')
-//     .replace(/>/g, '&gt;')
-//     .replace(/"/g, '&quot;')
-//     .replace(/'/g, '&#039;')
-// }
-
+// extract settings parameters from settings form as JSON
 const getFormDataAsJSON = (formId: string): Record<string, string | number | boolean> => {
     const form = document.getElementById(formId) as HTMLFormElement;
     const formData: Record<string, string | number | boolean> = {};
@@ -80,13 +81,13 @@ const getFormDataAsJSON = (formId: string): Record<string, string | number | boo
     return formData;
 };
 
-
+// Simple rounding function (for tokens/s)
 const round = (originalNumber: number, digits: number) => {
     const t = 10 ** digits;
     return Math.round(originalNumber * t) / t;
 }
 
-
+// Allow editing a former from-me message
 const handleEditAction = (e: MouseEvent) => {
     e.preventDefault()
     const target = e.target! as HTMLElement;
@@ -123,24 +124,17 @@ const handleEditAction = (e: MouseEvent) => {
 //     e.preventDefault();
 //     handleVoteAction(e, 'down')
 // };
-const languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
 
-interface CodeBlock {
-    lang: string
-    raw: string
-    text: string
-    type: string
-}
 
-// Below is a consolidated final approach that:
-// 1) Does *only* placeholders for LaTeX (inline/block) so Marked never sees the raw LaTeX.
-// 2) Then uses Marked for normal Markdown (including code blocks),
-// 3) Re-injects KaTeX for placeholders at the end,
-// 4) Avoids any math extension in Marked.
-// 5) Also, ensures highlight.js sees only code strings.
-// Make sure you remove or disable any other math extension or plugin that might parse LaTeX.
-
-// Example code renderer for Marked:
+/**
+  * Code renderer for Marked (Markdown, code, latex):
+  * 1) Does *only* placeholders for LaTeX (inline/block) so Marked never sees the raw LaTeX.
+  * 2) Then uses Marked for normal Markdown (including code blocks),
+  * 3) Re-injects KaTeX for placeholders at the end,
+  * 4) Avoids any math extension in Marked.
+  * 5) Also, ensures highlight.js sees only code strings.
+  * Make sure you remove or disable any other math extension or plugin that might parse LaTeX.
+  */
 const blockCodeRenderer: any = {
     code(code: CodeBlock, infostring: string) {
         let lang = infostring?.trim() || ''
@@ -158,11 +152,7 @@ const blockCodeRenderer: any = {
             lang = autoResult.language || ''
         }
         return `\n<div class="code-header">\n  <div class="language">${lang}</div>\n  <div class="copy" onclick="">Copy</div>\n</div><pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
-    },
-    // For inline backticks
-    // codespan(code: string) {
-    //   return `<code class="hljs">${escapeHtml(code)}</code>`
-    // }
+    }
 }
 
 
@@ -188,10 +178,49 @@ const stripMathDelimiters = (latex: string): string => {
     return latex
 };
 
-export const parseMessage = (text: string): string => {
+
+// const customTokenizer: any = {
+//     paragraph(src: string) {
+//         const match = src.match(/^<codecanvas>[\s\S]*?<\/codecanvas>/)
+//         if (match) {
+//             return {
+//                 type: 'html',
+//                 raw: match[0],
+//                 text: match[0],
+//                 tokens: []
+//             }
+//         }
+//     }
+// }
+
+// parses a message and renders cocde, markdown and latex
+const parseMessage = (text: string): string => {
     // 1) Regex to find *all* LaTeX forms: block or inline
     //    $$...$$, \[...\], \(...\), $...$
-    // We do placeholders so Marked never sees actual LaTeX.
+    // We do placeholders so Marked never sees actual LaTeX., same for codecanvas
+
+    // function preprocessMessage(text: string): { processed: string, placeholders: Map<string, string> } {
+    function preprocessMessage(text: string): { processed: string, placeholders: Map<string, string> } {
+        const placeholders = new Map();
+        let counter = 0;
+
+        const processed = text.replace(/<codecanvas>[\s\S]*?<\/codecanvas>/g, match => {
+            const placeholder = `@@CODECANVAS_${counter}@@`;
+            placeholders.set(placeholder, match);
+            counter++;
+            return placeholder;
+        });
+
+        return { processed, placeholders };
+    }
+
+    function postprocessMessage(parsedText: string, placeholders: Map<string, string>): string {
+        let result = parsedText;
+        placeholders.forEach((original, placeholder) => {
+            result = result.replace(placeholder, original);
+        });
+        return result;
+    }
     // noinspection RegExpRedundantEscape
     const mathRegex = /(\${2}[\s\S]*?\${2}|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[\s\S]*?\$)/g
 
@@ -208,13 +237,21 @@ export const parseMessage = (text: string): string => {
         placeholderText = placeholderText.replace(m, placeholder)
     })
 
+
+
     // 3) Parse placeholderText with Marked for normal markdown
     // marked.setOptions({mangle: false, smartypants: false})
     marked.use({renderer: blockCodeRenderer})
 
     // Ensure no math extension is used. The below is all we do.
     // 4) Re-inject KaTeX for each placeholder
-    let finalHtml = marked.parse(placeholderText) as string
+    const { processed, placeholders } = preprocessMessage(placeholderText)
+    let finalHtml = marked.parse(processed) as string
+    finalHtml = postprocessMessage(finalHtml, placeholders);
+
+    // finalHtml = postprocessMessage(finalHtml, placeholders)
+    // finalHtml.replaceAll('<ins>', '<codecanvas>')
+    // finalHtml.replaceAll('</ins>', '</codecanvas>')
     rawMath.forEach((latex, i) => {
         const placeholder = `@@MATH_${i}@@`
         // Decide block vs. inline
@@ -242,7 +279,7 @@ export const parseMessage = (text: string): string => {
     return finalHtml
 };
 
-
+// creates a new from-me or from-them message and inserts the necessary html
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement, innerMessageExtraClass?: string, renderButtons: boolean = true): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
     // let thought = "";
@@ -261,14 +298,15 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         innerMessageDiv.classList.add(innerMessageExtraClass)
     }
 
-    // if we have a <think></think> remove it
+    // if we have a <think></think> remove it, note: This is also done on server side. Here it would
+    // just hide the think block. If we remove it on the server it will be removed from the context
     const regex = /<think>([\s\S]*?)<\/think>([\s\S]*)/;
     const match = message.match(regex);
     if (match) {
         // thought = match[1]
         message = match[2];
     }
-    innerMessageDiv.innerText = message.trim();
+    // innerMessageDiv.innerHtml = message.trim();
 
     messageDiv.appendChild(innerMessageDiv);
     if (renderButtons) {
@@ -333,7 +371,7 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     return ident;
 };
 
-
+//
 const setFocusToInputField = (textInput: HTMLDivElement) => {
     if (textInput) {
         setTimeout(() => {
@@ -342,7 +380,7 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
     }
 };
 
-
+// Setup the action for uploading a file
 const setupUploadButton = () => {
     const uploadButton = document.getElementById('upload-button') as HTMLButtonElement;
     if (uploadButton) {
@@ -355,7 +393,6 @@ const setupUploadButton = () => {
                     delete existingErrorMessage.dataset.errorMessage
                 }
             }
-
 
             const formElement = document.getElementById("upload-form") as HTMLFormElement;
             const fileInput = formElement.querySelector('#file')! as HTMLInputElement;
@@ -450,7 +487,13 @@ const setupUploadButton = () => {
 
 };
 
+// Helper that checks if the tail of rollingBuffer forms joinedString ignoring whitespace.
+function endsWithJoined(rollingBuffer: Array<string>, joinedString: string) {
+    let combined = rollingBuffer.join("").replace(/\s+/g, "");  // strange the replace seems necessary
+    return combined.endsWith(joinedString);
+}
 
+// replaces a line in the editor view
 const replaceLine = (view: EditorView, lineNumber: number, newText: string) => {
     let state = view.state;
     let line: any;
@@ -472,6 +515,7 @@ const replaceLine = (view: EditorView, lineNumber: number, newText: string) => {
     view.dispatch(transaction);
 };
 
+// load history and render it in the sidebar
 const loadHistory = () => {
     type Metadata = {
         file: string
@@ -599,7 +643,7 @@ const loadHistory = () => {
     fetch(url).then((r) => r.json()).then(setHistory)
 };
 
-
+// this finds the last codecanvas block and renders it in the editor
 const findLastCodeCanvasBlock = (text: string) => {
     let stack = [];
     let lastBlock = null;
@@ -623,6 +667,7 @@ const findLastCodeCanvasBlock = (text: string) => {
     return lastBlock ? lastBlock.replace(/<\/?codecanvas>/g, "").trim() : null;
 };
 
+// if we edit a from-me message, we use this to remove all subsequent messages
 const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) => {
     // Assuming `parentElement` is the DOM element and `index` is the given index
     while (parentElement.children.length > index + 1) {
@@ -630,7 +675,7 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
     }
 };
 
-
+// remove lines after a given line number in the edito view
 const removeLinesAfter = (editor: EditorView, lineNumber: number) => {
     let state = editor.state;
     let line = state.doc.line(lineNumber);
@@ -644,7 +689,7 @@ const removeLinesAfter = (editor: EditorView, lineNumber: number) => {
     });
 };
 
-
+// for copy code to clipboard action
 const setClipboardHandler = () => {
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
@@ -676,6 +721,7 @@ const couldStartMarker = (t: string) => {
     return t.includes('<');
 };
 
+// get all valid chunks from partial xhr responses
 const getAllChunks = (input: string) => {
     let allResponses = [];
     let buffer: string;
@@ -702,24 +748,8 @@ const getAllChunks = (input: string) => {
     return {allResponses, buffer};
 };
 
-const stripEnding = (rollingBuffer: Array<string>, endingToRemove: string): Array<string> => {
-    let joined = rollingBuffer.join("");
-    if (!joined.replace(/\s+/g, "").endsWith(endingToRemove)) return rollingBuffer;
 
-    let cleaned = joined.slice(0, -endingToRemove.length);
-
-    let newArray: Array<string> = [];
-    let index = 0;
-    for (let part of rollingBuffer) {
-        if (cleaned.startsWith(part, index)) {
-            newArray.push(part);
-            index += part.length;
-        }
-    }
-    return newArray;
-};
-
-
+// handles a new message
 function getInputHandler(inputElement: HTMLElement) {
 
     const mainInput = document.getElementById('input-box')! as HTMLDivElement;
@@ -747,12 +777,6 @@ function getInputHandler(inputElement: HTMLElement) {
             let m = inputElement.innerText;
             if (isMainInput) {
                 renderMessage(inputElement.innerText, 'me', chat);
-
-                // const elem = document.getElementById(ident)!;
-                // const inner = elem.querySelector('.inner-message')! as HTMLElement;
-                // noinspection JSUnusedLocalSymbols
-                // const parsed = parseMessage(inner.innerText)
-
                 inputElement.innerText = '';
             }
             inputElement.contentEditable = "false";
@@ -778,7 +802,6 @@ function getInputHandler(inputElement: HTMLElement) {
             scrollToBottom()
 
             xhr.open('POST', '/');
-            // let index = 0;
 
             // Current mode (which element to append to)
             let mode = "normal"; // can be: "normal", "think", "codecanvas"
@@ -819,31 +842,6 @@ function getInputHandler(inputElement: HTMLElement) {
                     flushList.push({element, token: t});
                 }
 
-                // Helper that checks if the tail of rollingBuffer forms joinedString ignoring whitespace.
-                function endsWithJoined(joinedString: string) {
-                    let withWhiteSpace = rollingBuffer.join("")
-                    let combined = withWhiteSpace.replace(/\s+/g, "");  // strange the replace seems necessary
-                    if (combined.endsWith(joinedString)) {
-
-                        // let resulting = withWhiteSpace.slice(0, withWhiteSpace.length - joinedString.length)
-                        // if(resulting) {
-                        //     for(const line of resulting.split('\n')) {
-                        //         pushToFlushList(line)
-                        //     }
-                        //
-                        // }
-                        // for(const token of rollingBuffer) {
-                        //     pushToFlushList(token)
-                        // }
-                        // pushToFlushList()
-
-
-                        // rollingBuffer = []; // Clear buffer since we've found the match
-                        return true;
-                    }
-                    return false;
-                }
-
                 // If currently in 'think' mode, only watch for '</think>' to return to normal.
                 if (mode === "think") {
                     // If single token = '</think>', switch mode, do not flush marker.
@@ -853,11 +851,6 @@ function getInputHandler(inputElement: HTMLElement) {
                     }
                     // Otherwise, push token and see if we form '</think>' ignoring whitespace.
                     rollingBuffer.push(token);
-
-                    if (endsWithJoined("</think>")) {
-                        mode = "normal";
-                        return flushList;
-                    }
 
                     // If we didn't detect '</think>', flush everything to the thinkElement
                     // (We know these tokens won't form another marker, so we can just flush now)
@@ -869,17 +862,10 @@ function getInputHandler(inputElement: HTMLElement) {
 
                 // If currently in 'codecanvas' mode, only watch for '</codecanvas>' to return to normal.
                 if (mode === "codecanvas") {
-
-                    // If single token = '</codecanvas>', switch mode, do not flush marker.
-                    // if (token === "</codecanvas>") {
-                    //     mode = "normal";
-                    //     flushList.push({element: "codecanvas", token: "\n"});
-                    //     return flushList;
-                    // }
                     // Otherwise, accumulate token and check for multi-token marker
                     rollingBuffer.push(token);
 
-                    if (endsWithJoined("</codecanvas>")) {
+                    if (endsWithJoined(rollingBuffer, "</codecanvas>")) {
                         let lines = rollingBuffer.join("").split('\n')
                         for (const line of lines) {
                             if(line.trim() === '</codecanvas>') {
@@ -891,7 +877,7 @@ function getInputHandler(inputElement: HTMLElement) {
 
                         // if we matched it in rollingBuffer, remove it and switch mode.
                         mode = "normal";
-                        pushToFlushList("</codecanvas>")
+                        pushToFlushList("\n</codecanvas>\n")
                         // flushList.push({element: "codecanvas", token: "\n"});
                         return flushList;
                     }
@@ -933,20 +919,12 @@ function getInputHandler(inputElement: HTMLElement) {
                     textField = p;
                     return flushList;
                 }
-                // if (token === "<codecanvas>") {
-                //     mode = "codecanvas";
-                //     return flushList;
-                // }
 
                 // push the token into rollingBuffer and check for <think> or <codecanvas>
                 rollingBuffer.push(token);
 
-                // if (endsWithJoined("<think>")) {
-                //     mode = "think";
-                //     return flushList;
-                // }
-                if (endsWithJoined("<codecanvas>")) {
-                    pushToFlushList("<codecanvas>")
+                if (endsWithJoined(rollingBuffer, "<codecanvas>")) {
+                    pushToFlushList("\n<codecanvas>\n")
                     mode = "codecanvas";
                     rollingBuffer = [];
                     return flushList;
@@ -1023,16 +1001,14 @@ function getInputHandler(inputElement: HTMLElement) {
             };
 
             let ccindex = 0
-            // xhr.onloadstart = function() {
-            //     ccindex = 0
-            // }
+
             // A variable to store how many characters we've processed from the raw response
             let lastIndex = 0;
             // A buffer string for partial JSON data that hasn't yet formed a valid chunk
             let chunkBuffer = "";
+
             // The rest of your XHR logic:
             xhr.onprogress = function () {
-                // console.log('Before ' + ccindex)
                 // 1) Get new data from responseText since the last processed index
                 let newData = xhr.responseText.substring(lastIndex);
                 lastIndex = xhr.responseText.length;
@@ -1046,8 +1022,6 @@ function getInputHandler(inputElement: HTMLElement) {
                 if (allResponses.length > 0) {
                     let s = JSON.stringify(allResponses);
                     ccindex += s.length // enclosing
-
-                    // console.log('after ' + ccindex)
                 }
 
                 for (let i = 0; i < allResponses.length; i++) {
@@ -1131,7 +1105,7 @@ function getInputHandler(inputElement: HTMLElement) {
     return handleInput
 }
 
-
+// reset settings handling
 function setupResetSettingsButton() {
     const link = document.getElementById('reset-settings') as HTMLElement;
     if (!link) {
@@ -1158,7 +1132,7 @@ function setupResetSettingsButton() {
     })
 }
 
-
+//
 function updateScrollButton() {
     const div = document.getElementById('chat')! as HTMLDivElement;
     const scrollButton = document.getElementById('scrolldown-button')! as HTMLButtonElement;
@@ -1171,6 +1145,7 @@ function updateScrollButton() {
     }
 }
 
+//
 function setupScrollButton() {
     const div = document.getElementById('chat')! as HTMLDivElement;
     const scrollButton = document.getElementById('scrolldown-button')! as HTMLButtonElement;
@@ -1184,6 +1159,7 @@ function setupScrollButton() {
     div.addEventListener('scroll', updateScrollButton);
 }
 
+// menu for chat or collections
 function setupMenu() {
 
     const menuLink = document.getElementById('menuLink');
@@ -1251,7 +1227,7 @@ function setupMenu() {
     }
 }
 
-
+//
 function setupTextInput() {
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
     if (textInput) {
@@ -1261,7 +1237,7 @@ function setupTextInput() {
     setFocusToInputField(textInput);
 }
 
-
+//
 const setupEscapeButtonForPopups = () => {
     document.addEventListener('keydown', function (event) {
         // close popups on escape key
@@ -1272,7 +1248,7 @@ const setupEscapeButtonForPopups = () => {
     });
 };
 
-
+// enforce
 const setupSettingsMustBeSet = () => {
     let form = document.getElementById('settings-form');
     if (!form) {
@@ -1301,6 +1277,7 @@ const setupSettingsMustBeSet = () => {
     validateInput();
 };
 
+//
 const setupCollectionDeletion = () => {
     window.addEventListener('click', function (event) {
         let target = event.target! as HTMLElement;
@@ -1315,6 +1292,7 @@ const setupCollectionDeletion = () => {
     });
 };
 
+// show/hide sidebar or code editor
 const updateHeaderAndContentWidth = () => {
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
     const header = document.querySelector('.header') as HTMLElement;
@@ -1326,6 +1304,7 @@ const updateHeaderAndContentWidth = () => {
     header.style.width = maxWidth
 }
 
+// show/hide sidebar or code editor
 const toggleRightPanel = (force?: boolean | undefined) => {
     const rightPanel = document.querySelector('.right-panel') as HTMLElement;
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
@@ -1340,6 +1319,7 @@ const toggleRightPanel = (force?: boolean | undefined) => {
     updateHeaderAndContentWidth()
 };
 
+// show/hide sidebar or code editor
 const toggleSidebar = (force?: boolean) => {
     // e.preventDefault();
     const sidebar = document.querySelector('.sidebar') as HTMLElement;
@@ -1351,13 +1331,13 @@ const toggleSidebar = (force?: boolean) => {
     updateHeaderAndContentWidth()
 };
 
+//
 function setupEditor() {
     const initialText = ''
     const targetElement = document.querySelector('#editor')!
     let language = new Compartment;
 
     const softwrap = new Compartment();
-
 
     editor = new EditorView({
         doc: initialText,
@@ -1439,14 +1419,19 @@ function setupEditor() {
     }
 }
 
-const main = () => {
 
+function setupSidebarAndEditorToggle() {
     document.getElementById("sidebar-toggler")!.addEventListener("click", () => {
         toggleSidebar()
     })
     document.getElementById("right-panel-toggler")!.addEventListener("click", () => {
         toggleRightPanel()
     })
+}
+
+const main = () => {
+    //
+    setupSidebarAndEditorToggle();
 
     setupResetSettingsButton(); // Reset Settings
     setupScrollButton(); // Scroll Button
@@ -1469,6 +1454,7 @@ const main = () => {
     setupEditor();
 }
 
+// typical debounce
 function debounce(fn: any, delay: number) {
     let timeout: number;
     return function (...args: any[]) {
@@ -1480,6 +1466,3 @@ function debounce(fn: any, delay: number) {
 
 
 main();
-
-
-
