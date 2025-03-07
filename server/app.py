@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 import secrets
 import tempfile
 import time
@@ -446,7 +447,14 @@ def get_input():
 
         output = "".join([json.loads(a)['choices'][0]['delta'].get('content', '') for a in responses if 'embedding' not in a]).strip()
         hist['items'].append(dict(role=USER, content=text))
-        hist['items'].append(dict(role=ASSISTANT, content=output))
+        # Remove thought process from history
+        think_pattern = r'<think>([\s\S]*?)<\/think>([\s\S]*)'
+        matches = re.match(think_pattern, output, re.MULTILINE)
+        if matches is not None:
+            thinking_block, message_block = matches[1], matches[2].strip()
+        else:
+            message_block = output
+        hist['items'].append(dict(role=ASSISTANT, content=message_block))
         with open(cache_key, 'w') as f:
             json.dump(hist, f)
 
