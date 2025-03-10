@@ -179,20 +179,6 @@ const stripMathDelimiters = (latex: string): string => {
 };
 
 
-// const customTokenizer: any = {
-//     paragraph(src: string) {
-//         const match = src.match(/^<codecanvas>[\s\S]*?<\/codecanvas>/)
-//         if (match) {
-//             return {
-//                 type: 'html',
-//                 raw: match[0],
-//                 text: match[0],
-//                 tokens: []
-//             }
-//         }
-//     }
-// }
-
 // parses a message and renders cocde, markdown and latex
 const parseMessage = (text: string): string => {
     // 1) Regex to find *all* LaTeX forms: block or inline
