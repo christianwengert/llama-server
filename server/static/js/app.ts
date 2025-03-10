@@ -1,12 +1,64 @@
 import hljs from "highlight.js";
 import 'highlight.js/styles/github-dark.css';
+import {javascript} from '@codemirror/lang-javascript'
+import {python} from '@codemirror/lang-python'
+import {cpp} from '@codemirror/lang-cpp'
+import {rust} from '@codemirror/lang-rust'
 
 
+import {
+    crosshairCursor,
+    drawSelection,
+    dropCursor,
+    highlightActiveLine,
+    highlightActiveLineGutter,
+    highlightSpecialChars,
+    keymap,
+    lineNumbers,
+    rectangularSelection
+} from '@codemirror/view'
+import {
+    bracketMatching,
+    defaultHighlightStyle,
+    foldGutter,
+    foldKeymap,
+    indentOnInput,
+    indentUnit,
+    syntaxHighlighting
+} from '@codemirror/language'
+import {basicSetup, EditorView} from 'codemirror'
+import {Compartment, EditorState} from '@codemirror/state'
+import {autocompletion, closeBrackets, closeBracketsKeymap, completionKeymap} from '@codemirror/autocomplete'
+import {highlightSelectionMatches, searchKeymap} from '@codemirror/search'
+import {defaultKeymap, historyKeymap} from '@codemirror/commands'
+import {lintKeymap} from '@codemirror/lint'
+// @ts-ignore
+import katex from "katex";
+// import {marked} from "marked";
+import {marked} from "marked";
+
+document.documentElement.style.setProperty("--katex-font", "serif");
+
+const languageSubset = ["python", "cpp", "javascript", "rust", "java", "typescript", "bash", "csharp", "c"];
+
+interface CodeBlock {
+    lang: string
+    raw: string
+    text: string
+    type: string
+}
+
+
+let editor: EditorView | null = null;
+let canvasEnabled = true;
+
+// just scroll to the bottom of the chat window
 const scrollToBottom = () => {
     let messages = document.getElementById("chat")!
     messages.scrollTo(0, messages.scrollHeight);
 }
 
+// extract settings parameters from settings form as JSON
 const getFormDataAsJSON = (formId: string): Record<string, string | number | boolean> => {
     const form = document.getElementById(formId) as HTMLFormElement;
     const formData: Record<string, string | number | boolean> = {};
@@ -29,13 +81,13 @@ const getFormDataAsJSON = (formId: string): Record<string, string | number | boo
     return formData;
 };
 
-
+// Simple rounding function (for tokens/s)
 const round = (originalNumber: number, digits: number) => {
     const t = 10 ** digits;
     return Math.round(originalNumber * t) / t;
 }
 
-
+// Allow editing a former from-me message
 const handleEditAction = (e: MouseEvent) => {
     e.preventDefault()
     const target = e.target! as HTMLElement;
@@ -73,6 +125,147 @@ const handleEditAction = (e: MouseEvent) => {
 //     handleVoteAction(e, 'down')
 // };
 
+
+/**
+  * Code renderer for Marked (Markdown, code, latex):
+  * 1) Does *only* placeholders for LaTeX (inline/block) so Marked never sees the raw LaTeX.
+  * 2) Then uses Marked for normal Markdown (including code blocks),
+  * 3) Re-injects KaTeX for placeholders at the end,
+  * 4) Avoids any math extension in Marked.
+  * 5) Also, ensures highlight.js sees only code strings.
+  * Make sure you remove or disable any other math extension or plugin that might parse LaTeX.
+  */
+const blockCodeRenderer: any = {
+    code(code: CodeBlock, infostring: string) {
+        let lang = infostring?.trim() || ''
+        let highlighted: string;
+        if (lang && hljs.getLanguage(lang)) {
+            console.log("Have a look at this")
+            // @ts-ignore
+            highlighted = hljs.highlight(code, {language: lang}).value
+        } else {
+            // fallback auto-detection
+            // const autoResult = hljs.highlightAuto(escapeHtml(code.text), languageSubset) //escapeHTML?
+            const autoResult = hljs.highlightAuto(code.text, languageSubset) //escapeHTML?
+            // const escaped = escapeHtml(autoResult.value)
+            highlighted = autoResult.value
+            lang = autoResult.language || ''
+        }
+        return `\n<div class="code-header">\n  <div class="language">${lang}</div>\n  <div class="copy" onclick="">Copy</div>\n</div><pre><code class="hljs language-${lang}">${highlighted}</code></pre>`
+    }
+}
+
+
+// Strips the outer LaTeX delimiters from a match so KaTeX sees only the contents.
+const stripMathDelimiters = (latex: string): string => {
+    // block $$...$$
+    if (/^\${2}[\s\S]*?\${2}$/.test(latex)) {
+        return latex.slice(2, -2).trim()
+    }
+    // block \[...\]
+    // noinspection RegExpRedundantEscape
+    if (/^\\\[[\s\S]*?\\\]$/.test(latex)) {
+        return latex.slice(2, -2).trim()
+    }
+    // inline \(...\)
+    if (/^\\\([\s\S]*?\\\)$/.test(latex)) {
+        return latex.slice(2, -2).trim()
+    }
+    // inline $...$
+    if (/^\$[\s\S]*?\$$/.test(latex)) {
+        return latex.slice(1, -1).trim()
+    }
+    return latex
+};
+
+
+// parses a message and renders cocde, markdown and latex
+const parseMessage = (text: string): string => {
+    // 1) Regex to find *all* LaTeX forms: block or inline
+    //    $$...$$, \[...\], \(...\), $...$
+    // We do placeholders so Marked never sees actual LaTeX., same for codecanvas
+
+    // function preprocessMessage(text: string): { processed: string, placeholders: Map<string, string> } {
+    function preprocessMessage(text: string): { processed: string, placeholders: Map<string, string> } {
+        const placeholders = new Map();
+        let counter = 0;
+
+        const processed = text.replace(/<codecanvas>[\s\S]*?<\/codecanvas>/g, match => {
+            const placeholder = `@@CODECANVAS_${counter}@@`;
+            placeholders.set(placeholder, match);
+            counter++;
+            return placeholder;
+        });
+
+        return { processed, placeholders };
+    }
+
+    function postprocessMessage(parsedText: string, placeholders: Map<string, string>): string {
+        let result = parsedText;
+        placeholders.forEach((original, placeholder) => {
+            result = result.replace(placeholder, original);
+        });
+        return result;
+    }
+    // noinspection RegExpRedundantEscape
+    const mathRegex = /(\${2}[\s\S]*?\${2}|\\\[[\s\S]*?\\\]|\\\([\s\S]*?\\\)|\$[\s\S]*?\$)/g
+
+    const rawMath: string[] = []
+    let match: RegExpExecArray | null
+    while ((match = mathRegex.exec(text)) !== null) {
+        rawMath.push(match[0])
+    }
+
+    // 2) Replace each math snippet with a unique placeholder
+    let placeholderText = text
+    rawMath.forEach((m, i) => {
+        const placeholder = `@@MATH_${i}@@`
+        placeholderText = placeholderText.replace(m, placeholder)
+    })
+
+
+
+    // 3) Parse placeholderText with Marked for normal markdown
+    // marked.setOptions({mangle: false, smartypants: false})
+    marked.use({renderer: blockCodeRenderer})
+
+    // Ensure no math extension is used. The below is all we do.
+    // 4) Re-inject KaTeX for each placeholder
+    const { processed, placeholders } = preprocessMessage(placeholderText)
+    let finalHtml = marked.parse(processed) as string
+    finalHtml = postprocessMessage(finalHtml, placeholders);
+
+    // finalHtml = postprocessMessage(finalHtml, placeholders)
+    // finalHtml.replaceAll('<ins>', '<codecanvas>')
+    // finalHtml.replaceAll('</ins>', '</codecanvas>')
+    rawMath.forEach((latex, i) => {
+        const placeholder = `@@MATH_${i}@@`
+        // Decide block vs. inline
+        // noinspection RegExpRedundantEscape
+        const isBlock = (
+            /^\${2}[\s\S]*?\${2}$/.test(latex) ||
+            /^\\\[[\s\S]*?\\\]$/.test(latex)
+        )
+        // Strip the delimiters
+        const stripped = stripMathDelimiters(latex)
+        let rendered = "";
+        // Render KaTeX
+        try {
+            rendered = katex.renderToString(stripped, {
+                throwOnError: true,
+                displayMode: isBlock
+            })
+        } catch (e) {
+            console.log(stripped, latex)
+        }
+        // Replace the placeholder
+        finalHtml = finalHtml.replace(placeholder, rendered)
+    })
+
+    return finalHtml
+};
+
+// creates a new from-me or from-them message and inserts the necessary html
 const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElement, innerMessageExtraClass?: string, renderButtons: boolean = true): string => {
     const ident = (Math.random() + 1).toString(36).substring(2);
     // let thought = "";
@@ -83,7 +276,7 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
     const messageExtra = document.createElement('div')
     messageExtra.className = 'message-header'
     messageDiv.appendChild(messageExtra);
-    messageExtra.innerText = direction === 'me' ? 'You' : 'Assistant';
+    messageExtra.innerText = direction === 'me' ? 'Me' : 'Assistant';
 
     const innerMessageDiv = document.createElement('div');
     innerMessageDiv.className = 'inner-message';
@@ -91,14 +284,15 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         innerMessageDiv.classList.add(innerMessageExtraClass)
     }
 
-    // if we have a <think></think> remove it
+    // if we have a <think></think> remove it, note: This is also done on server side. Here it would
+    // just hide the think block. If we remove it on the server it will be removed from the context
     const regex = /<think>([\s\S]*?)<\/think>([\s\S]*)/;
     const match = message.match(regex);
-    if(match) {
+    if (match) {
         // thought = match[1]
         message = match[2];
     }
-    innerMessageDiv.innerText = message.trim();
+    // innerMessageDiv.innerHtml = message.trim();
 
     messageDiv.appendChild(innerMessageDiv);
     if (renderButtons) {
@@ -115,15 +309,31 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
 
             messageDiv.appendChild(editButtonDiv);
         }
-        // else {
-        // const voteButtonDiv = document.createElement('div');
-        // voteButtonDiv.className = 'edit-button';
-        // const upvoteLink = document.createElement('a');
-        // upvoteLink.href = '/upvote/';
-        // upvoteLink.id = `upvote-${ident}`;
-        // upvoteLink.textContent = '➞';
-        // voteButtonDiv.appendChild(upvoteLink);
-        //
+        else {
+            // todo: Branch
+            // todo: Regenerate
+            // todo sidebar button oike in chatgpt?
+            // const themButtonDiv = document.createElement('div');
+            // themButtonDiv.className = 'edit-button';
+            // const branchLink = document.createElement('a');
+            // branchLink.href = '/branch/';
+            // branchLink.id = `branch-${ident}`;
+            // branchLink.title = 'Branch conversation'
+            // branchLink.classList.add('branch-button')
+            //
+            //
+            // const icon = document.createElement('i')
+            // icon.classList.add('gg-git-pull')
+            // branchLink.appendChild(icon)
+            // const text = document.createElement("span")
+            // branchLink.appendChild(text)
+            // text.textContent = 'Branch'
+            //
+            //
+            // // branchLink.textContent = '➞';
+            // themButtonDiv.appendChild(branchLink);
+            // console.log('adding branch')
+            //
         //
         // const downvoteLink = document.createElement('a');
         // downvoteLink.href = '/downvote/';
@@ -131,19 +341,23 @@ const renderMessage = (message: string, direction: 'me' | 'them', chat: HTMLElem
         // downvoteLink.textContent = '➞';
         // voteButtonDiv.appendChild(downvoteLink);
         //
-        // messageDiv.appendChild(voteButtonDiv);
+        //     messageDiv.appendChild(themButtonDiv);
         //
         // upvoteLink.addEventListener('click', handleUpvoteAction);
         // downvoteLink.addEventListener('click', handleDownvoteAction);
         //
         //
-        // }
+        }
     }
+
+    // renderMixedContent(message)
+    innerMessageDiv.innerHTML = parseMessage(message);
     chat.appendChild(messageDiv);
+
     return ident;
 };
 
-
+//
 const setFocusToInputField = (textInput: HTMLDivElement) => {
     if (textInput) {
         setTimeout(() => {
@@ -152,7 +366,7 @@ const setFocusToInputField = (textInput: HTMLDivElement) => {
     }
 };
 
-
+// Setup the action for uploading a file
 const setupUploadButton = () => {
     const uploadButton = document.getElementById('upload-button') as HTMLButtonElement;
     if (uploadButton) {
@@ -165,7 +379,6 @@ const setupUploadButton = () => {
                     delete existingErrorMessage.dataset.errorMessage
                 }
             }
-
 
             const formElement = document.getElementById("upload-form") as HTMLFormElement;
             const fileInput = formElement.querySelector('#file')! as HTMLInputElement;
@@ -260,47 +473,35 @@ const setupUploadButton = () => {
 
 };
 
+// Helper that checks if the tail of rollingBuffer forms joinedString ignoring whitespace.
+function endsWithJoined(rollingBuffer: Array<string>, joinedString: string) {
+    let combined = rollingBuffer.join("").replace(/\s+/g, "");  // strange the replace seems necessary
+    return combined.endsWith(joinedString);
+}
 
-const highlightCode = (inner: HTMLElement) => {
+// replaces a line in the editor view
+const replaceLine = (view: EditorView, lineNumber: number, newText: string) => {
+    let state = view.state;
+    let line: any;
 
-    const convertMarkdownToHTML = (mdString: string) => {
-        // Replace triple backtick code blocks
-        const codeBlockRegex = /```([a-z]*)\n([\s\S]*?)```/g;
-        mdString = mdString.replace(codeBlockRegex, (_match, lang, code) => {
-            const language = lang || 'bash';
-            return `<div class="code-header"><div class="language">${language}</div><div class="copy">Copy</div></div><pre><code class="language-${language}">${escapeHTML(code)}</code></pre>`;
-        });
-
-        // Replace inline code
-        const inlineCodeRegex = /`([^`]+)`/g;
-        mdString = mdString.replace(inlineCodeRegex, (_match, code) => {
-            return `<code class="inline">${escapeHTML(code)}</code>`;
-        });
-        // highlight inline **Title**
-        // const inlineMarkdownRegex = /\*\*([^*]*)\*\*/g;
-
-        // mdString = mdString.replace(inlineMarkdownRegex, (match, code) => {
-        //     return `<code class="inline">${escapeHTML(code)}</code>`;
-        // });
-
-        return mdString;
-    };
-
-    function escapeHTML(str: string) {
-        return str.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    if (lineNumber > state.doc.lines) {  // end of document
+        line = {from: state.doc.length, to: state.doc.length}
+        newText = "\n" + newText;  // add the new line
+    } else {
+        line = state.doc.line(lineNumber);  // Get the line object
     }
 
-    const codeString = inner.innerText;
-
-    inner.innerHTML = convertMarkdownToHTML(codeString);
-
-    scrollToBottom()
-    // highlight code
-    inner.querySelectorAll('pre code').forEach((block: Element) => {
-        hljs.highlightElement(block as HTMLElement);
+    if (newText === line.text) {
+        return
+    }
+    let transaction = state.update({
+        changes: {from: line.from, to: line.to, insert: newText}
     });
+
+    view.dispatch(transaction);
 };
 
+// load history and render it in the sidebar
 const loadHistory = () => {
     type Metadata = {
         file: string
@@ -401,12 +602,23 @@ const loadHistory = () => {
                 }
             }
 
-            const ident = renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
+            renderMessage(msg.content, direction, chat, innerMessageExtraClass, renderButtons);
 
-            const msgDiv = document.getElementById(ident);
-            const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
+            // const msgDiv = document.getElementById(ident);
+            // const inner = msgDiv!.getElementsByClassName('inner-message')[0] as HTMLElement;
 
-            highlightCode(inner);  // highlight both directions
+            const lastMatch = findLastCodeCanvasBlock(msg.content)
+            if (editor && lastMatch) {
+                // console.log(lastMatch)
+                let transaction = editor.state.update({
+                    changes: {from: 0, to: editor.state.doc.length, insert: lastMatch}
+                });
+                editor.dispatch(transaction);
+                toggleRightPanel(true);
+                toggleSidebar()
+            }
+
+            // highlightCode(inner);  // highlight both directions
         })
     }
     const index = document.location.pathname.indexOf('/c/')
@@ -417,6 +629,31 @@ const loadHistory = () => {
     fetch(url).then((r) => r.json()).then(setHistory)
 };
 
+// this finds the last codecanvas block and renders it in the editor
+const findLastCodeCanvasBlock = (text: string) => {
+    let stack = [];
+    let lastBlock = null;
+    let startIndex = -1;
+    let endIndex = -1;
+
+    let regex = /<\/?codecanvas>/g;
+    let match: any;
+
+    while ((match = regex.exec(text)) !== null) {
+        if (match[0] === "<codecanvas>") {
+            stack.push(match.index);
+        } else if (match[0] === "</codecanvas>" && stack.length > 0) {
+            startIndex = stack.pop()!;
+            endIndex = match.index + match[0].length;
+
+            // Update lastBlock when a complete block is found
+            lastBlock = text.substring(startIndex, endIndex);
+        }
+    }
+    return lastBlock ? lastBlock.replace(/<\/?codecanvas>/g, "").trim() : null;
+};
+
+// if we edit a from-me message, we use this to remove all subsequent messages
 const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) => {
     // Assuming `parentElement` is the DOM element and `index` is the given index
     while (parentElement.children.length > index + 1) {
@@ -424,7 +661,21 @@ const removeAllChildrenAfterIndex = (parentElement: HTMLElement, index: number) 
     }
 };
 
+// remove lines after a given line number in the edito view
+const removeLinesAfter = (editor: EditorView, lineNumber: number) => {
+    let state = editor.state;
+    let line = state.doc.line(lineNumber);
+    if (lineNumber >= state.doc.lines) return;
 
+    let from = line.from;  // Start of the next line
+    let to = state.doc.length; // End of the document
+
+    editor.dispatch({
+        changes: { from, to, insert: "" }
+    });
+};
+
+// for copy code to clipboard action
 const setClipboardHandler = () => {
     document.addEventListener('click', (event) => {
         const target = event.target as HTMLElement;
@@ -450,7 +701,41 @@ const setClipboardHandler = () => {
     });
 };
 
+// If we haven't found '</codecanvas>', flush everything that can't be part of a marker.
+const couldStartMarker = (t: string) => {
+    // We'll skip flushing tokens that have '<' if we suspect they're part of the marker.
+    return t.includes('<');
+};
 
+// get all valid chunks from partial xhr responses
+const getAllChunks = (input: string) => {
+    let allResponses = [];
+    let buffer: string;
+    let candidate = "";
+
+    for (let i = 0; i < input.length; i++) {
+        candidate += input[i];
+        try {
+            const parsed = JSON.parse(candidate);
+
+            // If we parsed successfully, store it
+            allResponses.push(parsed);
+
+            // Reset candidate
+            candidate = "";
+        } catch (e) {
+            // If parsing fails, keep accumulating
+            // do nothing, just continue
+        }
+    }
+
+    // Whatever remains in candidate is incomplete JSON
+    buffer = candidate;
+    return {allResponses, buffer};
+};
+
+
+// handles a new message
 function getInputHandler(inputElement: HTMLElement) {
 
     const mainInput = document.getElementById('input-box')! as HTMLDivElement;
@@ -471,43 +756,13 @@ function getInputHandler(inputElement: HTMLElement) {
         removeAllChildrenAfterIndex(chat, pruneHistoryIndex)
     }
 
-    function getAllChunks(responseText: string) {
-        const trimmed = responseText.trim();
-        if (!trimmed.includes('}{')) {
-            try {
-                return [JSON.parse(trimmed)];
-            } catch (e) {
-                return [];
-            }
-        }
-        const parts = trimmed.split('}{');
-        for (let i = 0; i < parts.length; i++) {
-            if (i > 0) parts[i] = '{' + parts[i];
-            if (i < parts.length - 1) parts[i] = parts[i] + '}';
-        }
-        const allResponses = [];
-        for (const part of parts) {
-            try {
-                allResponses.push(JSON.parse(part));
-            } catch (e) {
-                // ignore any invalid/incomplete parts
-            }
-        }
-        return allResponses;
-    }
-
     function handleInput(e: KeyboardEvent) {
         if (e.key === 'Enter' && e.shiftKey === false) {
             e.preventDefault();
             const xhr = new XMLHttpRequest();
-            const m = inputElement.innerText;
+            let m = inputElement.innerText;
             if (isMainInput) {
-                const ident = renderMessage(inputElement.innerText, 'me', chat);
-
-                const elem = document.getElementById(ident)!;
-                const inner = elem.querySelector('.inner-message')! as HTMLElement;
-                highlightCode(inner);
-
+                renderMessage(inputElement.innerText, 'me', chat);
                 inputElement.innerText = '';
             }
             inputElement.contentEditable = "false";
@@ -533,113 +788,302 @@ function getInputHandler(inputElement: HTMLElement) {
             scrollToBottom()
 
             xhr.open('POST', '/');
-            let index = 0;
+
+            // Current mode (which element to append to)
+            let mode = "normal"; // can be: "normal", "think", "codecanvas"
+
+            // Rolling buffer to detect multi-token markers like < code canvas >
+            let rollingBuffer: string[] = [];
+
+            // A queue for tokens to display with a delay: each item => { element, token }
+            let flushQueue: Record<string, string>[] = [];
+
+            // Are we currently showing tokens from flushQueue?
+            let isFlushing = false;
+
+            let newCode = ""
+            let lineNumber = 1;
+
+            //------------------------------------------------------------------
+            // processToken(token): returns an array of { element, token } objects
+            // telling us which element to append to, and what text to append.
+            //------------------------------------------------------------------
+            const processToken = (token: string) => {
+                const flushList: Array<Record<string, string>> = [];
+
+                // console.log("Token: " + token + "   Mode: " + mode)
+                function pushToFlushList(t: string) {
+                    let element: string;
+                    switch (mode) {
+                        case "think":
+                            element = 'think';
+                            break;
+                        case "codecanvas":
+                            element = 'codecanvas';
+                            break;
+                        default:
+                            textField = inner
+                            element = 'text';
+                    }
+                    flushList.push({element, token: t});
+                }
+
+                // If currently in 'think' mode, only watch for '</think>' to return to normal.
+                if (mode === "think") {
+                    // If single token = '</think>', switch mode, do not flush marker.
+                    if (token === "</think>") {
+                        mode = "normal";
+                        return flushList; // no output for the marker
+                    }
+                    // Otherwise, push token and see if we form '</think>' ignoring whitespace.
+                    rollingBuffer.push(token);
+
+                    // If we didn't detect '</think>', flush everything to the thinkElement
+                    // (We know these tokens won't form another marker, so we can just flush now)
+                    while (rollingBuffer.length > 0) {
+                        pushToFlushList(rollingBuffer.shift()!);
+                    }
+                    return flushList;
+                }
+
+                // If currently in 'codecanvas' mode, only watch for '</codecanvas>' to return to normal.
+                if (mode === "codecanvas") {
+                    // Otherwise, accumulate token and check for multi-token marker
+                    rollingBuffer.push(token);
+
+                    if (endsWithJoined(rollingBuffer, "</codecanvas>")) {
+                        let lines = rollingBuffer.join("").split('\n')
+                        for (const line of lines) {
+                            if(line.trim() === '</codecanvas>') {
+                                continue
+                            }
+                            pushToFlushList(line)
+                            pushToFlushList('\n')
+                        }
+
+                        // if we matched it in rollingBuffer, remove it and switch mode.
+                        mode = "normal";
+                        pushToFlushList("\n</codecanvas>\n")
+                        // flushList.push({element: "codecanvas", token: "\n"});
+                        return flushList;
+                    }
+
+                    while (rollingBuffer.length > 0) {
+                        if (couldStartMarker(rollingBuffer[0])) {
+                            break;
+                        }
+                        pushToFlushList(rollingBuffer.shift()!);
+                    }
+                    return flushList;
+                }
+
+                // First, handle single-token markers if the model merges them.
+                if (token === "<think>") {
+                    mode = "think";
+                    inner.innerHTML = "";
+                    const details = document.createElement('details');
+                    details.classList.add('think-details')
+
+                    inner.appendChild(details);
+                    const summary = document.createElement('summary');
+                    summary.classList.add('think-title')
+                    summary.classList.add('shimmer')
+                    summary.innerText = 'Thinking';
+                    details.appendChild(summary)
+                    const p = document.createElement('div');
+                    p.classList.add('think-content')
+
+                    details.appendChild(p)
+                    inner.appendChild(details)
+
+                    // textField = p;
+                    const after = document.createElement('div');
+                    // after.classList.add('loading')
+                    inner.append(after);
+                    after.innerHTML = '<div class="loading"></div>'
+                    inner = after;
+                    textField = p;
+                    return flushList;
+                }
+
+                // push the token into rollingBuffer and check for <think> or <codecanvas>
+                rollingBuffer.push(token);
+
+                if (endsWithJoined(rollingBuffer, "<codecanvas>")) {
+                    pushToFlushList("\n<codecanvas>\n")
+                    mode = "codecanvas";
+                    rollingBuffer = [];
+                    return flushList;
+                }
+
+                while (rollingBuffer.length > 0) {
+                    if (couldStartMarker(rollingBuffer[0])) {
+                        break;
+                    }
+                    pushToFlushList(rollingBuffer.shift()!);
+                }
+
+                return flushList;
+            };
+            //------------------------------------------------------------------
+            // flushNext():
+            //   - Pops one token from flushQueue
+            //   - Appends it to the correct element
+            //   - Repeats after some interval
+            //------------------------------------------------------------------
+            const flushNext = () => {
+                if (flushQueue.length === 0) {
+                    isFlushing = false;
+                    return;
+                }
+
+                const {element, token} = flushQueue.shift() as Record<string, string>;
+                if (element === 'text') {
+                    textField.textContent += token;
+                } else if (element === 'think') {
+                    textField.textContent += token;
+                } else if (element === 'codecanvas') {
+                    newCode += token;
+                    if(newCode.replace(/\s+/g, "") == '</codecanvas>') {
+                        newCode = "";  // dont output
+                        // ignore this token
+
+                    } else { // todo: This is ugly
+
+                        if (token.endsWith('\n')) {
+                            replaceLine(editor!, lineNumber, newCode.slice(0, -1))
+                            lineNumber++;
+                            newCode = "";  // reset
+                        }
+                    }
+                } else {
+                    console.warn('Do not know where to place ' + element + " with token " + token)
+                }
+                if (element)
+                    flushNext();
+            };
+            //------------------------------------------------------------------
+            // scheduleFlush():
+            //   - If not already flushing, start the delayed chain
+            //------------------------------------------------------------------
+            const scheduleFlush = () => {
+                if (!isFlushing) {
+                    isFlushing = true;
+                    flushNext();
+                }
+            };
+            //------------------------------------------------------------------
+            // onStreamProgress(jsonChunk):
+            //   - Extract the token
+            //   - process it (state machine, rolling buffer)
+            //   - add the resulting flushList to the global flushQueue
+            //   - schedule flush if not already in progress
+            //------------------------------------------------------------------
+            const onStreamProgress = (jsonChunk: any) => {
+                const token = jsonChunk.choices[0].delta.content;
+                const flushList = processToken(token);
+                flushList.forEach(item => flushQueue.push(item));
+                scheduleFlush();
+            };
+
+            let ccindex = 0
+
+            // A variable to store how many characters we've processed from the raw response
+            let lastIndex = 0;
+            // A buffer string for partial JSON data that hasn't yet formed a valid chunk
+            let chunkBuffer = "";
+
+            // The rest of your XHR logic:
             xhr.onprogress = function () {
+                // 1) Get new data from responseText since the last processed index
+                let newData = xhr.responseText.substring(lastIndex);
+                lastIndex = xhr.responseText.length;
 
-                const chunks = getAllChunks(xhr.responseText);  // do not miss any
+                // 2) Accumulate into our buffer
+                chunkBuffer += newData;
 
-                while (index < chunks.length) {
+                // 3) Try to parse out as many JSON objects as we can
+                const {allResponses, buffer} = getAllChunks(chunkBuffer);// console.log(allChunks)
 
-                    const chunk = chunks[index];
-                    // console.log('chunk ' + index + " " + chunk.choices[0].delta.content)
+                if (allResponses.length > 0) {
+                    let s = JSON.stringify(allResponses);
+                    ccindex += s.length // enclosing
+                }
 
-                    if (chunk) {
+                for (let i = 0; i < allResponses.length; i++) {
+                    const chunk = allResponses[i];
+                    if (!chunk || !chunk.choices) {
+                        continue;
+                    }
+
+                    // 4) For each valid JSON chunk we managed to parse, process it
+                    for (let i = 0; i < allResponses.length; i++) {
+                        const chunk = allResponses[i];
+                        if (!chunk || !chunk.choices) {
+                            continue;
+                        }
                         if (chunk.choices[0].finish_reason === 'stop') {
-
-                            const timings = chunk.timings
-                            let model = chunk.model
+                            const timings = chunk.timings;
+                            let model = chunk.model;
                             if (model) {
                                 model = model.split('/').slice(-1);
                             }
 
                             if (timings) {
-                                const timing = document.getElementById('timing-info')! as HTMLSpanElement;
-                                timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `
+                                const timing = document.getElementById('timing-info') as HTMLElement;
+                                timing.innerText = `${model}: ${round(1000.0 / timings.predicted_per_token_ms, 1)} t/s `;
                             }
-
-                            // adapt markdown for ```
-                            highlightCode(textField);
-
+                            textField.innerHTML = parseMessage(textField.innerText)
+                            // highlightCode(textField);
                             inputElement.contentEditable = "true";
-
-                            // setFocusToInputField(mainInput);
                             stopButton.disabled = true;
-                            loadHistory()
+                            loadHistory();
                             inputElement.focus();
-                            document.getElementsByClassName('think-title')[0].classList.remove('shimmer')
-
-                        } else {
-                            let chunkContent = chunk.choices[0].delta.content;
-
-                            if (chunkContent == '<think>') {
-                                inner.innerHTML = "";
-                                const details = document.createElement('details');
-                                details.classList.add('think-details')
-
-
-                                inner.appendChild(details);
-                                const summary = document.createElement('summary');
-                                summary.classList.add('think-title')
-                                summary.classList.add('shimmer')
-                                summary.innerText = 'Thinking';
-                                details.appendChild(summary)
-                                const p = document.createElement('div');
-                                p.classList.add('think-content')
-
-                                details.appendChild(p)
-                                inner.appendChild(details)
-
-                                textField = p;
-                                const after = document.createElement('div');
-                                // after.classList.add('loading')
-                                inner.append(after);
-                                after.innerHTML = '<div class="loading"></div>'
-                                inner = after;
-
-                            } else if (chunkContent == '</think>') {
-                                // chunkContent = '</details>'
-                                textField = inner;
-                            } else {
-                                // const newText = document.createTextNode(chunkContent);
-                                // textField.appendChild(newText)
-                                textField.textContent += chunkContent;
+                            for (const elem1 of document.getElementsByClassName('shimmer') as any) {
+                                elem1.classList.remove('shimmer');
                             }
-                            // if (index === 0) {
-                            //     inner.innerHTML = '<div class="loading"></div>'
-                            // }
-
-
-                            // if (textField.innerText === "") {
-                            //     textField = chunkContent.trim();
-                            // }
-
+                            //
+                            if(editor && lineNumber < editor.state.doc.lines) {
+                                removeLinesAfter(editor, lineNumber)
+                            }
+                            console.log(editor, lineNumber)
+                            return;
+                        } else {
+                            onStreamProgress(chunk);
                         }
                     }
 
+                    // 5) Keep any leftover partial JSON in chunkBuffer
+                    //    (which is the ‘buffer’ value returned by getAllChunks)
+                    chunkBuffer = buffer;
                     updateScrollButton();
-                    index = index + 1;
                 }
             };
+
 
             xhr.addEventListener("error", function (e) {
                 console.log("error: " + e);
             });
 
-            xhr.onload = function () {
-
-                // if (isMainInput) {
-                //     inputElement.contentEditable = "true";
-                // }
-                // setFocusToInputField(mainInput);
-                // stopButton.disabled = true;
-                // loadHistory()
-            }
             xhr.setRequestHeader("Content-Type", "application/json;charset=UTF-8");
 
             const formData = getFormDataAsJSON('settings-form')
-            formData.input = m
 
-            formData.pruneHistoryIndex = pruneHistoryIndex
+            //
+            const content = editor!.state.doc.toString().trim();
+            if (content && canvasEnabled) {
+                m += '\n';
+                m += "<codecanvas>";
+                m += content;
+                m += "</codecanvas>"
+                console.log("Inserting canvas")
+            } else {
+                console.log("Ignoring empty canvas")
+            }
+
+            formData.input = m
+            formData.pruneHistoryIndex = pruneHistoryIndex;
+
             xhr.send(JSON.stringify(formData));
         }
     }
@@ -647,7 +1091,7 @@ function getInputHandler(inputElement: HTMLElement) {
     return handleInput
 }
 
-
+// reset settings handling
 function setupResetSettingsButton() {
     const link = document.getElementById('reset-settings') as HTMLElement;
     if (!link) {
@@ -674,7 +1118,7 @@ function setupResetSettingsButton() {
     })
 }
 
-
+//
 function updateScrollButton() {
     const div = document.getElementById('chat')! as HTMLDivElement;
     const scrollButton = document.getElementById('scrolldown-button')! as HTMLButtonElement;
@@ -687,6 +1131,7 @@ function updateScrollButton() {
     }
 }
 
+//
 function setupScrollButton() {
     const div = document.getElementById('chat')! as HTMLDivElement;
     const scrollButton = document.getElementById('scrolldown-button')! as HTMLButtonElement;
@@ -700,6 +1145,7 @@ function setupScrollButton() {
     div.addEventListener('scroll', updateScrollButton);
 }
 
+// menu for chat or collections
 function setupMenu() {
 
     const menuLink = document.getElementById('menuLink');
@@ -731,7 +1177,7 @@ function setupMenu() {
 
     // get and set current mode
     const selectedMode = curUrl.searchParams.get(key);
-    for (let elem of document.getElementsByClassName('mode-button')) {
+    for (let elem of document.getElementsByClassName('mode-button') as any) {
         // @ts-ignore
         elem.addEventListener('click', (e: MouseEvent) => {
             e.preventDefault()
@@ -754,16 +1200,9 @@ function setupMenu() {
                 updateUrlParam('')
                 return
             }
-            // if (target.id === 'mode-stackexchange') {
-            // const vals = target.id.split('-')
-            // console.log(vals)
-
 
             textNode.textContent = target.textContent;
             updateUrlParam(target.id)
-            // return
-            // }
-
         })
         //update current selection
         if (selectedMode && elem.id === selectedMode) {
@@ -774,7 +1213,7 @@ function setupMenu() {
     }
 }
 
-
+//
 function setupTextInput() {
     const textInput = document.getElementById('input-box')! as HTMLDivElement;
     if (textInput) {
@@ -784,7 +1223,7 @@ function setupTextInput() {
     setFocusToInputField(textInput);
 }
 
-
+//
 const setupEscapeButtonForPopups = () => {
     document.addEventListener('keydown', function (event) {
         // close popups on escape key
@@ -795,7 +1234,7 @@ const setupEscapeButtonForPopups = () => {
     });
 };
 
-
+// enforce
 const setupSettingsMustBeSet = () => {
     let form = document.getElementById('settings-form');
     if (!form) {
@@ -824,6 +1263,7 @@ const setupSettingsMustBeSet = () => {
     validateInput();
 };
 
+//
 const setupCollectionDeletion = () => {
     window.addEventListener('click', function (event) {
         let target = event.target! as HTMLElement;
@@ -838,8 +1278,146 @@ const setupCollectionDeletion = () => {
     });
 };
 
-const main = () => {
+// show/hide sidebar or code editor
+const updateHeaderAndContentWidth = () => {
+    const sidebar = document.querySelector('.sidebar') as HTMLElement;
+    const header = document.querySelector('.header') as HTMLElement;
+    const content = document.querySelector('.content') as HTMLElement;
 
+    const sidebarWidth = "300px"
+    const maxWidth = sidebar.classList.contains("hidden") ? "100vw" : `calc(100vw - ${sidebarWidth})`;
+    content.style.width = maxWidth
+    header.style.width = maxWidth
+}
+
+// show/hide sidebar or code editor
+const toggleRightPanel = (force?: boolean | undefined) => {
+    const rightPanel = document.querySelector('.right-panel') as HTMLElement;
+    const sidebar = document.querySelector('.sidebar') as HTMLElement;
+
+    if (rightPanel.style.display === 'none' || rightPanel.style.display === '' || force) {
+        rightPanel.style.display = 'block';
+        sidebar.classList.add('hidden');
+    } else {
+        rightPanel.style.display = 'none';
+        sidebar.classList.remove('hidden');
+    }
+    updateHeaderAndContentWidth()
+};
+
+// show/hide sidebar or code editor
+const toggleSidebar = (force?: boolean) => {
+    // e.preventDefault();
+    const sidebar = document.querySelector('.sidebar') as HTMLElement;
+    if (force) {
+        sidebar.classList.remove('hidden');
+    } else {
+        sidebar.classList.toggle('hidden');
+    }
+    updateHeaderAndContentWidth()
+};
+
+//
+function setupEditor() {
+    const initialText = ''
+    const targetElement = document.querySelector('#editor')!
+    let language = new Compartment;
+
+    const softwrap = new Compartment();
+
+    editor = new EditorView({
+        doc: initialText,
+
+        extensions: [
+            basicSetup,
+            lineNumbers(),
+            softwrap.of([]),
+            highlightActiveLineGutter(),
+            highlightSpecialChars(),
+            // history(),
+            foldGutter(),
+            drawSelection(),
+            dropCursor(),
+            EditorState.allowMultipleSelections.of(true),
+            indentOnInput(),
+            indentUnit.of("    "),
+            syntaxHighlighting(defaultHighlightStyle, {fallback: true}),
+            bracketMatching(),
+            closeBrackets(),
+            autocompletion(),
+            rectangularSelection(),
+            crosshairCursor(),
+            highlightActiveLine(),
+            highlightSelectionMatches(),
+            keymap.of([
+                ...closeBracketsKeymap,
+                ...defaultKeymap,
+                ...searchKeymap,
+                ...historyKeymap,
+                ...foldKeymap,
+                ...completionKeymap,
+                ...lintKeymap,
+            ]),
+            // javascript(),
+            // python(),
+            language.of(python()),
+
+        ],
+        parent: targetElement,
+    })
+
+
+    const button = document.createElement('button');
+    button.id = 'linewrap-toggler'
+    button.innerText = "Line Wrapping: Off";
+    const rightPanel = document.querySelector('.right-panel')
+    rightPanel!.insertAdjacentElement('afterbegin', button);
+
+    let wrapping = false;
+    button.addEventListener('click', () => {
+      wrapping = !wrapping;
+      button.innerText = `Line Wrapping: ${wrapping ? 'On' : 'Off'}`;
+
+      editor!.dispatch({
+        effects: [softwrap.reconfigure(
+          wrapping ? EditorView.lineWrapping : []
+        )]
+      });
+    })
+
+    editor.dom.addEventListener('input', debounce(detectAndSetMode, 500));
+
+    function detectAndSetMode() {
+        const content = editor!.state.doc.toString();
+
+        const result = hljs.highlightAuto(content, languageSubset);
+        console.log(result)
+        // let newMode = 'javascript';
+        if (result.language === 'python') {
+            language.reconfigure(python())
+        } else if (result.language === 'cpp') {
+            language.reconfigure(cpp())
+        } else if (result.language === 'javascript') {
+            language.reconfigure(javascript())
+        } else if (result.language === 'rust') {
+            language.reconfigure(rust())
+        }
+    }
+}
+
+
+function setupSidebarAndEditorToggle() {
+    document.getElementById("sidebar-toggler")!.addEventListener("click", () => {
+        toggleSidebar()
+    })
+    document.getElementById("right-panel-toggler")!.addEventListener("click", () => {
+        toggleRightPanel()
+    })
+}
+
+const main = () => {
+    //
+    setupSidebarAndEditorToggle();
 
     setupResetSettingsButton(); // Reset Settings
     setupScrollButton(); // Scroll Button
@@ -858,6 +1436,19 @@ const main = () => {
     setupMenu(); // Menu on top left
 
     setupCollectionDeletion();
-};
 
-main()
+    setupEditor();
+}
+
+// typical debounce
+function debounce(fn: any, delay: number) {
+    let timeout: number;
+    return function (...args: any[]) {
+        clearTimeout(timeout);
+        // @ts-ignore
+        timeout = window.setTimeout(() => fn.apply(this, args), delay);
+    }
+}
+
+
+main();

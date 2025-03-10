@@ -18,7 +18,7 @@ tqdm~=4.66.3
 beautifulsoup4==4.12.3
 py7zr==0.21.0
 transformers==4.47.0
-torch==2.5.0
+torch==2.6.0
 datasets==2.19.0
 python-magic~=0.4.27
 scipdf-parser

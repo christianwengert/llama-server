@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <link rel="stylesheet" href="/static/js/app.css">
+    <link rel="stylesheet" href='/static/main.css'/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{name}}{{name2}}</title>
+
+</head>
+<body>
+<div class="sidebar">
+    <div class="sidebar-header">
+<!--        <button>🔍</button>-->
+<!--        <button>⚙️</button>-->
+<!--        <button>📁</button>-->
+        <strong>History</strong>
+    </div>
+    <div class="sidebar-content">
+        <div id="history-div">
+
+
+            <ul id="history">
+            </ul>
+        </div>
+    </div>
+    <div class="sidebar-footer">
+        <div id="sidebar-username">
+            <i class="gg-profile"></i>&nbsp;
+            <div id="sidebar-username-inner">
+                {{username | e}}
+            </div>
+        </div>
+
+        <a class="sidebar-button" title="Logout" href="/logout" id="logout-button"><i class="gg-log-out"></i></a>
+    </div>
+</div>
+
+<div class="main-content">
+    <div class="header">
+        <div>
+            <a class="header-button" title="Toggle Sidebar" href="#" id="sidebar-toggler">
+                <i class="gg-menu"></i>
+            </a>
+            <a class="header-button"  title="New Chat" id="new-chat-button" href="/">
+                <i class="gg-math-plus"></i>
+            </a>
+            <a class="header-button"  title="Toggle Editor" href="#" id="right-panel-toggler">
+                <i class="gg-code"></i>
+            </a>
+
+            <!--suppress HtmlUnknownAnchorTarget -->
+            <a class="header-button" title="Settings" href="#popupSettings" id="settings-button">Settings</a>&nbsp;
+
+            {% if collections %}
+            <!-- Trigger link -->
+            <div id="outer-collection-menu">
+                <a href="#" id="menuLink" class="header-button">Chat<span>&nbsp;</span><span class="chevron-down"></span></a>
+                <!-- Hidden menu -->
+                <div id="menu" class="hidden">
+                    <a href="#" class="mode-button" id="mode-chat">Chat</a>
+
+                    <hr>
+                    <div id="menu-collection-common">
+                        <strong>Common collections</strong><br>
+                        {% if collections['common'] %}
+                        {% for c in collections['common'] %}
+                        <div class="menu-collection-link-container">
+                            <a href="#" class="mode-button" id="{{ c.get('hashed_name') }}">{{ c.get('name') }}</a>
+                            <button class="delete-collection-item">×</button>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                    <div id="menu-collection-user">
+                        <strong>User collections</strong><br>
+                        {% if collections['user'] %}
+                        {% for u in collections['user'] %}
+                        <div class="menu-collection-link-container">
+                            <a href="#" class="mode-button" id="{{ u.get('hashed_name') }}">{{ u.get('name') }}</a>
+                            <button class="delete-collection-item">×</button>
+                        </div>
+                        {% endfor %}
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+        </div>
+
+        <div>
+            <!--                <button>🔔</button>-->
+            <!--                <button>👤</button>-->
+            <a href="/" title="New Chat" id="logo-link"><strong>{{name}}</strong>{{name2}}</a>
+        </div>
+    </div>
+
+    <div class="content">
+        <div class="left-panel">
+<!--            <button class="toggle-right-panel-button" onclick="toggleRightPanel()">Toggle Right Panel</button>-->
+            <!--                <p>Left panel content...</p>-->
+            <!--                <p>(No horizontal scroll)</p>-->
+            <div id="chat"></div>
+            <div id="scrolldown-button-div">
+                <button id="scrolldown-button">↓</button>
+            </div>
+        </div>
+        <div class="right-panel">
+            <!--                <p>Right panel content...</p>-->
+            <div id="editor"></div>
+        </div>
+    </div>
+
+    <div class="footer">
+        <div class="chat-input">
+            <div id="extra-input-buttons">
+                <!--suppress HtmlUnknownAnchorTarget -->
+                <a href="#popupUpload" title="Upload" id="translate-button"><i class="gg-attachment"></i></a>
+                <!--            <button id="record"><i class="gg-mic"></i></button>-->
+            </div>
+
+            <div id="input-box" class="input-box" contenteditable="true" data-text="Type here..."></div>
+            <button id="stop-generating" disabled="disabled">
+                Stop generating
+                <span class="loading"></span>
+            </button>
+            <div class="inner-footer">
+                <div class="footer-buttons">
+                    <span id="timing-info"></span>
+
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+
+{% include 'common/popups/settings.html' %}
+{% include 'common/popups/upload.html' %}
+{% include 'common/popups/generic.html' %}
+<script type="module" src="/static/js/app.js"></script>
+</body>
+</html>
+

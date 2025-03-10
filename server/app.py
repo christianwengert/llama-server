@@ -1,6 +1,7 @@
 import hashlib
 import json
 import os
+import re
 import secrets
 import tempfile
 import time
@@ -40,7 +41,6 @@ while True:
         continue
 
 
-# SEPARATOR = '~~~~'
 LOADED_EMBEDDINGS = {}
 CACHE_DIR = 'cache'
 if not os.path.exists(CACHE_DIR):
@@ -75,7 +75,7 @@ def login_required(f):
 
 @app.route('/logout', methods=['GET'])
 def logout():
-    session.pop('username')
+    session.pop('username', None)
     return redirect(url_for('login'))
 
 
@@ -174,13 +174,11 @@ def c(token):
     data = session.get('params', None)
     if not data:
         data = get_llama_parameters()
-    # if isinstance(data['stop'], list):
-    #     data['stop'] = ','.join(data['stop'])
 
     username = session.get('username')
     collections = get_available_collections(username)
 
-    return render_template('index.html',
+    return render_template('new.html',
                            collections=collections,
                            username=session.get('username', 'anonymous'),
                            name=os.environ.get("CHAT_NAME", "local"),
@@ -410,6 +408,27 @@ def get_input():
     post_data = get_llama_default_parameters(data)
     url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
     post_data['messages'] = messages
+    # post_data['stream'] = False
+    # post_data.pop('grammar')
+    # post_data['tools'] = [
+    #     {
+    #     "type":"function",
+    #     "function":{
+    #         "name":"python",
+    #         "description":"Runs code in an ipython interpreter and returns the result of the execution after 60 seconds.",
+    #         "parameters":{
+    #         "type":"object",
+    #         "properties":{
+    #             "code":{
+    #             "type":"string",
+    #             "description":"The code to run in the ipython interpreter."
+    #             }
+    #         },
+    #         "required":["code"]
+    #         }
+    #     }
+    #     }
+    # ]
 
     def generate():
         data = requests.request(method="POST",
@@ -424,11 +443,18 @@ def get_input():
                 response = decoded_line[6:]
                 if response != '[DONE]':
                     responses.append(response)
-                    yield response  # + SEPARATOR
+                    yield response
 
         output = "".join([json.loads(a)['choices'][0]['delta'].get('content', '') for a in responses if 'embedding' not in a]).strip()
         hist['items'].append(dict(role=USER, content=text))
-        hist['items'].append(dict(role=ASSISTANT, content=output))
+        # Remove thought process from history
+        think_pattern = r'<think>([\s\S]*?)<\/think>([\s\S]*)'
+        matches = re.match(think_pattern, output, re.MULTILINE)
+        if matches is not None:
+            thinking_block, message_block = matches[1], matches[2].strip()
+        else:
+            message_block = output
+        hist['items'].append(dict(role=ASSISTANT, content=message_block))
         with open(cache_key, 'w') as f:
             json.dump(hist, f)
 
