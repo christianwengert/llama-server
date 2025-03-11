@@ -21,22 +21,9 @@ from marker.output import text_from_rendered
 
 RAG_CHUNK_SIZE = 2048
 RAG_DATA_DIR = os.path.abspath(os.path.dirname(__file__) + '/../../data')
-RAG_RERANKING_TEMPLATE_STRING = "Given the following question and context, return YES if the context is relevant to the question and NO if it isn't. If you don't know, then respond with I DON'T KNOW\n\n> Question: {question}\n> Context:\n>>>\n{context}\n>>>\n> Relevant (YES / NO):"
-RAG_RERANKING_YESNO_GRAMMAR = r'''
-    root ::= answer
-    answer ::= (complaint | yesno)        
-    complaint ::= "I DON'T KNOW"
-    yesno ::= ("YES" | "NO")
-'''
 RAG_NUM_DOCS = 5
 
 RAG_DEFAULT_MODEL = 'BAAI/bge-m3'
-# RAG_MODEL = 'BAAI/bge-large-en-v1.5'
-# RAG_MODEL = 'BAAI/bge-large-en-v1.5'
-# RAG_MODEL = 'intfloat/multilingual-e5-large'
-# Each input text should start with "query: " or "passage: ", even for non-English texts.
-# For tasks other than retrieval, you can simply use the "query: " prefix.
-# see also here: DO I need query: https://huggingface.co/intfloat/e5-large-v2
 
 
 def get_embeddings(model_name: str) -> HuggingFaceEmbeddings:
