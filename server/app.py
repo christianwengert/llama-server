@@ -225,12 +225,13 @@ def upload():
     for destination in files_to_process:
         # noinspection PyBroadException
         try:
-            content, parsed_pdf_document, error = extract_contents(destination)
-        except Exception:
+            content, error = extract_contents(destination)
+        except Exception as e:
+            print(e)
             continue  # ignore this file
         if error:
             return jsonify(error)
-        contents.append((destination, content, parsed_pdf_document))
+        contents.append((destination, content))
 
     if use_collection:
 
@@ -271,7 +272,7 @@ def upload():
 
     else:
         context = ""
-        for _, content, _ in contents:
+        for _, content in contents:
             tokens = get_tokens(content)
             n_tokens += len(tokens.get('tokens', []))
             context += f"{content}\n\n"

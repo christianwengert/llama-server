@@ -2,25 +2,22 @@ import hashlib
 import json
 import logging
 import os
-import urllib
 from pathlib import Path
-from typing import List, Tuple, Optional, Dict, Union
+from typing import List, Tuple, Optional, Dict
 from urllib.parse import urlparse, parse_qs
-
-import requests
-# noinspection PyPackageRequirements
-import scipdf
 from flask import Request
 from langchain.text_splitter import TextSplitter, Language, RecursiveCharacterTextSplitter, MarkdownTextSplitter
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_community.vectorstores.faiss import FAISS
 from langchain_core.documents import Document
-
-from llama_cpp import get_llama_default_parameters, LLAMA_API
-
 from utils.filesystem import list_directories, is_source_code_file, is_pdf, is_json, is_text_file, is_sqlite, \
     get_mime_type, is_importable
-
+# noinspection PyPackageRequirements
+from marker.converters.pdf import PdfConverter
+# noinspection PyPackageRequirements
+from marker.models import create_model_dict
+# noinspection PyPackageRequirements
+from marker.output import text_from_rendered
 
 RAG_CHUNK_SIZE = 2048
 RAG_DATA_DIR = os.path.abspath(os.path.dirname(__file__) + '/../../data')
@@ -57,25 +54,6 @@ def rag_context(docs: List[Document]) -> Tuple[str, List[Dict]]:
         context += "\n\nThis is one piece of context:\n" + d.page_content
         metadata.append(d.metadata)
     return context, metadata
-
-
-def rag_contex_stackexchange(docs: List[Document]) -> str:
-    context = []  # todo: add reference to metadata
-    for d in docs:
-        answers = d.metadata.get('answers')
-        if answers:
-            context.append(
-                f"Q:\n\n{d.page_content}\n\n"
-            )
-
-            for a in answers:
-                context.append(
-                    f"A:\n\n{a}\n\n"
-                )
-
-    context_string = "".join(context)
-
-    return context_string
 
 
 def get_available_collections(username: str = None) -> Dict[str, List[Dict[str, str]]]:
@@ -201,13 +179,20 @@ def get_text_splitter(destination: str) -> TextSplitter:
     return text_splitter
 
 
-def extract_contents(destination: str) -> Tuple[str, Optional[Dict], Dict[str, str]]:
+def extract_contents(destination: str) -> Tuple[str, Dict[str, str]]:
     contents = None
-    parsed_pdf_document = None  # special handling for pdfs
+    # parsed_pdf_document = None  # special handling for pdfs
     error = None
     if is_pdf(destination):
-        parsed_pdf_document = parse_pdf_with_grobid(destination)
-        contents = make_pdf_prompt(parsed_pdf_document)
+        os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"  # For some reason, transformers decided to use .isin for a simple op, which is not supported on MPS
+        converter = PdfConverter(
+            artifact_dict=create_model_dict(),
+        )
+        rendered = converter(destination)
+        markdown, _, images = text_from_rendered(rendered)
+        # parsed_pdf_document = parse_pdf_with_grobid(destination)
+        # contents = make_pdf_prompt(markdown)
+        contents = markdown
 
     elif is_source_code_file(destination):
         with open(destination, 'r') as f:
@@ -227,33 +212,15 @@ def extract_contents(destination: str) -> Tuple[str, Optional[Dict], Dict[str, s
     else:
         mime_type = get_mime_type(destination)
         error = {"error": f"Unknown file type {mime_type}. If you need this, open a Github Issue."}
-    return contents, parsed_pdf_document, error
+    return contents, error
 
 
-def parse_pdf_with_grobid(filename: Union[str, Path]) -> Dict:
-    if not os.path.exists(filename):
-        raise FileNotFoundError()
-    import time
-    start = time.time()
-    document = scipdf.parse_pdf_to_dict(filename)  # return dictionary
-    end = time.time()
-    logging.info(f'Processed document in {end - start} seconds')
-    return document
-
-
-def make_pdf_prompt(article: Dict):
-    prompt_text = "The following is an article on which I will ask questions. After processing this article, acknowledge the following with OK."
-    prompt_text += f"# {article['title']}\n\n"
-    prompt_text += f"## authors: {article['authors']}\n\n"
-    prompt_text += f"## abstract: {article['abstract']}\n\n"
-
-    for section in article['sections']:
-        prompt_text += f"## {section['heading']}\n"
-        prompt_text += section['text']
-
-    for _reference in article['references']:
-        pass  # todo
-    return prompt_text
+# def make_pdf_prompt(article: str):
+#     prompt_text = "The following is an article on which I will ask questions. After processing this article, acknowledge the following with OK."
+#     prompt_text += "\n<article>\n"
+#     prompt_text += article
+#     prompt_text += "\n</article>\n"
+#     return prompt_text
 
 
 def get_context_from_rag(query: str, vector_store: Optional[FAISS], num_docs: int = RAG_NUM_DOCS) -> Tuple[Optional[str], List[Dict]]:
@@ -281,37 +248,7 @@ def search_and_rerank_docs(num_docs: int, query: str, vector_store: FAISS):
         for r in results[:num_docs]:
             docs.append(Document(page_content=r['text'], metadata=r['meta']))
         return docs
-
-    elif is_importable('FlagEmbedding'):
-        from FlagEmbedding import FlagReranker
-        reranker = FlagReranker('BAAI/bge-reranker-large')
-        logging.info('Using flag reranker')
-        rawdocs = vector_store.similarity_search(query, k=num_docs * 2)
-        queries = []
-        for d in rawdocs:
-            queries.append([query, d.page_content])
-        scores = reranker.compute_score(queries)
-        if not isinstance(scores, list):
-            scores = [scores]
-        sorted_docs = sorted(zip(scores, rawdocs), reverse=True)
-        return [b for a, b in sorted_docs[:num_docs]]
-
     else:
         logging.warning('no flashrank available')
         docs = vector_store.similarity_search(query, k=num_docs)  #
         return docs
-
-
-def transform_query(query: str, use_llm=False) -> str:
-    if not use_llm:
-        return query
-    # This is called query transform, todo: The problem is: It will overwrite the llama.cpp cache
-    query_gen_str = """Provide a better search query for a search engine to answer the given question. Question: {query}\nAnswer:"""
-    post_data = get_llama_default_parameters({})
-    post_data['stream'] = False
-    post_data['prompt'] = query_gen_str.format(query=query)
-    response = requests.request(method="POST",
-                                url=urllib.parse.urljoin(LLAMA_API, "/completion"),
-                                data=json.dumps(post_data),
-                                stream=False)
-    return response.json()['content'].strip()
