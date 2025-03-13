@@ -92659,40 +92659,34 @@ ${text2}</tr>
             if (!chunk || !chunk.choices) {
               continue;
             }
-            for (let i2 = 0; i2 < allResponses.length; i2++) {
-              const chunk2 = allResponses[i2];
-              if (!chunk2 || !chunk2.choices) {
-                continue;
+            if (chunk.choices[0].finish_reason === "stop") {
+              const timings = chunk.timings;
+              let model = chunk.model;
+              if (model) {
+                model = model.split("/").slice(-1);
               }
-              if (chunk2.choices[0].finish_reason === "stop") {
-                const timings = chunk2.timings;
-                let model = chunk2.model;
-                if (model) {
-                  model = model.split("/").slice(-1);
-                }
-                if (timings) {
-                  const timing = document.getElementById("timing-info");
-                  timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
-                }
-                textField.innerHTML = parseMessage(textField.innerText);
-                inputElement.contentEditable = "true";
-                stopButton.disabled = true;
-                loadHistory();
-                inputElement.focus();
-                for (const elem1 of document.getElementsByClassName("shimmer")) {
-                  elem1.classList.remove("shimmer");
-                }
-                if (editor && lineNumber > 1 && lineNumber < editor.state.doc.lines) {
-                  removeLinesAfter(editor, lineNumber);
-                }
-                return;
-              } else {
-                onStreamProgress(chunk2);
+              if (timings) {
+                const timing = document.getElementById("timing-info");
+                timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
               }
+              textField.innerHTML = parseMessage(textField.innerText);
+              inputElement.contentEditable = "true";
+              stopButton.disabled = true;
+              loadHistory();
+              inputElement.focus();
+              for (const elem1 of document.getElementsByClassName("shimmer")) {
+                elem1.classList.remove("shimmer");
+              }
+              if (editor && lineNumber > 1 && lineNumber < editor.state.doc.lines) {
+                removeLinesAfter(editor, lineNumber);
+              }
+              return;
+            } else {
+              onStreamProgress(chunk);
             }
-            chunkBuffer = buffer;
-            updateScrollButton();
           }
+          chunkBuffer = buffer;
+          updateScrollButton();
         };
         xhr.addEventListener("error", function(e2) {
           console.log("error: " + e2);

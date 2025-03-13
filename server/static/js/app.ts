@@ -1010,11 +1010,11 @@ function getInputHandler(inputElement: HTMLElement) {
                     ccindex += s.length // enclosing
                 }
 
-                for (let i = 0; i < allResponses.length; i++) {
-                    const chunk = allResponses[i];
-                    if (!chunk || !chunk.choices) {
-                        continue;
-                    }
+                // for (let i = 0; i < allResponses.length; i++) {
+                //     const chunk = allResponses[i];
+                //     if (!chunk || !chunk.choices) {
+                //         continue;
+                //     }
 
                     // 4) For each valid JSON chunk we managed to parse, process it
                     for (let i = 0; i < allResponses.length; i++) {
@@ -1057,7 +1057,7 @@ function getInputHandler(inputElement: HTMLElement) {
                     //    (which is the ‘buffer’ value returned by getAllChunks)
                     chunkBuffer = buffer;
                     updateScrollButton();
-                }
+                // }
             };
 
 
