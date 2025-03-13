@@ -39,6 +39,10 @@ body {
     height: 50px; /* Ensuring equal height */
 }
 
+.sidebar-header strong {
+    margin-left: 16px;
+}
+
 .sidebar-content {
     flex: 1;
     overflow-y: auto;
