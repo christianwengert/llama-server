@@ -92682,10 +92682,9 @@ ${text2}</tr>
                 for (const elem1 of document.getElementsByClassName("shimmer")) {
                   elem1.classList.remove("shimmer");
                 }
-                if (editor && lineNumber < editor.state.doc.lines) {
+                if (editor && lineNumber > 1 && lineNumber < editor.state.doc.lines) {
                   removeLinesAfter(editor, lineNumber);
                 }
-                console.log(editor, lineNumber);
                 return;
               } else {
                 onStreamProgress(chunk2);
