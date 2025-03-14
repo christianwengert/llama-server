@@ -702,11 +702,17 @@ const setClipboardHandler = () => {
 };
 
 // If we haven't found '</codecanvas>', flush everything that can't be part of a marker.
-const couldStartMarker = (t: string) => {
-    // We'll skip flushing tokens that have '<' if we suspect they're part of the marker.
-    return t.includes('<');
-};
+// const couldStartMarker = (t: string) => {
+//     // We'll skip flushing tokens that have '<' if we suspect they're part of the marker.
+//     return t.includes('<');
+// };
 
+
+const KNOWN_MARKERS = ["<codecanvas>", "</codecanvas>", "<think>", "</think>"];
+
+function isPotentialMarker(bufferStr: Array<string>) {
+    return KNOWN_MARKERS.some(marker => marker.startsWith(bufferStr.join("")));
+}
 // get all valid chunks from partial xhr responses
 const getAllChunks = (input: string) => {
     let allResponses = [];
@@ -808,6 +814,32 @@ function getInputHandler(inputElement: HTMLElement) {
             // processToken(token): returns an array of { element, token } objects
             // telling us which element to append to, and what text to append.
             //------------------------------------------------------------------
+
+
+            // function processToken(token) {
+            //   rollingBuffer.push(token);
+            //   while (rollingBuffer.length > 0) {
+            //     // Check if what we have so far is a full marker or partial prefix
+            //     const { matchedMarker, couldStillBeMarker } = mightFormMarker(rollingBuffer);
+            //     if (matchedMarker) {
+            //       // The entire buffer matches e.g. "<codecanvas>"
+            //       rollingBuffer = [];
+            //       // handle switching mode to codecanvas, etc.
+            //       mode = "codecanvas";
+            //       return;
+            //     } else if (couldStillBeMarker) {
+            //       // The joined buffer is still a prefix (e.g. "<codec"),
+            //       // so let's break and wait for more tokens
+            //       break;
+            //     } else {
+            //       // We definitely do not match or prefix any known marker.
+            //       // Flush the first token out of the buffer as normal text.
+            //       pushToFlushList(rollingBuffer.shift());
+            //     }
+            //   }
+            // }
+            //
+            //
             const processToken = (token: string) => {
                 const flushList: Array<Record<string, string>> = [];
 
@@ -864,16 +896,21 @@ function getInputHandler(inputElement: HTMLElement) {
                         // if we matched it in rollingBuffer, remove it and switch mode.
                         mode = "normal";
                         pushToFlushList("\n</codecanvas>\n")
+                        // reset the buffer
+                        rollingBuffer = [];
+
                         // flushList.push({element: "codecanvas", token: "\n"});
                         return flushList;
                     }
 
                     while (rollingBuffer.length > 0) {
-                        if (couldStartMarker(rollingBuffer[0])) {
+                        if (isPotentialMarker(rollingBuffer)) {
                             break;
                         }
                         pushToFlushList(rollingBuffer.shift()!);
                     }
+
+
                     return flushList;
                 }
 
@@ -917,7 +954,7 @@ function getInputHandler(inputElement: HTMLElement) {
                 }
 
                 while (rollingBuffer.length > 0) {
-                    if (couldStartMarker(rollingBuffer[0])) {
+                    if (isPotentialMarker(rollingBuffer)) {
                         break;
                     }
                     pushToFlushList(rollingBuffer.shift()!);
@@ -981,6 +1018,7 @@ function getInputHandler(inputElement: HTMLElement) {
             //------------------------------------------------------------------
             const onStreamProgress = (jsonChunk: any) => {
                 const token = jsonChunk.choices[0].delta.content;
+                console.log('mode: ' + mode + "    token: " + token)
                 const flushList = processToken(token);
                 flushList.forEach(item => flushQueue.push(item));
                 scheduleFlush();
@@ -1010,11 +1048,11 @@ function getInputHandler(inputElement: HTMLElement) {
                     ccindex += s.length // enclosing
                 }
 
-                for (let i = 0; i < allResponses.length; i++) {
-                    const chunk = allResponses[i];
-                    if (!chunk || !chunk.choices) {
-                        continue;
-                    }
+                // for (let i = 0; i < allResponses.length; i++) {
+                //     const chunk = allResponses[i];
+                //     if (!chunk || !chunk.choices) {
+                //         continue;
+                //     }
 
                     // 4) For each valid JSON chunk we managed to parse, process it
                     for (let i = 0; i < allResponses.length; i++) {
@@ -1048,6 +1086,7 @@ function getInputHandler(inputElement: HTMLElement) {
                             }
                             // console.log(editor, lineNumber)
                             return;
+                            // break;
                         } else {
                             onStreamProgress(chunk);
                         }
@@ -1057,7 +1096,7 @@ function getInputHandler(inputElement: HTMLElement) {
                     //    (which is the ‘buffer’ value returned by getAllChunks)
                     chunkBuffer = buffer;
                     updateScrollButton();
-                }
+                // }
             };
 
 

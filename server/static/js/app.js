@@ -92448,9 +92448,10 @@ ${text2}</tr>
       }
     });
   };
-  var couldStartMarker = (t2) => {
-    return t2.includes("<");
-  };
+  var KNOWN_MARKERS = ["<codecanvas>", "</codecanvas>", "<think>", "</think>"];
+  function isPotentialMarker(bufferStr) {
+    return KNOWN_MARKERS.some((marker) => marker.startsWith(bufferStr.join("")));
+  }
   var getAllChunks = (input) => {
     let allResponses = [];
     let buffer;
@@ -92556,10 +92557,11 @@ ${text2}</tr>
               }
               mode = "normal";
               pushToFlushList("\n</codecanvas>\n");
+              rollingBuffer = [];
               return flushList;
             }
             while (rollingBuffer.length > 0) {
-              if (couldStartMarker(rollingBuffer[0])) {
+              if (isPotentialMarker(rollingBuffer)) {
                 break;
               }
               pushToFlushList(rollingBuffer.shift());
@@ -92596,7 +92598,7 @@ ${text2}</tr>
             return flushList;
           }
           while (rollingBuffer.length > 0) {
-            if (couldStartMarker(rollingBuffer[0])) {
+            if (isPotentialMarker(rollingBuffer)) {
               break;
             }
             pushToFlushList(rollingBuffer.shift());
@@ -92638,6 +92640,7 @@ ${text2}</tr>
         };
         const onStreamProgress = (jsonChunk) => {
           const token = jsonChunk.choices[0].delta.content;
+          console.log("mode: " + mode + "    token: " + token);
           const flushList = processToken(token);
           flushList.forEach((item) => flushQueue.push(item));
           scheduleFlush();
@@ -92659,41 +92662,34 @@ ${text2}</tr>
             if (!chunk || !chunk.choices) {
               continue;
             }
-            for (let i2 = 0; i2 < allResponses.length; i2++) {
-              const chunk2 = allResponses[i2];
-              if (!chunk2 || !chunk2.choices) {
-                continue;
+            if (chunk.choices[0].finish_reason === "stop") {
+              const timings = chunk.timings;
+              let model = chunk.model;
+              if (model) {
+                model = model.split("/").slice(-1);
               }
-              if (chunk2.choices[0].finish_reason === "stop") {
-                const timings = chunk2.timings;
-                let model = chunk2.model;
-                if (model) {
-                  model = model.split("/").slice(-1);
-                }
-                if (timings) {
-                  const timing = document.getElementById("timing-info");
-                  timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
-                }
-                textField.innerHTML = parseMessage(textField.innerText);
-                inputElement.contentEditable = "true";
-                stopButton.disabled = true;
-                loadHistory();
-                inputElement.focus();
-                for (const elem1 of document.getElementsByClassName("shimmer")) {
-                  elem1.classList.remove("shimmer");
-                }
-                if (editor && lineNumber < editor.state.doc.lines) {
-                  removeLinesAfter(editor, lineNumber);
-                }
-                console.log(editor, lineNumber);
-                return;
-              } else {
-                onStreamProgress(chunk2);
+              if (timings) {
+                const timing = document.getElementById("timing-info");
+                timing.innerText = `${model}: ${round(1e3 / timings.predicted_per_token_ms, 1)} t/s `;
               }
+              textField.innerHTML = parseMessage(textField.innerText);
+              inputElement.contentEditable = "true";
+              stopButton.disabled = true;
+              loadHistory();
+              inputElement.focus();
+              for (const elem1 of document.getElementsByClassName("shimmer")) {
+                elem1.classList.remove("shimmer");
+              }
+              if (editor && lineNumber > 1 && lineNumber < editor.state.doc.lines) {
+                removeLinesAfter(editor, lineNumber);
+              }
+              return;
+            } else {
+              onStreamProgress(chunk);
             }
-            chunkBuffer = buffer;
-            updateScrollButton();
           }
+          chunkBuffer = buffer;
+          updateScrollButton();
         };
         xhr.addEventListener("error", function(e2) {
           console.log("error: " + e2);
