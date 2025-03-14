@@ -92448,9 +92448,10 @@ ${text2}</tr>
       }
     });
   };
-  var couldStartMarker = (t2) => {
-    return t2.includes("<");
-  };
+  var KNOWN_MARKERS = ["<codecanvas>", "</codecanvas>", "<think>", "</think>"];
+  function isPotentialMarker(bufferStr) {
+    return KNOWN_MARKERS.some((marker) => marker.startsWith(bufferStr.join("")));
+  }
   var getAllChunks = (input) => {
     let allResponses = [];
     let buffer;
@@ -92556,10 +92557,11 @@ ${text2}</tr>
               }
               mode = "normal";
               pushToFlushList("\n</codecanvas>\n");
+              rollingBuffer = [];
               return flushList;
             }
             while (rollingBuffer.length > 0) {
-              if (couldStartMarker(rollingBuffer[0])) {
+              if (isPotentialMarker(rollingBuffer)) {
                 break;
               }
               pushToFlushList(rollingBuffer.shift());
@@ -92596,7 +92598,7 @@ ${text2}</tr>
             return flushList;
           }
           while (rollingBuffer.length > 0) {
-            if (couldStartMarker(rollingBuffer[0])) {
+            if (isPotentialMarker(rollingBuffer)) {
               break;
             }
             pushToFlushList(rollingBuffer.shift());
@@ -92638,6 +92640,7 @@ ${text2}</tr>
         };
         const onStreamProgress = (jsonChunk) => {
           const token = jsonChunk.choices[0].delta.content;
+          console.log("mode: " + mode + "    token: " + token);
           const flushList = processToken(token);
           flushList.forEach((item) => flushQueue.push(item));
           scheduleFlush();
