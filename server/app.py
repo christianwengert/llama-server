@@ -13,13 +13,11 @@ from typing import Dict, Optional, Tuple, List
 import requests
 from flask import Flask, render_template, request, session, Response, abort, redirect, url_for, jsonify, \
     stream_with_context
-from langchain.text_splitter import RecursiveCharacterTextSplitter
 from llama_cpp import get_llama_default_parameters, get_llama_parameters, ASSISTANT, USER, \
     get_default_props_from_llamacpp
 from flask_session import Session
 from urllib.parse import urlparse
 from rag import get_available_collections, load_collection, get_collection_from_query, create_or_open_collection, \
-    RAG_CHUNK_SIZE, \
     get_text_splitter, extract_contents, get_context_from_rag, RAG_DATA_DIR
 from utils.filesystem import is_archive, extract_archive, find_files
 from utils.timestamp_formatter import categorize_timestamp
@@ -245,24 +243,10 @@ def upload():
         username = session.get('username')
 
         index, index_path, hashed_index_name = create_or_open_collection(collection_name, username, collection_visibility == "public")
-        for destination, content, parsed_pdf_document in contents:
+        for destination, content in contents:
             filename = os.path.basename(destination)
-            if parsed_pdf_document:  # already processed pdf, i.e. already split in abstract, sections etc.
-                text_splitter = RecursiveCharacterTextSplitter(
-                    separators=[r'(?<=[^A-Z].[.?]) +(?=[A-Z])'],
-                    chunk_size=RAG_CHUNK_SIZE,
-                    chunk_overlap=0,
-                    length_function=len,
-                    is_separator_regex=True,
-                )
-                text = f"Title: {parsed_pdf_document['title']}\n\nAbstract:\n{parsed_pdf_document['abstract']}"
-                docs = text_splitter.create_documents([text], metadatas=[dict(file=filename, position='abstract')])
-                sections_with_titles = [section['heading'] + '\n\n' + section['text'] for section in parsed_pdf_document['sections']]
-                docs.extend(text_splitter.create_documents(sections_with_titles, metadatas=[dict(file=filename, position='section')] * len(sections_with_titles)))
-
-            else:
-                text_splitter = get_text_splitter(destination)
-                docs = text_splitter.create_documents([content], metadatas=[dict(file=filename)])
+            text_splitter = get_text_splitter(destination)
+            docs = text_splitter.create_documents([content], metadatas=[dict(file=filename)])
             # Ok now we have all docs and metadata
             index.add_documents(docs)
             index.save_local(index_path)

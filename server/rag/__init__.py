@@ -154,7 +154,7 @@ def get_text_splitter(destination: str) -> TextSplitter:
             language=language, chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
         )
         return text_splitter
-    if extension == '.md':
+    if extension in ['.md', '.pdf']:  # marker results in markdown
         text_splitter = MarkdownTextSplitter(
             chunk_size=RAG_CHUNK_SIZE, chunk_overlap=0
         )
