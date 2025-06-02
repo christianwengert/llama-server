@@ -1040,6 +1040,7 @@ function getInputHandler(inputElement: HTMLElement) {
             const onStreamProgress = (jsonChunk: any) => {
                 const token = jsonChunk.choices[0].delta.content;
                 console.log('mode: ' + mode + "    token: " + token)
+                // console.log(jsonChunk)
                 const flushList = processToken(token);
                 flushList.forEach(item => flushQueue.push(item));
                 scheduleFlush();

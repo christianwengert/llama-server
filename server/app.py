@@ -470,14 +470,14 @@ def get_input():
                 response = decoded_line[6:]
                 if response != '[DONE]':
                     parsed_response = json.loads(response)
-                    content = parsed_response['choices'][0]['delta'].get('content', '')
-                    if content:
-                        responses.append(parsed_response)
-                        yield response
-        try:
-            output = "".join([a['choices'][0]['delta'].get('content', '') for a in responses if 'embedding' not in a]).strip()
-        except (json.decoder.JSONDecodeError, KeyError, TypeError):
-            a = 2
+                    # content = parsed_response['choices'][0]['delta'].get('content', '')
+                    # if content:
+                    responses.append(parsed_response)
+                    yield response
+        # try:
+        output = "".join([a['choices'][0]['delta'].get('content', '') or "" for a in responses if 'embedding' not in a]).strip()
+        # except (json.decoder.JSONDecodeError, KeyError, TypeError):
+        #     a = 2
         hist['items'].append(dict(role=USER, content=text))
         # Remove thought process from history
         think_pattern = r'<think>([\s\S]*?)<\/think>([\s\S]*)'
