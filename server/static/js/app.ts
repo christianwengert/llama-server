@@ -867,6 +867,12 @@ function getInputHandler(inputElement: HTMLElement) {
                         mode = "normal";
                         return flushList; // no output for the marker
                     }
+                    if (endsWithJoined(rollingBuffer, "</think>")) {
+                        pushToFlushList("\n</think>\n")
+                        mode = "normal";
+                        rollingBuffer = [];
+                        return flushList;
+                    }
                     // Otherwise, push token and see if we form '</think>' ignoring whitespace.
                     rollingBuffer.push(token);
 
@@ -949,6 +955,12 @@ function getInputHandler(inputElement: HTMLElement) {
                 if (endsWithJoined(rollingBuffer, "<codecanvas>")) {
                     pushToFlushList("\n<codecanvas>\n")
                     mode = "codecanvas";
+                    rollingBuffer = [];
+                    return flushList;
+                }
+                if (endsWithJoined(rollingBuffer, "<think>")) {
+                    pushToFlushList("\n<think>\n")
+                    mode = "think";
                     rollingBuffer = [];
                     return flushList;
                 }
@@ -1478,6 +1490,48 @@ const main = () => {
 
     setupEditor();
 }
+
+let selectedProjectId = null;
+
+function loadChatsForProject(projectId) {
+  fetch(`/api/chats?project_id=${projectId}`).then(res => res.json()).then(chats => {
+    const list = document.getElementById('chat-list');
+    list.innerHTML = '';
+    chats.forEach(chat => {
+      const item = document.createElement('li');
+      item.innerText = chat.title || 'Untitled Chat';
+      item.onclick = () => loadChat(chat.chat_id);
+      list.appendChild(item);
+    });
+  });
+}
+
+function loadProjects() {
+  fetch('/api/projects').then(res => res.json()).then(projects => {
+    const list = document.getElementById('project-list');
+    list.innerHTML = '';
+    projects.forEach(project => {
+      const item = document.createElement('li');
+      item.innerText = project.name;
+      item.onclick = () => {
+        selectedProjectId = project.id;
+        loadChatsForProject(project.id);
+      };
+      list.appendChild(item);
+    });
+  });
+}
+
+function createProject() {
+  const name = prompt("Project name:");
+  if (!name) return;
+  fetch('/api/projects', {
+    method: 'POST',
+    body: JSON.stringify({ name }),
+    headers: { 'Content-Type': 'application/json' }
+  }).then(() => loadProjects());
+}
+
 
 // typical debounce
 function debounce(fn: any, delay: number) {

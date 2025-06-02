@@ -6,6 +6,7 @@ import secrets
 import tempfile
 import time
 import urllib
+import uuid
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
@@ -36,7 +37,7 @@ while True:
     except Exception:
         print("Waiting for llama-server")
         time.sleep(1)
-        continue
+        # break
 
 
 LOADED_EMBEDDINGS = {}
@@ -59,6 +60,35 @@ app.config['SESSION_PERMANENT'] = True  # Persist sessions across restarts
 app.config["PERMANENT_SESSION_LIFETIME"] = 30 * 24 * 60 * 60  # 30 days
 app.config['UPLOAD_FOLDER'] = tempfile.gettempdir()
 Session(app)
+
+
+@app.route('/api/chats')
+def get_chats():
+    username = hash_username(session.get('username'))
+    project_id = request.args.get('project_id')
+    all_chats = load_all_chats(username)  # your existing function
+    if project_id:
+        filtered = [c for c in all_chats if c.get('project_id') == project_id]
+    else:
+        filtered = all_chats
+    return jsonify(filtered)
+
+
+@app.route('/api/projects', methods=['GET', 'POST'])
+def handle_projects():
+    path = os.path.join(DATA_DIR, 'projects.json')
+    if request.method == 'GET':
+        return jsonify(load_json(path))
+    elif request.method == 'POST':
+        projects = load_json(path)
+        new_proj = {
+            "id": str(uuid.uuid4()),
+            "name": request.json['name'],
+            "created_at": datetime.utcnow().isoformat()
+        }
+        projects.append(new_proj)
+        save_json(path, projects)
+        return jsonify(new_proj)
 
 
 def login_required(f):
@@ -139,11 +169,15 @@ def history(item=None):
     """
     username = hash_username(session.get('username'))
 
-    history_items = []
+    history_items = load_all_chats(username, item)
 
+    return jsonify(history_items)
+
+
+def load_all_chats(username: str, item: Optional[str] = None):
+    history_items = []
     entries = os.listdir(CACHE_DIR)
     sorted_entries = sorted(entries, key=lambda x: os.path.getmtime(os.path.join(CACHE_DIR, x)), reverse=True)
-
     for d in sorted_entries:
         if d.startswith(username):
             with open(f'{CACHE_DIR}/{d}', 'r') as f:
@@ -155,7 +189,7 @@ def history(item=None):
                 items=json_data["items"] if item == url else [],
                 age=categorize_timestamp(os.path.getmtime(os.path.join(CACHE_DIR, d)))
             ))
-    return jsonify(history_items)
+    return history_items
 
 
 @login_required
@@ -165,9 +199,15 @@ def get_default_settings():
 
 
 @login_required
+@app.route("/c/<project_id>/<token>")
+def handle_chat_with_project(project_id, token):
+    session['project_id'] = project_id
+    return c(token)
+
 @app.route("/c/<path:token>")
 def c(token):
     session['token'] = token
+    # session['project_id'] = project_id
 
     data = session.get('params', None)
     if not data:
@@ -373,13 +413,15 @@ def get_input():
             "title": text,
             "grammar": data.get('grammar'),
             "assistant": ASSISTANT,
-            "user": USER
+            "user": USER,
+            "chat_id": token,
+            "project_id": ""
         }
 
     # Add context if asked
     context, metadata = make_context(text, token, vector_store)
     if context:
-        item = dict(role=USER, content=f'<context>\n{context}\n</context>', metadata=metadata)
+        item = dict(role=USER, content=f'<context>\n{context}\n</context>', metadata=metadata)  # todo add filename to context
         if collection:
             item['collection'] = collection
         hist['items'].append(item)
@@ -420,7 +462,7 @@ def get_input():
                                 url=url,
                                 data=json.dumps(post_data),
                                 stream=True)
-
+        # yield '{"id": "chatcmpl-8580f0ec-509d-4944-881c-c902939fb611", "system_fingerprint": "0.22.2-0.24.1-macOS-15.3.2-arm64-arm-64bit-applegpu_g15s", "object": "chat.completion.chunk", "model": "default_model", "created": 1743511005, "choices": [{"index": 0, "logprobs": {"token_logprobs": [], "top_logprobs": [], "tokens": null}, "finish_reason": null, "delta": {"role": "assistant", "content": "<think>"}}]}'
         responses = []
         for i, line in enumerate(data.iter_lines()):
             if line:
@@ -481,6 +523,8 @@ def get_context_from_upload(token: str) -> Tuple[Optional[str], List[Dict]]:
 def make_prompt(hist, system_prompt, text):
     messages = [{'role': 'system', 'content': system_prompt}]
     messages += hist['items']
+    # DEEP_THINKING_INSTRUCTION = "Enable deep thinking subroutine."
+    # messages += [{"role": "system", "content": DEEP_THINKING_INSTRUCTION}]
     messages += [{'role': USER, 'content': text}]
     return messages
 
@@ -490,4 +534,4 @@ def hash_username(username):
 
 
 if __name__ == '__main__':
-    app.run()
+    app.run(host="localhost", port=5000, debug=True)

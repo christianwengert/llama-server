@@ -92538,6 +92538,12 @@ ${text2}</tr>
               mode = "normal";
               return flushList;
             }
+            if (endsWithJoined(rollingBuffer, "</think>")) {
+              pushToFlushList("\n</think>\n");
+              mode = "normal";
+              rollingBuffer = [];
+              return flushList;
+            }
             rollingBuffer.push(token);
             while (rollingBuffer.length > 0) {
               pushToFlushList(rollingBuffer.shift());
@@ -92594,6 +92600,12 @@ ${text2}</tr>
           if (endsWithJoined(rollingBuffer, "<codecanvas>")) {
             pushToFlushList("\n<codecanvas>\n");
             mode = "codecanvas";
+            rollingBuffer = [];
+            return flushList;
+          }
+          if (endsWithJoined(rollingBuffer, "<think>")) {
+            pushToFlushList("\n<think>\n");
+            mode = "think";
             rollingBuffer = [];
             return flushList;
           }

@@ -502,6 +502,18 @@ a {
     opacity: 1.0;
 }
 
+#history-div, #projects-div ul {
+    margin-top: unset;
+}
+#projects-div {
+    margin-bottom: 32px;
+}
+#projects li {
+    list-style: none;
+}
+.sidebar-title {
+    padding-left: 16px;
+}
 
 .delete-history-item {
     margin-left: auto;
@@ -513,6 +525,18 @@ a {
     font-size: 1.2rem;
     opacity: 0.5;
 
+}
+.d-flex {
+    display: flex;
+}
+#new-project-button {
+    margin-left: auto;
+    border: none;
+    background-color: unset;
+    cursor: pointer;
+    font-size: 20px;
+    line-height: 0;
+    padding-bottom: 8px;
 }
 
 .delete-history-item {
@@ -1482,6 +1506,9 @@ details[open] > summary::before {
     padding-left: 10px;
     border-left: solid 8px rgb(244, 244, 244);
 
+}
+.think-details {
+    margin-bottom: 8px;
 }
 
 
