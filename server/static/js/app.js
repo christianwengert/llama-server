@@ -92574,6 +92574,13 @@ ${text2}</tr>
             }
             return flushList;
           }
+          if (token === null) {
+            token = "";
+          }
+          if (token.startsWith("<think>")) {
+            pushToFlushList(token.slice("<think>".length));
+            token = "<think>";
+          }
           if (token === "<think>") {
             mode = "think";
             inner2.innerHTML = "";

@@ -920,8 +920,17 @@ function getInputHandler(inputElement: HTMLElement) {
                     return flushList;
                 }
 
+                if (token === null) {
+                    token = "";
+                }
                 // First, handle single-token markers if the model merges them.
+                if (token.startsWith("<think>")) {
+                    // pushToFlushList("\n<think>\n")
+                    pushToFlushList(token.slice("<think>".length))
+                    token = "<think>"
+                }
                 if (token === "<think>") {
+
                     mode = "think";
                     inner.innerHTML = "";
                     const details = document.createElement('details');
@@ -1522,7 +1531,7 @@ function loadProjects() {
   });
 }
 
-function createProject() {
+const createProject = () => {
   const name = prompt("Project name:");
   if (!name) return;
   fetch('/api/projects', {
@@ -1530,7 +1539,7 @@ function createProject() {
     body: JSON.stringify({ name }),
     headers: { 'Content-Type': 'application/json' }
   }).then(() => loadProjects());
-}
+};
 
 
 // typical debounce
