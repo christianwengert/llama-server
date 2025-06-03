@@ -1476,6 +1476,11 @@ function setupSidebarAndEditorToggle() {
     })
 }
 
+const setupProjects = () => {
+    const newProjectButton = document.getElementById('new-project-button') as HTMLButtonElement;
+    newProjectButton.onclick = createProject;
+};
+
 const main = () => {
     //
     setupSidebarAndEditorToggle();
@@ -1499,13 +1504,15 @@ const main = () => {
     setupCollectionDeletion();
 
     setupEditor();
+
+    setupProjects()
 }
 
 let selectedProjectId = null;
 
 function loadChatsForProject(projectId) {
   fetch(`/api/chats?project_id=${projectId}`).then(res => res.json()).then(chats => {
-    const list = document.getElementById('chat-list');
+    const list = document.getElementById('chat-list')!;
     list.innerHTML = '';
     chats.forEach(chat => {
       const item = document.createElement('li');

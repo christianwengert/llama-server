@@ -171,6 +171,13 @@ def extract_contents(destination: str) -> Tuple[str, Dict[str, str]]:
     # parsed_pdf_document = None  # special handling for pdfs
     error = None
     if is_pdf(destination):
+        # TODO: This is a workaround, see https://github.com/VikParuchuri/marker/issues/654
+        import transformers
+        def new_repr(self):
+            return f"{self.__class__.__name__}"
+        transformers.configuration_utils.PretrainedConfig.__repr__ = new_repr
+        # TODO: End
+
         os.environ["PYTORCH_ENABLE_MPS_FALLBACK"] = "1"  # For some reason, transformers decided to use .isin for a simple op, which is not supported on MPS
         converter = PdfConverter(
             artifact_dict=create_model_dict(),
