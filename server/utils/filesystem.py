@@ -99,8 +99,13 @@ def is_archive(filename: str) -> bool:
     # Get the MIME type of the file
     mime_type = mime.from_file(filename)
 
-    # Check if the MIME type matches the tar, gzip, or zip format
-    return mime_type in ['application/x-tar', 'application/gzip', 'application/zip']
+    if mime_type in ['application/x-tar', 'application/gzip', 'application/zip']:
+        return True
+
+    if os.path.splitext(filename)[1] in ['.tar', '.tar.gz', '.tar.bz', '.zip']:
+        return True
+
+    return False
 
 
 def extract_archive(filename: str, destination: str) -> bool:

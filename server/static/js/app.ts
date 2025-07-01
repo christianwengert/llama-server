@@ -1038,7 +1038,30 @@ function getInputHandler(inputElement: HTMLElement) {
             //   - schedule flush if not already in progress
             //------------------------------------------------------------------
             const onStreamProgress = (jsonChunk: any) => {
-                const token = jsonChunk.choices[0].delta.content;
+                let token = jsonChunk.choices[0].delta.content;
+
+                if (token !== null && token !== undefined) {
+                    if (mode==="think") {
+                        processToken("</think>")
+                        // console.log('end think')
+                    }
+                    mode = "normal";
+
+                }
+
+                if (token === undefined) {
+                    if (jsonChunk.choices[0].delta.reasoning_content !== undefined) {
+                        if(mode === "normal") {
+                            processToken("<think>")
+                        }
+                        mode = "think";
+                        token = jsonChunk.choices[0].delta.reasoning_content
+                    } else {
+                        token = ""
+                    }
+                }
+
+
                 console.log('mode: ' + mode + "    token: " + token)
                 // console.log(jsonChunk)
                 const flushList = processToken(token);
@@ -1082,7 +1105,10 @@ function getInputHandler(inputElement: HTMLElement) {
                         if (!chunk || !chunk.choices) {
                             continue;
                         }
-                        if (chunk.choices[0].finish_reason === 'stop') {
+                        if (chunk.choices[0].finish_reason === 'tool_call') {
+                            textField.textContent += chunk.choices[0].delta.content;
+                        }
+                        if (chunk.choices[0].finish_reason === 'stop' || chunk.choices[0].finish_reason === 'tool_call') {
                             const timings = chunk.timings;
                             let model = chunk.model;
                             if (model) {
@@ -1526,6 +1552,9 @@ function loadChatsForProject(projectId) {
 function loadProjects() {
   fetch('/api/projects').then(res => res.json()).then(projects => {
     const list = document.getElementById('project-list');
+    if(!list) {
+        return;
+    }
     list.innerHTML = '';
     projects.forEach(project => {
       const item = document.createElement('li');

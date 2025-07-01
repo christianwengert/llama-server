@@ -92658,7 +92658,24 @@ ${text2}</tr>
           }
         };
         const onStreamProgress = (jsonChunk) => {
-          const token = jsonChunk.choices[0].delta.content;
+          let token = jsonChunk.choices[0].delta.content;
+          if (token !== null && token !== void 0) {
+            if (mode === "think") {
+              processToken("</think>");
+            }
+            mode = "normal";
+          }
+          if (token === void 0) {
+            if (jsonChunk.choices[0].delta.reasoning_content !== void 0) {
+              if (mode === "normal") {
+                processToken("<think>");
+              }
+              mode = "think";
+              token = jsonChunk.choices[0].delta.reasoning_content;
+            } else {
+              token = "";
+            }
+          }
           console.log("mode: " + mode + "    token: " + token);
           const flushList = processToken(token);
           flushList.forEach((item) => flushQueue.push(item));
@@ -92681,7 +92698,10 @@ ${text2}</tr>
             if (!chunk || !chunk.choices) {
               continue;
             }
-            if (chunk.choices[0].finish_reason === "stop") {
+            if (chunk.choices[0].finish_reason === "tool_call") {
+              textField.textContent += chunk.choices[0].delta.content;
+            }
+            if (chunk.choices[0].finish_reason === "stop" || chunk.choices[0].finish_reason === "tool_call") {
               const timings = chunk.timings;
               let model = chunk.model;
               if (model) {
@@ -93014,6 +93034,9 @@ ${text2}</tr>
   function loadProjects() {
     fetch("/api/projects").then((res) => res.json()).then((projects) => {
       const list2 = document.getElementById("project-list");
+      if (!list2) {
+        return;
+      }
       list2.innerHTML = "";
       projects.forEach((project) => {
         const item = document.createElement("li");

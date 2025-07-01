@@ -1,3 +1,4 @@
+import datetime
 import hashlib
 import json
 import os
@@ -84,7 +85,7 @@ def handle_projects():
         new_proj = {
             "id": str(uuid.uuid4()),
             "name": request.json['name'],
-            "created_at": datetime.utcnow().isoformat()
+            "created_at": datetime.datetime.utcnow().isoformat()
         }
         projects.append(new_proj)
         save_json(path, projects)
@@ -181,7 +182,10 @@ def load_all_chats(username: str, item: Optional[str] = None):
     for d in sorted_entries:
         if d.startswith(username):
             with open(f'{CACHE_DIR}/{d}', 'r') as f:
-                json_data = json.load(f)
+                try:
+                    json_data = json.load(f)
+                except JSONDecodeError:
+                    continue  # We ignore
             url = d.split('-')[1]
             history_items.append(dict(
                 title=json_data["title"],
@@ -268,7 +272,8 @@ def upload():
             print(e)
             continue  # ignore this file
         if error:
-            return jsonify(error)
+            continue
+            # return jsonify(error)
         contents.append((destination, content))
 
     if use_collection:
@@ -366,6 +371,39 @@ def get_tokens(text):
 #                             data=json.dumps(dict(prompt=prompt)),
 #                             stream=True)
 
+def parse_tool_call(chunks, tools):
+    name = None
+    args_buf = ""
+    for chunk in chunks:
+        delta = chunk["choices"][0]["delta"]
+        for call in delta.get("tool_calls", []):
+            fn = call.get("function")
+            if fn:
+                if name is None:
+                    name = fn["name"]
+                args_buf += fn.get("arguments", "")
+    if name is None:
+        raise ValueError("no function call in chunks")
+    args = json.loads(args_buf)
+    for t in tools:
+        if t["function"]["name"] == name:
+            schema = t["function"]["parameters"]
+            break
+    else:
+        raise ValueError(f"function “{name}” not found in tool definitions")
+    req = schema.get("required", [])
+    props = schema.get("properties", {})
+    for r in req:
+        if r not in args:
+            raise ValueError(f"missing required parameter “{r}”")
+    for k, v in args.items():
+        if k not in props:
+            raise ValueError(f"unexpected parameter “{k}”")
+        expected = props[k].get("type")
+        if expected == "string" and not isinstance(v, str):
+            raise TypeError(f"parameter “{k}” must be a string")
+    return name, args
+
 
 def compile_history(hist):
     lines = []
@@ -437,23 +475,24 @@ def get_input():
     post_data['messages'] = messages
     # post_data['stream'] = False
     # post_data.pop('grammar')
+    #
     # post_data['tools'] = [
     #     {
-    #     "type":"function",
-    #     "function":{
-    #         "name":"python",
-    #         "description":"Runs code in an ipython interpreter and returns the result of the execution after 60 seconds.",
-    #         "parameters":{
-    #         "type":"object",
-    #         "properties":{
-    #             "code":{
-    #             "type":"string",
-    #             "description":"The code to run in the ipython interpreter."
+    #         "type": "function",
+    #         "function": {
+    #             "name": "get_current_weather",
+    #             "description": "Get the current weather in a given location",
+    #             "parameters": {
+    #                 "type": "object",
+    #                 "properties": {
+    #                     "location": {
+    #                         "type": "string",
+    #                         "description": "The city and country/state, e.g. `San Francisco, CA`, or `Paris, France`"
+    #                     }
+    #                 },
+    #                 "required": ["location"]
     #             }
-    #         },
-    #         "required":["code"]
     #         }
-    #     }
     #     }
     # ]
 
@@ -464,17 +503,32 @@ def get_input():
                                 stream=True)
         # yield '{"id": "chatcmpl-8580f0ec-509d-4944-881c-c902939fb611", "system_fingerprint": "0.22.2-0.24.1-macOS-15.3.2-arm64-arm-64bit-applegpu_g15s", "object": "chat.completion.chunk", "model": "default_model", "created": 1743511005, "choices": [{"index": 0, "logprobs": {"token_logprobs": [], "top_logprobs": [], "tokens": null}, "finish_reason": null, "delta": {"role": "assistant", "content": "<think>"}}]}'
         responses = []
+        tool_calls = []
         for i, line in enumerate(data.iter_lines()):
             if line:
                 decoded_line = line.decode('utf-8')
                 response = decoded_line[6:]
                 if response != '[DONE]':
-                    parsed_response = json.loads(response)
+                    try:
+                        parsed_response = json.loads(response)
+                    except Exception as e:
+                        print(f"Problem parsing response: {e} \n{response} \n")
+                        continue
+                    if 'tool_calls' in parsed_response['choices'][0]['delta']:
+                        tool_calls.append(parsed_response)
+                        # continue
                     # content = parsed_response['choices'][0]['delta'].get('content', '')
                     # if content:
-                    responses.append(parsed_response)
-                    yield response
+                    if parsed_response not in tool_calls:
+                        responses.append(parsed_response)
+                        yield response
         # try:
+        if tool_calls:
+            tools = post_data["tools"]  # your function-definition list
+            fname, fargs = parse_tool_call(tool_calls, tools)
+            print(fname, fargs)
+            yield json.dumps({'choices': [{'finish_reason': 'tool_call', 'index': 0, 'delta': {'content': f'Tool call: {fname} with arguments {fargs}'}}], 'created': 1751355925, 'id': 'chatcmpl-Djly3Nuwj7luZN6vOa373DPDuCKiVnjs', 'model': 'qwen3-32b-dense', 'system_fingerprint': 'b5764-f667f1e6', 'object': 'chat.completion.chunk'})
+
         output = "".join([a['choices'][0]['delta'].get('content', '') or "" for a in responses if 'embedding' not in a]).strip()
         # except (json.decoder.JSONDecodeError, KeyError, TypeError):
         #     a = 2
