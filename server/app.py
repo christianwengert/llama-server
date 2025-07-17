@@ -1,4 +1,3 @@
-import datetime
 import hashlib
 import json
 import os
@@ -7,7 +6,6 @@ import secrets
 import tempfile
 import time
 import urllib
-import uuid
 from functools import wraps
 from json import JSONDecodeError
 from pathlib import Path
@@ -74,22 +72,22 @@ def get_chats():
         filtered = all_chats
     return jsonify(filtered)
 
-
-@app.route('/api/projects', methods=['GET', 'POST'])
-def handle_projects():
-    path = os.path.join(DATA_DIR, 'projects.json')
-    if request.method == 'GET':
-        return jsonify(load_json(path))
-    elif request.method == 'POST':
-        projects = load_json(path)
-        new_proj = {
-            "id": str(uuid.uuid4()),
-            "name": request.json['name'],
-            "created_at": datetime.datetime.utcnow().isoformat()
-        }
-        projects.append(new_proj)
-        save_json(path, projects)
-        return jsonify(new_proj)
+#
+# @app.route('/api/projects', methods=['GET', 'POST'])
+# def handle_projects():
+#     path = os.path.join(DATA_DIR, 'projects.json')
+#     if request.method == 'GET':
+#         return jsonify(load_json(path))
+#     elif request.method == 'POST':
+#         projects = load_json(path)
+#         new_proj = {
+#             "id": str(uuid.uuid4()),
+#             "name": request.json['name'],
+#             "created_at": datetime.datetime.utcnow().isoformat()
+#         }
+#         projects.append(new_proj)
+#         save_json(path, projects)
+#         return jsonify(new_proj)
 
 
 def login_required(f):
@@ -168,9 +166,13 @@ def history(item=None):
     """
     Returns a list of conversations from the history
     """
-    username = hash_username(session.get('username'))
 
-    history_items = load_all_chats(username, item)
+    username = session.get('username')
+    if not username:
+        redirect(url_for('logout'))
+    hashed_username = hash_username(username)
+
+    history_items = load_all_chats(hashed_username, item)
 
     return jsonify(history_items)
 
@@ -202,11 +204,11 @@ def get_default_settings():
     return jsonify(get_llama_parameters())
 
 
-@login_required
-@app.route("/c/<project_id>/<token>")
-def handle_chat_with_project(project_id, token):
-    session['project_id'] = project_id
-    return c(token)
+# @login_required
+# @app.route("/c/<project_id>/<token>")
+# def handle_chat_with_project(project_id, token):
+#     session['project_id'] = project_id
+#     return c(token)
 
 @app.route("/c/<path:token>")
 def c(token):
@@ -474,27 +476,27 @@ def get_input():
     url = urllib.parse.urljoin(LLAMA_API, "/v1/chat/completions")
     post_data['messages'] = messages
     # post_data['stream'] = False
-    # post_data.pop('grammar')
-    #
-    # post_data['tools'] = [
-    #     {
-    #         "type": "function",
-    #         "function": {
-    #             "name": "get_current_weather",
-    #             "description": "Get the current weather in a given location",
-    #             "parameters": {
-    #                 "type": "object",
-    #                 "properties": {
-    #                     "location": {
-    #                         "type": "string",
-    #                         "description": "The city and country/state, e.g. `San Francisco, CA`, or `Paris, France`"
-    #                     }
-    #                 },
-    #                 "required": ["location"]
-    #             }
-    #         }
-    #     }
-    # ]
+    post_data.pop('grammar')
+
+    post_data['tools'] = [
+        {
+            "type": "function",
+            "function": {
+                "name": "get_current_weather",
+                "description": "Get the current weather in a given location",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "location": {
+                            "type": "string",
+                            "description": "The city and country/state, e.g. `San Francisco, CA`, or `Paris, France`"
+                        }
+                    },
+                    "required": ["location"]
+                }
+            }
+        }
+    ]
 
     def generate():
         data = requests.request(method="POST",
@@ -593,4 +595,4 @@ def hash_username(username):
 
 
 if __name__ == '__main__':
-    app.run(host="localhost", port=5000, debug=True)
+    app.run(port=5000, debug=True)

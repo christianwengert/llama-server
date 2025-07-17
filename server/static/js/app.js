@@ -92999,10 +92999,6 @@ ${text2}</tr>
       toggleRightPanel();
     });
   }
-  var setupProjects = () => {
-    const newProjectButton = document.getElementById("new-project-button");
-    newProjectButton.onclick = createProject;
-  };
   var main2 = () => {
     setupSidebarAndEditorToggle();
     setupResetSettingsButton();
@@ -93016,48 +93012,6 @@ ${text2}</tr>
     setupMenu();
     setupCollectionDeletion();
     setupEditor();
-    setupProjects();
-  };
-  var selectedProjectId = null;
-  function loadChatsForProject(projectId) {
-    fetch(`/api/chats?project_id=${projectId}`).then((res) => res.json()).then((chats) => {
-      const list2 = document.getElementById("chat-list");
-      list2.innerHTML = "";
-      chats.forEach((chat) => {
-        const item = document.createElement("li");
-        item.innerText = chat.title || "Untitled Chat";
-        item.onclick = () => loadChat(chat.chat_id);
-        list2.appendChild(item);
-      });
-    });
-  }
-  function loadProjects() {
-    fetch("/api/projects").then((res) => res.json()).then((projects) => {
-      const list2 = document.getElementById("project-list");
-      if (!list2) {
-        return;
-      }
-      list2.innerHTML = "";
-      projects.forEach((project) => {
-        const item = document.createElement("li");
-        item.innerText = project.name;
-        item.onclick = () => {
-          selectedProjectId = project.id;
-          loadChatsForProject(project.id);
-        };
-        list2.appendChild(item);
-      });
-    });
-  }
-  var createProject = () => {
-    const name2 = prompt("Project name:");
-    if (!name2)
-      return;
-    fetch("/api/projects", {
-      method: "POST",
-      body: JSON.stringify({ name: name2 }),
-      headers: { "Content-Type": "application/json" }
-    }).then(() => loadProjects());
   };
   function debounce(fn, delay) {
     let timeout;

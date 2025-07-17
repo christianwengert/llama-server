@@ -1502,10 +1502,10 @@ function setupSidebarAndEditorToggle() {
     })
 }
 
-const setupProjects = () => {
-    const newProjectButton = document.getElementById('new-project-button') as HTMLButtonElement;
-    newProjectButton.onclick = createProject;
-};
+// const setupProjects = () => {
+//     const newProjectButton = document.getElementById('new-project-button') as HTMLButtonElement;
+//     newProjectButton.onclick = createProject;
+// };
 
 const main = () => {
     //
@@ -1531,52 +1531,52 @@ const main = () => {
 
     setupEditor();
 
-    setupProjects()
+    // setupProjects()
 }
 
-let selectedProjectId = null;
-
-function loadChatsForProject(projectId) {
-  fetch(`/api/chats?project_id=${projectId}`).then(res => res.json()).then(chats => {
-    const list = document.getElementById('chat-list')!;
-    list.innerHTML = '';
-    chats.forEach(chat => {
-      const item = document.createElement('li');
-      item.innerText = chat.title || 'Untitled Chat';
-      item.onclick = () => loadChat(chat.chat_id);
-      list.appendChild(item);
-    });
-  });
-}
-
-function loadProjects() {
-  fetch('/api/projects').then(res => res.json()).then(projects => {
-    const list = document.getElementById('project-list');
-    if(!list) {
-        return;
-    }
-    list.innerHTML = '';
-    projects.forEach(project => {
-      const item = document.createElement('li');
-      item.innerText = project.name;
-      item.onclick = () => {
-        selectedProjectId = project.id;
-        loadChatsForProject(project.id);
-      };
-      list.appendChild(item);
-    });
-  });
-}
-
-const createProject = () => {
-  const name = prompt("Project name:");
-  if (!name) return;
-  fetch('/api/projects', {
-    method: 'POST',
-    body: JSON.stringify({ name }),
-    headers: { 'Content-Type': 'application/json' }
-  }).then(() => loadProjects());
-};
+// let selectedProjectId = null;
+//
+// function loadChatsForProject(projectId) {
+//   fetch(`/api/chats?project_id=${projectId}`).then(res => res.json()).then(chats => {
+//     const list = document.getElementById('chat-list')!;
+//     list.innerHTML = '';
+//     chats.forEach(chat => {
+//       const item = document.createElement('li');
+//       item.innerText = chat.title || 'Untitled Chat';
+//       item.onclick = () => loadChat(chat.chat_id);
+//       list.appendChild(item);
+//     });
+//   });
+// }
+//
+// function loadProjects() {
+//   fetch('/api/projects').then(res => res.json()).then(projects => {
+//     const list = document.getElementById('project-list');
+//     if(!list) {
+//         return;
+//     }
+//     list.innerHTML = '';
+//     projects.forEach(project => {
+//       const item = document.createElement('li');
+//       item.innerText = project.name;
+//       item.onclick = () => {
+//         selectedProjectId = project.id;
+//         loadChatsForProject(project.id);
+//       };
+//       list.appendChild(item);
+//     });
+//   });
+// }
+//
+// const createProject = () => {
+//   const name = prompt("Project name:");
+//   if (!name) return;
+//   fetch('/api/projects', {
+//     method: 'POST',
+//     body: JSON.stringify({ name }),
+//     headers: { 'Content-Type': 'application/json' }
+//   }).then(() => loadProjects());
+// };
 
 
 // typical debounce
